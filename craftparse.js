@@ -2,6 +2,11 @@ let initialMaterials = {};
 const urlParams = new URLSearchParams(window.location.search);
 const isDebugMode = urlParams.has('debug') && urlParams.get('debug') === 'true';
 
+const LEVELS = [1, 5, 10, 15, 20, 25];
+const allMaterials = Object.values(materials).reduce((acc, season) => {
+    return { ...acc, ...season.mats };
+}, {});
+let qualityMultipliers = {};
 
 document.addEventListener('DOMContentLoaded', function() {
     createLevelStructure();
@@ -59,6 +64,13 @@ function formatedInputNumber(){
 	});
 
 }
+
+function getQualityMultiplier(levelName) {
+    const order = ['poor', 'common', 'fine', 'exquisite', 'epic', 'legendary'];
+    const idx = order.indexOf(levelName.toLowerCase());
+    return Math.pow(4, idx >= 0 ? idx : 0);
+}
+
 
 function setTemplateValues(templates) {
     // Tyhjennä ensin kaikki aikaisemmat valinnat
@@ -121,8 +133,7 @@ function createLevelStructure() {
     const manualInputDiv = document.getElementById('manualInput');
     //manualInputDiv.style.display = 'block'; // Aseta näkyväksi
 
-    const levels = [1, 5, 10];
-    levels.forEach(level => {
+    LEVELS.forEach(level => {
         const levelHeader = document.createElement('h3');
         levelHeader.textContent = `Level ${level}`;
         levelHeader.style.cursor = 'pointer'; // Osoittaa, että elementtiä voi klikata
@@ -171,7 +182,7 @@ function calculateMaterials() {
 
     // Täytä materialsDiv materiaalien tiedoilla...
 
-    const templateCounts = { 1: [], 5: [], 10: [] };
+    const templateCounts = { 1: [], 5: [], 10: [], 15: [], 20: [], 25: [] };
     const materialCounts = {};
 	const remainingUse = {};
     
@@ -186,7 +197,7 @@ function calculateMaterials() {
 
     
             if (product && amount > 0) {
-                templateCounts[level].push({ name: productName, amount: amount, img: product.img, materials: product.materials });
+                templateCounts[level].push({ name: productName, amount: amount, img: product.img, materials: product.materials, multiplier: qualityMultipliers[level] || 1 });
     
                 Object.entries(product.materials).forEach(([rawName, requiredAmount]) => {
 					const materialName = Object.keys(materials).find(
@@ -196,11 +207,11 @@ function calculateMaterials() {
                     if (!materialCounts[materialName]) {
 						materialCounts[materialName] = {
 							amount: 0,
-							img: materials[materialName] ? materials[materialName].img : ''
+							img: allMaterials[materialName] ? allMaterials[materialName].img : ''
 						};
 					}
-					materialCounts[materialName].amount += requiredAmount * amount;
-
+					const multiplier = qualityMultipliers[level] || 1;
+					materialCounts[materialName].amount += requiredAmount * amount * multiplier;
                 });
             }
         });
@@ -321,7 +332,7 @@ function calculateMaterials() {
                 matsDiv.className = 'item-mats';
                 const materialUsage = {};
                 Object.entries(template.materials).forEach(([mat, amt]) => {
-                    const totalAmt = amt * template.amount;
+                    const totalAmt = amt * template.amount * (template.multiplier || 1);
                     materialUsage[mat] = totalAmt;
                     const pLine = document.createElement('p');
                     pLine.className = 'item-material';
@@ -394,8 +405,9 @@ function createMaterialImageElement(materialName, imgUrl, preference) {
 
 document.getElementById('calculateWithPreferences').addEventListener('click', function() {
 	const materialInputs = document.querySelectorAll('.my-material input[type="text"]');
-	const templateAmountInput = document.querySelector('#templateAmount');
-	const allInputs = [...materialInputs, templateAmountInput];
+    const templateAmountInputs = LEVELS.map(l => document.querySelector(`#templateAmount${l}`));
+    const allInputs = [...materialInputs, ...templateAmountInputs];
+
 
 	let isValid = true;
 
@@ -422,17 +434,25 @@ document.getElementById('calculateWithPreferences').addEventListener('click', fu
 			initialMaterials = { ...availableMaterials };
 		}
 
-		let totalTemplates = parseInt(document.getElementById('templateAmount').value.replace(/,/g, ''));
-		if (isNaN(totalTemplates)) {
-			document.querySelector('.spinner-wrap').classList.remove('active');
-			return;
+		let templatesByLevel = {};
+		let totalTemplates = 0;
+		LEVELS.forEach(level => {
+				const val = parseInt(document.getElementById(`templateAmount${level}`).value.replace(/,/g, '')) || 0;
+				templatesByLevel[level] = val;
+				totalTemplates += val;
+				const quality = document.getElementById(`temp${level}`).value;
+				qualityMultipliers[level] = getQualityMultiplier(quality);
+		});
+		if (totalTemplates === 0) {
+				document.querySelector('.spinner-wrap').classList.remove('active');
+				return;
 		} else {
-			if (!isDebugMode){ 
-				gtag('event', 'total_material_templates', {
-					'event_material_templates': totalTemplates,
-					'value': 1
-				});
-			}
+				if (!isDebugMode){
+						gtag('event', 'total_material_templates', {
+								'event_material_templates': totalTemplates,
+								'value': 1
+						});
+				}
 		}
 		
 		let materialAmounts = Object.values(availableMaterials).map(amount => {
@@ -461,7 +481,7 @@ document.getElementById('calculateWithPreferences').addEventListener('click', fu
 			});
 		}
 
-		let productionPlan = calculateProductionPlan(availableMaterials, totalTemplates);
+		let productionPlan = calculateProductionPlan(availableMaterials, templatesByLevel);
 
 		document.querySelectorAll('#manualInput input[type="number"]').forEach(input => {
 			input.value = ''; // Nollaa kaikki input-kentät
@@ -478,7 +498,7 @@ function gatherMaterialsFromInputs() {
     let materialsInput = {};
     document.querySelectorAll('.my-material input[type="text"]').forEach(input => {
         const id = input.getAttribute('id').replace('my-', '');
-        const materialName = Object.keys(materials).find(name => name.toLowerCase().replace(/\s/g, '-') === id);
+        const materialName = Object.keys(allMaterials).find(name => name.toLowerCase().replace(/\s/g, '-') === id);
         const materialAmount = parseInt(input.value.replace(/,/g, ''), 10);
         if (!materialName) {
             return;
@@ -493,16 +513,19 @@ function gatherMaterialsFromInputs() {
 
 
 
-function calculateProductionPlan(availableMaterials, totalTemplates) {
-    let productionPlan = { "1": [], "5": [], "10": [] };
-	const includeWarlords = document.getElementById('includeWarlords')?.checked ?? true;
+function calculateProductionPlan(availableMaterials, templatesByLevel) {
+    let productionPlan = { "1": [], "5": [], "10": [], "15": [], "20": [], "25": [] };
+    const includeWarlords = document.getElementById('includeWarlords')?.checked ?? true;
     const level1OnlyWarlords = document.getElementById('level1OnlyWarlords')?.checked ?? false;
 
-    for (let i = 0; i < totalTemplates; i++) {
-        let preferences = getUserPreferences(availableMaterials);
-        let productsSelectedThisRound = { "1": null, "5": null, "10": null }; // Tämän kierroksen valitut tuotteet
+    let remaining = { ...templatesByLevel };
 
-        for (let level of [1, 5, 10]) {
+    while (Object.values(remaining).some(v => v > 0)) {
+        let preferences = getUserPreferences(availableMaterials);
+         let productsSelectedThisRound = {};
+
+        for (let level of LEVELS) {
+            if (remaining[level] <= 0) continue;
             //const levelProducts = craftItem.products.filter(product => product.level === level).filter(product => includeWarlords || !product.warlord);
 			//const levelProducts = craftItem.products.filter(product => product.level === level && (includeWarlords || !product.warlord));
             let levelProducts;
@@ -513,29 +536,25 @@ function calculateProductionPlan(availableMaterials, totalTemplates) {
             }
 			
 			
-            //const selectedProduct = selectProductForLevel(levelProducts, preferences.mostAvailableMaterials, preferences.secondMostAvailableMaterials, preferences.leastAvailableMaterials, availableMaterials);
-			const selectedProduct = selectBestAvailableProduct(levelProducts, preferences.mostAvailableMaterials, preferences.secondMostAvailableMaterials, preferences.leastAvailableMaterials, availableMaterials);
+            const multiplier = qualityMultipliers[level] || 1;
+            const selectedProduct = selectBestAvailableProduct(levelProducts, preferences.mostAvailableMaterials, preferences.secondMostAvailableMaterials, preferences.leastAvailableMaterials, availableMaterials, multiplier);
     
-	
-	
 
-			
-            if (selectedProduct && canProductBeProduced(selectedProduct, availableMaterials)) {
+            if (selectedProduct && canProductBeProduced(selectedProduct, availableMaterials, multiplier)) {
                 productionPlan[level].push(selectedProduct.name);
                 productsSelectedThisRound[level] = selectedProduct; // Tallennetaan valittu tuote
-                updateAvailableMaterials(availableMaterials, selectedProduct); // Päivitetään materiaalien määrä
+                updateAvailableMaterials(availableMaterials, selectedProduct, multiplier); // Päivitetään materiaalien määrä
             } else {
                 // Jos tuotetta ei voi valita, keskeytetään prosessi ja poistetaan edelliset tuotteet
-                if (level > 1) {
-					if (productsSelectedThisRound[1]) {
-						rollbackMaterials(availableMaterials, productsSelectedThisRound[1]);
-						productionPlan[1].pop();
-					}
-					if (level > 5 && productsSelectedThisRound[5]) {
-						rollbackMaterials(availableMaterials, productsSelectedThisRound[5]);
-						productionPlan[5].pop();
-					}
-}
+                LEVELS.forEach(l => {
+                    if (productsSelectedThisRound[l]) {
+                        rollbackMaterials(availableMaterials, productsSelectedThisRound[l], qualityMultipliers[l] || 1);
+                        productionPlan[l].pop();
+                        if (remaining[l] >= 0) {
+                            remaining[l]++;
+                        }
+                    }
+                });
 
                 return productionPlan; // Palautetaan jo tuotettu tuotantosuunnitelma
             }
@@ -557,7 +576,7 @@ function displayUserMessage(message) {
 
 
 
-function updateAvailableMaterials(availableMaterials, selectedProduct) {
+function updateAvailableMaterials(availableMaterials, selectedProduct, multiplier = 1) {
     Object.entries(selectedProduct.materials).forEach(([material, amountRequired]) => {
         const normalizedMaterial = material.toLowerCase().replace(/\s/g, '-');
         const matchedKey = Object.keys(availableMaterials).find(key =>
@@ -565,7 +584,7 @@ function updateAvailableMaterials(availableMaterials, selectedProduct) {
         );
 
         if (matchedKey) {
-            availableMaterials[matchedKey] -= amountRequired;
+            availableMaterials[matchedKey] -= amountRequired * multiplier;
         }
     });
 }
@@ -615,7 +634,7 @@ function getUserPreferences(availableMaterials) {
     return { mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials };
 }
 
-function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials) {
+function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1) {
     // Järjestä tuotteet pisteiden mukaan
     const candidates = levelProducts
         .map(product => ({
@@ -626,7 +645,7 @@ function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secon
 
     // Etsi ensimmäinen tuote, jonka materiaalit riittävät
     for (const { product } of candidates) {
-        if (canProductBeProduced(product, availableMaterials)) {
+        if (canProductBeProduced(product, availableMaterials, multiplier)) {
             return product;
         }
     }
@@ -634,7 +653,7 @@ function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secon
     return null; // Mikään tuote ei kelpaa
 }
 
-function rollbackMaterials(availableMaterials, product) {
+function rollbackMaterials(availableMaterials, product, multiplier = 1) {
 
     Object.entries(product.materials).forEach(([material, amountRequired]) => {
         const normalizedMaterial = material.toLowerCase().replace(/\s/g, '-');
@@ -643,7 +662,7 @@ function rollbackMaterials(availableMaterials, product) {
         );
 
         if (matchedKey) {
-            availableMaterials[matchedKey] += amountRequired;
+            availableMaterials[matchedKey] += amountRequired * multiplier;
         }
     });
 }
@@ -667,7 +686,7 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
     return score;
 }
 
-function canProductBeProduced(product, availableMaterials) {
+function canProductBeProduced(product, availableMaterials, multiplier = 1) {
     return Object.entries(product.materials).every(([material, amountRequired]) => {
         const normalizedMaterial = material.toLowerCase().replace(/\s/g, '-');
         const matchedKey = Object.keys(availableMaterials).find(key =>
@@ -678,7 +697,7 @@ function canProductBeProduced(product, availableMaterials) {
             return false;
         }
 
-        return availableMaterials[matchedKey] >= amountRequired;
+        return availableMaterials[matchedKey] >= amountRequired * multiplier;
     });
 }
 
@@ -741,18 +760,24 @@ function inputActive(){
             input.closest('.my-material').classList.add('active');
         });
     });
-	
-	const templateInput = document.querySelector('#templateAmount');
-    const templateWrap = document.querySelector('.templateAmountWrap');
+		
 
-    templateInput.addEventListener('focus', () => {
-        templateWrap.classList.add('active');
-    });
+ // Uusi osa: käsittele kaikki templateAmount-inputit tasoittain (1,5,10,...)
+  const levels = [1, 5, 10, 15, 20, 25];
+  levels.forEach(level => {
+	const input = document.querySelector(`#templateAmount${level}`);
+	const wrap = document.querySelector(`.leveltmp${level} .templateAmountWrap`);
 
-    templateInput.addEventListener('blur', () => {
-        if (!templateInput.value) {
-            templateWrap.classList.remove('active');
-        }
-    });
-	
+	if (input && wrap) {
+	  input.addEventListener('focus', () => {
+		wrap.classList.add('active');
+	  });
+
+	  input.addEventListener('blur', () => {
+		if (!input.value) {
+		  wrap.classList.remove('active');
+		}
+	  });
+	}
+  });
 }
