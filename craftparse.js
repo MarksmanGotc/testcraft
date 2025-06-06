@@ -6,8 +6,6 @@ const isDebugMode = urlParams.has('debug') && urlParams.get('debug') === 'true';
 document.addEventListener('DOMContentLoaded', function() {
     createLevelStructure();
     addCalculateButton();
-    generateMaterialList();
-	addWarlordToggle();
 	formatedInputNumber();
 	inputActive();
 	
@@ -38,40 +36,6 @@ document.addEventListener('DOMContentLoaded', function() {
         wrapperDiv.style.display = 'block';
     });
 });
-
-function generateMaterialList() {
-    const materialsListDiv = document.querySelector("#yourMaterials .materials-list");
-    materialsListDiv.innerHTML = ""; // Tyhjennetään lista ensin, varmuuden vuoksi
-
-    Object.entries(materials).forEach(([materialName, materialInfo]) => {
-        const materialDiv = document.createElement('div');
-        materialDiv.className = "my-material " + `${materialName.toLowerCase().replace(/\s/g, '-')}`;
-
-        const img = document.createElement('img');
-        img.src = materialInfo.img;
-        materialDiv.appendChild(img);
-
-        const infoDiv = document.createElement('div');
-        const span = document.createElement('span');
-        span.textContent = materialInfo["Original-name"] || materialName;
-        infoDiv.appendChild(span);
-
-
-		const input = document.createElement('input');
-		input.type = "text";
-		input.className = "numeric-input";
-		input.id = `my-${materialName.toLowerCase().replace(/\s/g, '-')}`;
-		input.name = `my-${materialName.toLowerCase().replace(/\s/g, '-')}`;
-		input.placeholder = "value"; // Käytä formatoitua placeholderia
-		input.pattern = "[0-9]*"; // Sallii vain numerot
-		input.inputMode = "numeric";
-		
-		infoDiv.appendChild(input);
-
-        materialDiv.appendChild(infoDiv);
-        materialsListDiv.appendChild(materialDiv);
-    });
-}
 
 function formatPlaceholderWithCommas(number) {
     return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -195,46 +159,6 @@ function createLevelStructure() {
         });
     });
 }
-
-function addWarlordToggle() {
-    const wrap = document.querySelector('.templateAmountWrap');
-
-    const includeDiv = document.createElement('div');
-    includeDiv.className = 'warlord-toggle';
-
-    const includeCheckbox = document.createElement('input');
-    includeCheckbox.type = 'checkbox';
-    includeCheckbox.id = 'includeWarlords';
-    includeCheckbox.checked = true;
-
-    const includeLabel = document.createElement('label');
-    includeLabel.htmlFor = 'includeWarlords';
-    includeLabel.textContent = 'Include CTW items';
-
-    includeDiv.appendChild(includeCheckbox);
-    includeDiv.appendChild(includeLabel);
-
-    const level1Div = document.createElement('div');
-    level1Div.className = 'warlord-toggle';
-
-    const level1Checkbox = document.createElement('input');
-    level1Checkbox.type = 'checkbox';
-    level1Checkbox.id = 'level1OnlyWarlords';
-
-    const level1Label = document.createElement('label');
-    level1Label.htmlFor = 'level1OnlyWarlords';
-    level1Label.textContent = 'Use only CTW items for Level 1';
-
-    level1Div.appendChild(level1Checkbox);
-    level1Div.appendChild(level1Label);
-
-    // Lisää toggle <div> heti .templateAmountWrap-divin jälkeen
-    wrap.parentNode.insertBefore(includeDiv, wrap.nextSibling);
-    includeDiv.parentNode.insertBefore(level1Div, includeDiv.nextSibling);
-}
-
-
-
 
 function calculateMaterials() {
 	
