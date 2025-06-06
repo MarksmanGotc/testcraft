@@ -365,7 +365,6 @@ const season10 = {
 	]
 };
 
-
 let craftItem = {
 	products: [
 		...season0.sets.flatMap(set =>
@@ -385,5 +384,4 @@ let craftItem = {
 	]
 };
 
-
-
+window.seasons = [season0, season10];
