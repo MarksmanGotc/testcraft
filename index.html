@@ -38,15 +38,112 @@
 			</div>
 			<div id="yourMaterials" class="material-choices">
 				<h4>Your materials:</h4>
-				<div class="materials-list"></div>
+				<div class="materials-list">
+					<div class="my-material black-iron"><img src="materials/icon_crafting_blackiron.webp"><div><span>Black Iron</span><input type="text" class="numeric-input" id="my-black-iron" name="my-black-iron" placeholder="value" pattern="[0-9]*" inputmode="numeric"></div></div>
+					<div class="my-material copper-bar"><img src="materials/icon_crafting_copper_bar.webp"><div><span>Copper bar</span><input type="text" class="numeric-input" id="my-copper-bar" name="my-copper-bar" placeholder="value" pattern="[0-9]*" inputmode="numeric"></div></div>
+					<div class="my-material dragonglass"><img src="materials/icon_crafting_dragonglass.webp"><div><span>Dragonglass</span><input type="text" class="numeric-input" id="my-dragonglass" name="my-dragonglass" placeholder="value" pattern="[0-9]*" inputmode="numeric"></div></div>
+					<div class="my-material goldenheart-wood"><img src="materials/icon_crafting_goldenheart_wood.webp"><div><span>Goldenheart wood</span><input type="text" class="numeric-input" id="my-goldenheart-wood" name="my-goldenheart-wood" placeholder="value" pattern="[0-9]*" inputmode="numeric"></div></div>
+					<div class="my-material hide"><img src="materials/icon_crafting_hide.webp"><div><span>Hide</span><input type="text" class="numeric-input" id="my-hide" name="my-hide" placeholder="value" pattern="[0-9]*" inputmode="numeric"></div></div>
+					<div class="my-material ironwood"><img src="materials/icon_crafting_ironwood.webp"><div><span>Ironwood</span><input type="text" class="numeric-input" id="my-ironwood" name="my-ironwood" placeholder="value" pattern="[0-9]*" inputmode="numeric"></div></div>
+					<div class="my-material kingswood-oak"><img src="materials/icon_crafting_kingswood_oak.webp"><div><span>Kingswood oak</span><input type="text" class="numeric-input" id="my-kingswood-oak" name="my-kingswood-oak" placeholder="value" pattern="[0-9]*" inputmode="numeric"></div></div>
+					<div class="my-material leather-straps"><img src="materials/icon_crafting_leather_straps.webp"><div><span>Leather straps</span><input type="text" class="numeric-input" id="my-leather-straps" name="my-leather-straps" placeholder="value" pattern="[0-9]*" inputmode="numeric"></div></div>
+					<div class="my-material milk-of-the-poppy"><img src="materials/icon_crafting_milk_of_the_poppy.webp"><div><span>Milk of the poppy</span><input type="text" class="numeric-input" id="my-milk-of-the-poppy" name="my-milk-of-the-poppy" placeholder="value" pattern="[0-9]*" inputmode="numeric"></div></div>
+					<div class="my-material silk"><img src="materials/icon_crafting_silk.webp"><div><span>Silk</span><input type="text" class="numeric-input" id="my-silk" name="my-silk" placeholder="value" pattern="[0-9]*" inputmode="numeric"></div></div>
+					<div class="my-material weirwood"><img src="materials/icon_crafting_weir_wood.webp"><div><span>Weirwood</span><input type="text" class="numeric-input" id="my-weirwood" name="my-weirwood" placeholder="value" pattern="[0-9]*" inputmode="numeric"></div></div>
+					<div class="my-material wildfire"><img src="materials/icon_crafting_wild_fire.webp"><div><span>Wildfire</span><input type="text" class="numeric-input" id="my-wildfire" name="my-wildfire" placeholder="value" pattern="[0-9]*" inputmode="numeric"></div></div>
+				</div>
 			</div>
+			
 
 			<!-- Generoitavien itemien määrä -->
-			<div class="templateAmountWrap">
-				<label for="templateAmount">Enter number of templates</label>
-				<input type="number" id="templateAmount" placeholder="120">
+			<div class="text"><p>Enter number of templates</p></div>
+			<div class="leveltmp1">
+				<div class="templateAmountWrap">
+					<label for="templateAmount1">level 1</label>
+					<input type="number" id="templateAmount1" placeholder="120">
+				</div>
+				<select name="temp1" id="temp1" class="temps">
+					<option value="poor">Poor</option>
+					<option value="common">Common</option>
+					<option value="fine">Fine</option>
+					<option value="exquisite">Exquisite</option>
+					<option value="epic">Epic</option>
+					<option value="legendary" selected>Legendary</option>
+				</select>
 			</div>
-
+			<div class="leveltmp5">
+				<div class="templateAmountWrap">
+					<label for="templateAmount5">level 5</label>
+					<input type="number" id="templateAmount5" placeholder="120">
+				</div>
+				<select name="temp5" id="temp5" class="temps">
+					<option value="poor">Poor</option>
+					<option value="common">Common</option>
+					<option value="fine">Fine</option>
+					<option value="exquisite">Exquisite</option>
+					<option value="epic">Epic</option>
+					<option value="legendary" selected>Legendary</option>
+				</select>
+			</div>
+			<div class="leveltmp10">
+				<div class="templateAmountWrap">
+					<label for="templateAmount10">level 10</label>
+					<input type="number" id="templateAmount10" placeholder="120">
+				</div>
+				<select name="temp10" id="temp10" class="temps">
+					<option value="poor">Poor</option>
+					<option value="common">Common</option>
+					<option value="fine">Fine</option>
+					<option value="exquisite">Exquisite</option>
+					<option value="epic">Epic</option>
+					<option value="legendary" selected>Legendary</option>
+				</select>
+			</div>
+			<div class="leveltmp15">
+				<div class="templateAmountWrap">
+					<label for="templateAmount15">level 15</label>
+					<input type="number" id="templateAmount15" placeholder="120">
+				</div>
+				<select name="temp15" id="temp15" class="temps">
+					<option value="poor">Poor</option>
+					<option value="common">Common</option>
+					<option value="fine">Fine</option>
+					<option value="exquisite" selected>Exquisite</option>
+					<option value="epic">Epic</option>
+					<option value="legendary">Legendary</option>
+				</select>
+			</div>
+			<div class="leveltmp20">
+				<div class="templateAmountWrap">
+					<label for="templateAmount20">level 20</label>
+					<input type="number" id="templateAmount20" placeholder="120">
+				</div>
+				<select name="temp20" id="temp20" class="temps">
+					<option value="poor">Poor</option>
+					<option value="common">Common</option>
+					<option value="fine">Fine</option>
+					<option value="exquisite" selected>Exquisite</option>
+					<option value="epic">Epic</option>
+					<option value="legendary">Legendary</option>
+				</select>
+			</div>
+			<div class="leveltmp25">
+				<div class="templateAmountWrap">
+					<label for="templateAmount25">level 25</label>
+					<input type="number" id="templateAmount25" placeholder="120">
+				</div>
+				<select name="temp25" id="temp25" class="temps">
+					<option value="poor">Poor</option>
+					<option value="common">Common</option>
+					<option value="fine">Fine</option>
+					<option value="exquisite" selected>Exquisite</option>
+					<option value="epic">Epic</option>
+					<option value="legendary">Legendary</option>
+				</select>
+			</div>
+			
+			<div class="warlord-toggle"><input type="checkbox" id="includeWarlords" checked><label for="includeWarlords">Include CTW items</label></div>
+			<div class="warlord-toggle"><input type="checkbox" id="level1OnlyWarlords"><label for="level1OnlyWarlords">Use only CTW items for Level 1</label></div>
 			<button id="calculateWithPreferences">Calculate</button>
 		</div>
         <div id="results" style="display: none;"></div>
