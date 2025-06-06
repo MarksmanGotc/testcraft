@@ -406,21 +406,34 @@ function createMaterialImageElement(materialName, imgUrl, preference) {
 document.getElementById('calculateWithPreferences').addEventListener('click', function() {
 	const materialInputs = document.querySelectorAll('.my-material input[type="text"]');
     const templateAmountInputs = LEVELS.map(l => document.querySelector(`#templateAmount${l}`));
-    const allInputs = [...materialInputs, ...templateAmountInputs];
+    let isValid = true;
+	let hasValue = false;
 
-
-	let isValid = true;
-
-	allInputs.forEach(input => {
-		if (!input.value || parseInt(input.value.replace(/,/g, '')) === 0) {
-			isValid = false;
-			input.classList.add('missing-input');
-			setTimeout(() => {
-				input.classList.remove('missing-input');
-			}, 3000);
+	templateAmountInputs.forEach(input => {
+		const val = parseInt(input.value.replace(/,/g, ''), 10);
+		if (!isNaN(val)) {
+				if (val > 0) {
+						hasValue = true;
+				}
+				if (val < 0) {
+						isValid = false;
+						input.classList.add('missing-input');
+						setTimeout(() => {
+								input.classList.remove('missing-input');
+						}, 3000);
+				}
 		}
 	});
 
+	 if (!hasValue) {
+		isValid = false;
+		templateAmountInputs.forEach(input => {
+				input.classList.add('missing-input');
+				setTimeout(() => {
+						input.classList.remove('missing-input');
+				}, 3000);
+		});
+	}
 	if (!isValid) {
 		return; // Estä laskennan suoritus
 	}
