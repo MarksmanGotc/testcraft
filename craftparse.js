@@ -200,7 +200,7 @@ function calculateMaterials() {
                 templateCounts[level].push({ name: productName, amount: amount, img: product.img, materials: product.materials, multiplier: qualityMultipliers[level] || 1 });
     
                 Object.entries(product.materials).forEach(([rawName, requiredAmount]) => {
-					const materialName = Object.keys(materials).find(
+					const materialName = Object.keys(allMaterials).find(
 						key => key.toLowerCase().replace(/\s/g, '-') === rawName.toLowerCase().replace(/\s/g, '-')
 					) || rawName;
 
@@ -233,7 +233,7 @@ function calculateMaterials() {
         pAvailableMaterials.className = 'available-materials';
 		
 		//pMatName.textContent = `${materialName}`;
-		pMatName.textContent = materials[materialName]["Original-name"] || materialName;
+		pMatName.textContent = allMaterials[materialName] ? allMaterials[materialName]["Original-name"] || materialName : materialName;
         pMatAmount.textContent = `-${new Intl.NumberFormat('en-US').format(data.amount)}`;
 		pRemaining.textContent = pMatAmount.textContent;
         remainingUse[materialName] = data.amount;
