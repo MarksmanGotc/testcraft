@@ -737,19 +737,19 @@ function listSelectedProducts(productionPlan) {
 function inputActive(){
 
 	document.addEventListener('click', (e) => {
-		const clickedDiv = e.target.closest('.my-material');
-		if (clickedDiv) {
-			document.querySelectorAll('.my-material').forEach(div => {
-				const inp = div.querySelector('.numeric-input');
-				if (div !== clickedDiv && inp && inp.value === '') {
-					div.classList.remove('active');
-				}
-			});
-			clickedDiv.classList.add('active');
-			const input = clickedDiv.querySelector('.numeric-input');
-			if (input) input.focus();
-		}
-	});
+        const clickedDiv = e.target.closest('.my-material');
+        if (clickedDiv && !e.target.closest('.level-checkboxes')) {
+            document.querySelectorAll('.my-material').forEach(div => {
+                const inp = div.querySelector('.numeric-input');
+                if (div !== clickedDiv && inp && inp.value === '') {
+                    div.classList.remove('active');
+                }
+            });
+            clickedDiv.classList.add('active');
+            const input = clickedDiv.querySelector('.numeric-input');
+            if (input) input.focus();
+        }
+    });
 
 	document.addEventListener('focusout', (e) => {
         if (e.target.classList.contains('numeric-input')) {
@@ -843,18 +843,49 @@ function initAdvMaterialSection() {
             inner.appendChild(input);
             matDiv.appendChild(inner);
 
-            const select = document.createElement('select');
-            select.multiple = true;
-            [5,10,15,20,25].forEach(l => {
-                const opt = document.createElement('option');
-                opt.value = l;
-                opt.textContent = l;
-                opt.selected = true;
-                select.appendChild(opt);
-            });
-            matDiv.appendChild(select);
-
             seasonDiv.appendChild(matDiv);
         });
     });
+
+    const levelWrap = document.createElement('div');
+    levelWrap.className = 'level-select-container';
+    const levelLabel = document.createElement('p');
+    levelLabel.textContent = 'Allow gear material usage at levels';
+    levelWrap.appendChild(levelLabel);
+
+    const dropdown = document.createElement('div');
+    dropdown.className = 'level-dropdown';
+    const select = document.createElement('select');
+    select.id = 'gearMaterialLevels';
+    select.multiple = true;
+    select.style.display = 'none';
+
+    [5,10,15,20,25].forEach(l => {
+        const optionDiv = document.createElement('div');
+        optionDiv.dataset.value = l;
+        optionDiv.textContent = l;
+        optionDiv.classList.add('selected');
+        dropdown.appendChild(optionDiv);
+
+        const opt = document.createElement('option');
+        opt.value = l;
+        opt.textContent = l;
+        opt.selected = true;
+        select.appendChild(opt);
+    });
+
+    dropdown.addEventListener('click', e => {
+        const value = e.target.dataset.value;
+        if (!value) return;
+        e.target.classList.toggle('selected');
+        Array.from(select.options).forEach(opt => {
+            if (opt.value === value) {
+                opt.selected = !opt.selected;
+            }
+        });
+    });
+
+    levelWrap.appendChild(dropdown);
+    levelWrap.appendChild(select);
+    container.appendChild(levelWrap);
 }
