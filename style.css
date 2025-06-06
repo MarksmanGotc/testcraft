@@ -366,6 +366,27 @@ button.multiplier-btn {
     color: var(--primary-color);
 }
 
+#advMaterials select {
+    padding: 7px 10px;
+    border: 1px solid var(--primary-color);
+    background: transparent;
+    border-radius: 4px;
+    height: 31px;
+    width: 110px;
+    box-sizing: border-box;
+}
+
+.adv-toggle {
+    margin-top: 10px;
+    cursor: pointer;
+    color: var(--primary-color);
+    text-decoration: underline;
+}
+
+#advMaterials h4 {
+    cursor: pointer;
+    margin: 10px 0;
+}
 
 #generatebychoice h4 {
     margin-bottom: 20px;
