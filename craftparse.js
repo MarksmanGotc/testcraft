@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
     addCalculateButton();
 	formatedInputNumber();
 	inputActive();
+	initAdvMaterialSection();
 	
     // Kun footerin sisällä olevaa SVG:tä painetaan
     document.querySelectorAll('footer svg, #openGiftFromHeader').forEach(element => {
@@ -735,63 +736,125 @@ function listSelectedProducts(productionPlan) {
 
 function inputActive(){
 
-	const materialChoices = document.querySelector('.material-choices');
+	document.addEventListener('click', (e) => {
+		const clickedDiv = e.target.closest('.my-material');
+		if (clickedDiv) {
+			document.querySelectorAll('.my-material').forEach(div => {
+				const inp = div.querySelector('.numeric-input');
+				if (div !== clickedDiv && inp && inp.value === '') {
+					div.classList.remove('active');
+				}
+			});
+			clickedDiv.classList.add('active');
+			const input = clickedDiv.querySelector('.numeric-input');
+			if (input) input.focus();
+		}
+	});
 
-    materialChoices.addEventListener('click', (e) => {
-        // Poista 'active' luokka kaikista div.my-material elementeistä, jos input on tyhjä
-        document.querySelectorAll('.material-choices .my-material').forEach(div => {
-            if (div.querySelector('.numeric-input').value === '') {
-                div.classList.remove('active');
+	document.addEventListener('focusout', (e) => {
+        if (e.target.classList.contains('numeric-input')) {
+            if (e.target.value === '') {
+                const parent = e.target.closest('.my-material');
+                if (parent) parent.classList.remove('active');
             }
-        });
-
-        // Lisää 'active' luokka klikatulle elementille
-        const clickedDiv = e.target.closest('.my-material');
-        if (clickedDiv) {
-            clickedDiv.classList.add('active');
-            clickedDiv.querySelector('.numeric-input').focus();
         }
-    });
-
-    // Käsittele input-kenttien focusout ja focusin tapahtumat
-    document.querySelectorAll('.material-choices .my-material .numeric-input').forEach(input => {
-        input.addEventListener('focusout', () => {
-            // Jos input on tyhjä, poista 'active' luokka
-            // Muuten, säilytä 'active' luokka
-            if (input.value === '') {
-                input.closest('.my-material').classList.remove('active');
-            }
-        });
-
-        input.addEventListener('focus', () => {
-            // Lisää 'active' luokka tälle elementille
-            document.querySelectorAll('.material-choices .my-material').forEach(div => {
-                // Poista 'active' luokka muista elementeistä vain, jos niiden input on tyhjä
-                if (div.querySelector('.numeric-input').value === '') {
+    }, true);
+	
+	document.addEventListener('focusin', (e) => {
+        if (e.target.classList.contains('numeric-input')) {
+            document.querySelectorAll('.my-material').forEach(div => {
+                const inp = div.querySelector('.numeric-input');
+                if (inp && inp.value === '' && div !== e.target.closest('.my-material')) {
                     div.classList.remove('active');
                 }
             });
-            input.closest('.my-material').classList.add('active');
+            e.target.closest('.my-material').classList.add('active');
+        }
+    });		
+
+	// Uusi osa: käsittele kaikki templateAmount-inputit tasoittain (1,5,10,...)
+	const levels = [1, 5, 10, 15, 20, 25];
+	levels.forEach(level => {
+		const input = document.querySelector(`#templateAmount${level}`);
+		const wrap = document.querySelector(`.leveltmp${level} .templateAmountWrap`);
+
+		if (input && wrap) {
+			input.addEventListener('focus', () => {
+				wrap.classList.add('active');
+			});
+
+			input.addEventListener('blur', () => {
+				if (!input.value) {
+					wrap.classList.remove('active');
+				}
+			});
+		}
+	});
+}
+
+function initAdvMaterialSection() {
+    const toggle = document.getElementById('toggleAdvMaterials');
+    const container = document.getElementById('advMaterials');
+    if (!toggle || !container || typeof seasons === 'undefined') return;
+
+    toggle.addEventListener('click', () => {
+        container.style.display = container.style.display === 'none' ? 'block' : 'none';
+    });
+
+    const seasonData = seasons.filter(s => s.season !== 0).sort((a, b) => b.season - a.season);
+
+    seasonData.forEach(season => {
+        const header = document.createElement('h4');
+        header.textContent = `Season ${season.season}`;
+        container.appendChild(header);
+
+        const seasonDiv = document.createElement('div');
+        seasonDiv.style.display = 'none';
+        container.appendChild(seasonDiv);
+
+        header.addEventListener('click', () => {
+            seasonDiv.style.display = seasonDiv.style.display === 'none' ? 'block' : 'none';
+        });
+
+        season.sets.forEach(set => {
+            const matKey = set.setMat.toLowerCase().replace(/\s/g, '-');
+            const matInfo = materials[season.season] && materials[season.season].mats[matKey];
+            if (!matInfo) return;
+
+            const matDiv = document.createElement('div');
+            matDiv.className = `my-material ${matKey}`;
+
+            const img = document.createElement('img');
+            img.src = matInfo.img;
+            matDiv.appendChild(img);
+
+            const inner = document.createElement('div');
+            const span = document.createElement('span');
+            span.textContent = matInfo["Original-name"] || set.setMat;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'numeric-input';
+            input.id = `my-${matKey}`;
+            input.name = `my-${matKey}`;
+            input.placeholder = 'value';
+            input.pattern = '[0-9]*';
+            input.inputMode = 'numeric';
+            inner.appendChild(span);
+            inner.appendChild(input);
+            matDiv.appendChild(inner);
+
+            const select = document.createElement('select');
+            select.multiple = true;
+            [5,10,15,20,25].forEach(l => {
+                const opt = document.createElement('option');
+                opt.value = l;
+                opt.textContent = l;
+                opt.selected = true;
+                select.appendChild(opt);
+            });
+            matDiv.appendChild(select);
+
+            seasonDiv.appendChild(matDiv);
         });
     });
-		
-
- // Uusi osa: käsittele kaikki templateAmount-inputit tasoittain (1,5,10,...)
-  const levels = [1, 5, 10, 15, 20, 25];
-  levels.forEach(level => {
-	const input = document.querySelector(`#templateAmount${level}`);
-	const wrap = document.querySelector(`.leveltmp${level} .templateAmountWrap`);
-
-	if (input && wrap) {
-	  input.addEventListener('focus', () => {
-		wrap.classList.add('active');
-	  });
-
-	  input.addEventListener('blur', () => {
-		if (!input.value) {
-		  wrap.classList.remove('active');
-		}
-	  });
-	}
-  });
 }
