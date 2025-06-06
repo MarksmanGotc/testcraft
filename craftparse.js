@@ -557,6 +557,7 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                 productionPlan[level].push(selectedProduct.name);
                 productsSelectedThisRound[level] = selectedProduct; // Tallennetaan valittu tuote
                 updateAvailableMaterials(availableMaterials, selectedProduct, multiplier); // Päivitetään materiaalien määrä
+				remaining[level]--; 
             } else {
                 // Jos tuotetta ei voi valita, keskeytetään prosessi ja poistetaan edelliset tuotteet
                 LEVELS.forEach(l => {
