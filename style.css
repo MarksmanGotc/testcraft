@@ -238,8 +238,9 @@ footer div {
     flex-direction: row;
     flex-wrap: wrap;
     gap: 20px;
-	cursor: pointer;
-	justify-content: center;
+    cursor: pointer;
+    justify-content: center;
+    width: 100%;
 }
 
 .level-group > div {
@@ -308,11 +309,18 @@ h2 {
     text-align: center;
     margin-bottom: 0px;
 }
+.level-group p.set-name,
+.level-group p.season-info {
+    text-align: center;
+    margin: 0;
+}
+.level-group p.season-info {
+    font-style: italic;
+}
+
 button.multiplier-btn {
     margin-bottom: 20px;
 }
-
-
 
 #generatebychoice {
 	position: relative;
