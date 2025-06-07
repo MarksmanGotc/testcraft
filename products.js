@@ -37,7 +37,7 @@ const season0 = {
 					"name": "Dagger",
 					"level": 1,
 					"materials": {"ironwood": 10, "kingswood-oak": 10},
-					"img": "item/icon_eq_standard_weapon_shortsword.webp"
+					"img": "item/icon_eq_standard_weapon_dagger.png"
 				},
 				{
 					"name": "Warlord helmet",
@@ -272,6 +272,132 @@ const season0 = {
 					"level": 10,
 					"materials": {"silk": 30, "goldenheart-wood": 30},
 					"img": "item/icon_eq_standard_weapon_shortbow.webp"
+				},
+				{
+					"name": "Iron Skullcap",
+					"level": 15,
+					"materials": {"black-iron": 180, "leather-straps": 180},
+					"odds": "low",
+					"img": "item/15-25/icon_eq_standard_helmet_ironskullcap.png"
+				},
+				{
+					"name": "Steel Gorget",
+					"level": 15,
+					"materials": {"black-iron": 180, "milk-of-the-poppy": 180},
+					"odds": "low",
+					"img": "item/15-25/icon_eq_standard_helmet_steelgorget.png"
+				},
+				{
+					"name": "Mushroom Cap",
+					"level": 15,
+					"materials": {"wildfire": 180, "weirwood": 180},
+					"odds": "low",
+					"img": "item/15-25/icon_eq_standard_helmet_mushroomcap.png"
+				},
+				{
+					"name": "Lab Smock",
+					"level": 15,
+					"materials": {"wildfire": 180, "silk": 180},
+					"odds": "low",
+					"img": "item/15-25/icon_eq_standard_chest_labsmock.png"
+				},
+				{
+					"name": "Bronze Chain Shirt",
+					"level": 15,
+					"materials": {"copper-bar": 180, "hide": 180},
+					"odds": "low",
+					"img": "item/15-25/icon_eq_standard_chest_bronzechainshirt.png"
+				},
+				{
+					"name": "Charred Leathers",
+					"level": 15,
+					"materials": {"leather-straps": 180, "wildfire": 180},
+					"odds": "low",
+					"img": "item/15-25/icon_eq_standard_chest_charredleathers.png"
+				},
+				{
+					"name": "Leather Schynbalds",
+					"level": 15,
+					"materials": {"leather-straps": 180, "ironwood": 180},
+					"odds": "low",
+					"img": "item/15-25/icon_eq_standard_pants_leatherschynbalds.png"
+				},
+				{
+					"name": "Leather Kilt",
+					"level": 15,
+					"materials": {"hide": 180, "kingswood-oak": 180},
+					"odds": "low",
+					"img": "item/15-25/icon_eq_standard_pants_leatherkilt.png"
+				},
+				{
+					"name": "Copper Culet",
+					"level": 15,
+					"materials": {"copper-bar": 180, "wildfire": 180},
+					"odds": "low",
+					"img": "item/15-25/icon_eq_standard_pants_copperculet.png"
+				},
+				{
+					"name": "Well-Heeled Shoes",
+					"level": 15,
+					"materials": {"weirwood": 120, "silk": 120, "dragonglass": 120},
+					"odds": "normal",
+					"img": "item/15-25/icon_eq_standard_boots_well-heeledshoes.png"
+				},
+				{
+					"name": "Steel-Toed Stompers",
+					"level": 15,
+					"materials": {"black-iron": 120, "goldenheart-wood": 120, "weirwood": 120},
+					"odds": "normal",
+					"img": "item/15-25/icon_eq_standard_boots_steel-toedstompers.png"
+				},
+				{
+					"name": "Riding Boots",
+					"level": 15,
+					"materials": {"leather-straps": 180, "kingswood-oak": 180},
+					"odds": "low",
+					"img": "item/15-25/icon_eq_standard_boots_ridingboots.png"
+				},
+				{
+					"name": "Amethyst Embrace",
+					"level": 15,
+					"materials": {"dragonglass": 180, "silk": 180},
+					"odds": "low",
+					"img": "item/15-25/icon_eq_standard_ring_amethystembrace.png"
+				},
+				{
+					"name": "Tiger's Eye Ring",
+					"level": 15,
+					"materials": {"dragonglass": 180, "kingswood-oak": 180},
+					"odds": "low",
+					"img": "item/15-25/icon_eq_standard_ring_tigerseye.png"
+				},
+				{
+					"name": "Silver Band",
+					"level": 15,
+					"materials": {"ironwood": 180, "milk-of-the-poppy": 180},
+					"odds": "low",
+					"img": "item/15-25/icon_eq_standard_ring_silverband.png"
+				},
+				{
+					"name": "Flatbow",
+					"level": 15,
+					"materials": {"goldenheart-wood": 180, "milk-of-the-poppy": 180},
+					"odds": "low",
+					"img": "item/15-25/icon_eq_standard_weapon_flatbow.png"
+				},
+				{
+					"name": "Pike",
+					"level": 15,
+					"materials": {"goldenheart-wood": 180, "hide": 180},
+					"odds": "low",
+					"img": "item/15-25/icon_eq_standard_weapon_pike.png"
+				},
+				{
+					"name": "Short Sword",
+					"level": 15,
+					"materials": {"ironwood": 180, "copper-bar": 180},
+					"odds": "low",
+					"img": "item/15-25/icon_eq_standard_weapon_shortsword.png"
 				}
 			]
 		}
