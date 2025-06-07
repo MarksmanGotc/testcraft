@@ -531,7 +531,9 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
     let productionPlan = { "1": [], "5": [], "10": [], "15": [], "20": [], "25": [] };
     const includeWarlords = document.getElementById('includeWarlords')?.checked ?? true;
     const level1OnlyWarlords = document.getElementById('level1OnlyWarlords')?.checked ?? false;
-
+	const includeLowOdds = document.getElementById('includeLowOdds')?.checked ?? true;
+    const includeMediumOdds = document.getElementById('includeMediumOdds')?.checked ?? true;
+	
     let remaining = { ...templatesByLevel };
 
     while (Object.values(remaining).some(v => v > 0)) {
@@ -548,6 +550,13 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
             } else {
                 levelProducts = craftItem.products.filter(product => product.level === level && (includeWarlords || !product.warlord));
             }
+			
+			levelProducts = levelProducts.filter(product => {
+                if (product.season !== 0 || !product.odds) return true;
+                if (product.odds === 'low') return includeLowOdds;
+                if (product.odds === 'medium') return includeMediumOdds;
+                return true; // normal odds
+            });
 			
 			
             const multiplier = qualityMultipliers[level] || 1;
@@ -864,13 +873,17 @@ function initAdvMaterialSection() {
         const optionDiv = document.createElement('div');
         optionDiv.dataset.value = l;
         optionDiv.textContent = l;
-        optionDiv.classList.add('selected');
+        if (![5,10].includes(l)) {
+            optionDiv.classList.add('selected');
+        }
         dropdown.appendChild(optionDiv);
 
         const opt = document.createElement('option');
         opt.value = l;
         opt.textContent = l;
-        opt.selected = true;
+        if (![5,10].includes(l)) {
+            opt.selected = true;
+        }
         select.appendChild(opt);
     });
 
