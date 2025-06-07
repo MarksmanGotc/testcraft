@@ -7,6 +7,8 @@ const allMaterials = Object.values(materials).reduce((acc, season) => {
     return { ...acc, ...season.mats };
 }, {});
 let qualityMultipliers = {};
+const WARLORD_PENALTY = 3;
+const LEFTOVER_WEIGHT = 5;
 
 document.addEventListener('DOMContentLoaded', function() {
     createLevelStructure();
@@ -542,8 +544,6 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
 
         for (let level of LEVELS) {
             if (remaining[level] <= 0) continue;
-            //const levelProducts = craftItem.products.filter(product => product.level === level).filter(product => includeWarlords || !product.warlord);
-			//const levelProducts = craftItem.products.filter(product => product.level === level && (includeWarlords || !product.warlord));
             let levelProducts;
             if (level === 1 && level1OnlyWarlords) {
                 levelProducts = craftItem.products.filter(product => product.level === 1 && product.warlord);
@@ -663,7 +663,7 @@ function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secon
     const candidates = levelProducts
         .map(product => ({
             product,
-            score: getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials)
+			score: getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier)
         }))
         .sort((a, b) => b.score - a.score); // suurimmasta pienimpään
 
@@ -692,9 +692,7 @@ function rollbackMaterials(availableMaterials, product, multiplier = 1) {
 }
 
 
-
-
-function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials) {
+function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1) {
     let score = 0;
     Object.entries(product.materials).forEach(([material, _]) => {
         if (mostAvailableMaterials.includes(material)) {
@@ -707,6 +705,24 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
             score -= 10;
         }
     });
+	    if (product.warlord) {
+        score -= WARLORD_PENALTY;
+    }
+
+    Object.entries(product.materials).forEach(([material, amount]) => {
+        const normalizedMaterial = material.toLowerCase().replace(/\s/g, '-');
+        const matchedKey = Object.keys(availableMaterials).find(key =>
+            key.toLowerCase().replace(/\s/g, '-') === normalizedMaterial
+        );
+        if (matchedKey) {
+            const available = availableMaterials[matchedKey];
+            const remaining = available - amount * multiplier;
+            if (available > 0) {
+                score -= (remaining / available) * LEFTOVER_WEIGHT;
+            }
+        }
+    });
+	
     return score;
 }
 
