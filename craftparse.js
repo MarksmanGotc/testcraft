@@ -6,6 +6,12 @@ const LEVELS = [1, 5, 10, 15, 20, 25];
 const allMaterials = Object.values(materials).reduce((acc, season) => {
     return { ...acc, ...season.mats };
 }, {});
+const materialToSeason = {};
+Object.values(materials).forEach(season => {
+    Object.keys(season.mats).forEach(mat => {
+        materialToSeason[mat] = season.season;
+    });
+});
 let qualityMultipliers = {};
 const WARLORD_PENALTY = 3;
 const LEFTOVER_WEIGHT = 5;
@@ -219,7 +225,16 @@ function calculateMaterials() {
             }
         });
     });
-	Object.entries(materialCounts).forEach(([materialName, data]) => {
+	Object.entries(materialCounts)
+        .sort(([aName], [bName]) => {
+            const seasonA = materialToSeason[aName] || 0;
+            const seasonB = materialToSeason[bName] || 0;
+            if (seasonA !== seasonB) {
+                return seasonA - seasonB;
+            }
+            return aName.localeCompare(bName);
+        })
+        .forEach(([materialName, data]) => {
         const materialContainer = document.createElement('div');
         const img = document.createElement('img');
         img.src = data.img; // Oleta, että osoittaa materiaalin kuvaan
@@ -319,6 +334,18 @@ function calculateMaterials() {
                 img.src = template.img;
                 img.alt = template.name;
                 templateDiv.appendChild(img);
+				
+				if (template.season && template.season !== 0) {
+                    const pSetName = document.createElement('p');
+                    pSetName.className = 'set-name';
+                    pSetName.textContent = template.setName || '';
+                    templateDiv.appendChild(pSetName);
+
+                    const pSeasonInfo = document.createElement('p');
+                    pSeasonInfo.className = 'season-info';
+                    pSeasonInfo.textContent = `Season ${template.season}`;
+                    templateDiv.appendChild(pSeasonInfo);
+                }
 
                 const pTemplateName = document.createElement('p');
                 const pTemplateamount = document.createElement('p');
