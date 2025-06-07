@@ -55,13 +55,33 @@ const materials = {
 	10: {
 		season: 10,
 		mats: {
+			"fishmongers-fishing-net": {
+				"img": "materials/season10/fishmongers-fishing-net.png",
+				"Original-name": "Fishmonger's Fishing Net"
+			},
+			"heraldic-finery": {
+				"img": "materials/season10/heraldic-finery.png",
+				"Original-name": "Heraldic Finery"
+			},
+			"hightower-silk": {
+				"img": "materials/season10/hightower-silk.png",
+				"Original-name": "Hightower Silk"
+			},
+			"iron-scales": {
+				"img": "materials/season10/iron-scales.png",
+				"Original-name": "Iron Scales"
+			},
+			"leather-bound-chains": {
+				"img": "materials/season10/leather-bound-chains.png",
+				"Original-name": "Leather Bound Chains"
+			},
 			"sanguine-thread": {
 				"img": "materials/season10/sanguine-thread.png",
 				"Original-name": "Sanguine Thread"
 			},
-			"fishmongers-fishing-net": {
-				"img": "materials/season10/fishmongers-fishing-net.png",
-				"Original-name": "Fishmonger's Fishing Net"
+			"umber-chains": {
+				"img": "materials/season10/umber-chains.png",
+				"Original-name": "Umber Chains"
 			},
 		}
 	}
