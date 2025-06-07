@@ -1601,13 +1601,13 @@ const season10 = {
 		},
 		{
 			setName: "Tide Lord's",
-			setMat: "iron-scale",
+			setMat: "iron-scales",
 			products: [
 			{
 			  "name": "Wavebreaker Helm",
 			  "level": 5,
 			  "materials": {
-				"iron-scale": 10,
+				"iron-scales": 10,
 				"goldenheart-wood": 10,
 				"copper-bar": 10
 			  },
@@ -1617,7 +1617,7 @@ const season10 = {
 			  "name": "Plated Scales",
 			  "level": 5,
 			  "materials": {
-				"iron-scale": 10,
+				"iron-scales": 10,
 				"ironwood": 10,
 				"milk-of-the-poppy": 10
 			  },
@@ -1627,7 +1627,7 @@ const season10 = {
 			  "name": "Tassets",
 			  "level": 5,
 			  "materials": {
-				"iron-scale": 10,
+				"iron-scales": 10,
 				"wildfire": 10,
 				"hide": 10
 			  },
@@ -1637,7 +1637,7 @@ const season10 = {
 			  "name": "Watertight Leathers",
 			  "level": 5,
 			  "materials": {
-				"iron-scale": 10,
+				"iron-scales": 10,
 				"silk": 10,
 				"leather-straps": 10
 			  },
@@ -1647,7 +1647,7 @@ const season10 = {
 			  "name": "Sea Ring",
 			  "level": 5,
 			  "materials": {
-				"iron-scale": 10,
+				"iron-scales": 10,
 				"dragonglass": 10,
 				"kingswood-oak": 10
 			  },
@@ -1657,7 +1657,7 @@ const season10 = {
 			  "name": "Notched Glaive",
 			  "level": 5,
 			  "materials": {
-				"iron-scale": 10,
+				"iron-scales": 10,
 				"weirwood": 10,
 				"black-iron": 10
 			  },
@@ -1668,7 +1668,7 @@ const season10 = {
 			  "name": "Wavebreaker Helm",
 			  "level": 10,
 			  "materials": {
-				"iron-scale": 20,
+				"iron-scales": 20,
 				"goldenheart-wood": 20,
 				"copper-bar": 20
 			  },
@@ -1678,7 +1678,7 @@ const season10 = {
 			  "name": "Plated Scales",
 			  "level": 10,
 			  "materials": {
-				"iron-scale": 20,
+				"iron-scales": 20,
 				"ironwood": 20,
 				"milk-of-the-poppy": 20
 			  },
@@ -1688,7 +1688,7 @@ const season10 = {
 			  "name": "Tassets",
 			  "level": 10,
 			  "materials": {
-				"iron-scale": 20,
+				"iron-scales": 20,
 				"wildfire": 20,
 				"hide": 20
 			  },
@@ -1698,7 +1698,7 @@ const season10 = {
 			  "name": "Watertight Leathers",
 			  "level": 10,
 			  "materials": {
-				"iron-scale": 20,
+				"iron-scales": 20,
 				"silk": 20,
 				"leather-straps": 20
 			  },
@@ -1708,7 +1708,7 @@ const season10 = {
 			  "name": "Sea Ring",
 			  "level": 10,
 			  "materials": {
-				"iron-scale": 20,
+				"iron-scales": 20,
 				"dragonglass": 20,
 				"kingswood-oak": 20
 			  },
@@ -1718,7 +1718,7 @@ const season10 = {
 			  "name": "Notched Glaive",
 			  "level": 10,
 			  "materials": {
-				"iron-scale": 20,
+				"iron-scales": 20,
 				"weirwood": 20,
 				"black-iron": 20
 			  },
@@ -1729,7 +1729,7 @@ const season10 = {
 			  "name": "Wavebreaker Helm",
 			  "level": 15,
 			  "materials": {
-				"iron-scale": 120,
+				"iron-scales": 120,
 				"goldenheart-wood": 120,
 				"copper-bar": 120
 			  },
@@ -1739,7 +1739,7 @@ const season10 = {
 			  "name": "Plated Scales",
 			  "level": 15,
 			  "materials": {
-				"iron-scale": 120,
+				"iron-scales": 120,
 				"ironwood": 120,
 				"milk-of-the-poppy": 120
 			  },
@@ -1749,7 +1749,7 @@ const season10 = {
 			  "name": "Tassets",
 			  "level": 15,
 			  "materials": {
-				"iron-scale": 120,
+				"iron-scales": 120,
 				"wildfire": 120,
 				"hide": 120
 			  },
@@ -1759,7 +1759,7 @@ const season10 = {
 			  "name": "Watertight Leathers",
 			  "level": 15,
 			  "materials": {
-				"iron-scale": 120,
+				"iron-scales": 120,
 				"silk": 120,
 				"leather-straps": 120
 			  },
@@ -1769,7 +1769,7 @@ const season10 = {
 			  "name": "Sea Ring",
 			  "level": 15,
 			  "materials": {
-				"iron-scale": 120,
+				"iron-scales": 120,
 				"dragonglass": 120,
 				"kingswood-oak": 120
 			  },
@@ -1779,7 +1779,7 @@ const season10 = {
 			  "name": "Notched Glaive",
 			  "level": 15,
 			  "materials": {
-				"iron-scale": 120,
+				"iron-scales": 120,
 				"weirwood": 120,
 				"black-iron": 120
 			  },
@@ -1790,7 +1790,7 @@ const season10 = {
 			  "name": "Wavebreaker Helm",
 			  "level": 20,
 			  "materials": {
-				"iron-scale": 400,
+				"iron-scales": 400,
 				"goldenheart-wood": 400,
 				"copper-bar": 400,
 				"silk": 400
@@ -1801,7 +1801,7 @@ const season10 = {
 			  "name": "Plated Scales",
 			  "level": 20,
 			  "materials": {
-				"iron-scale": 400,
+				"iron-scales": 400,
 				"ironwood": 400,
 				"milk-of-the-poppy": 400,
 				"wildfire": 400
@@ -1812,7 +1812,7 @@ const season10 = {
 			  "name": "Tassets",
 			  "level": 20,
 			  "materials": {
-				"iron-scale": 400,
+				"iron-scales": 400,
 				"wildfire": 400,
 				"hide": 400,
 				"dragonglass": 400
@@ -1823,7 +1823,7 @@ const season10 = {
 			  "name": "Watertight Leathers",
 			  "level": 20,
 			  "materials": {
-				"iron-scale": 400,
+				"iron-scales": 400,
 				"silk": 400,
 				"leather-straps": 400,
 				"ironwood": 400
@@ -1834,7 +1834,7 @@ const season10 = {
 			  "name": "Sea Ring",
 			  "level": 20,
 			  "materials": {
-				"iron-scale": 400,
+				"iron-scales": 400,
 				"dragonglass": 400,
 				"kingswood-oak": 400,
 				"weirwood": 400
@@ -1845,7 +1845,7 @@ const season10 = {
 			  "name": "Notched Glaive",
 			  "level": 20,
 			  "materials": {
-				"iron-scale": 400,
+				"iron-scales": 400,
 				"weirwood": 400,
 				"black-iron": 400,
 				"goldenheart-wood": 400
@@ -1857,7 +1857,7 @@ const season10 = {
 			  "name": "Wavebreaker Helm",
 			  "level": 25,
 			  "materials": {
-				"iron-scale": 1200,
+				"iron-scales": 1200,
 				"goldenheart-wood": 1200,
 				"copper-bar": 1200,
 				"silk": 1200
@@ -1868,7 +1868,7 @@ const season10 = {
 			  "name": "Plated Scales",
 			  "level": 25,
 			  "materials": {
-				"iron-scale": 1200,
+				"iron-scales": 1200,
 				"ironwood": 1200,
 				"milk-of-the-poppy": 1200,
 				"wildfire": 1200
@@ -1879,7 +1879,7 @@ const season10 = {
 			  "name": "Tassets",
 			  "level": 25,
 			  "materials": {
-				"iron-scale": 1200,
+				"iron-scales": 1200,
 				"wildfire": 1200,
 				"hide": 1200,
 				"dragonglass": 1200
@@ -1890,7 +1890,7 @@ const season10 = {
 			  "name": "Watertight Leathers",
 			  "level": 25,
 			  "materials": {
-				"iron-scale": 1200,
+				"iron-scales": 1200,
 				"silk": 1200,
 				"leather-straps": 1200,
 				"ironwood": 1200
@@ -1901,7 +1901,7 @@ const season10 = {
 			  "name": "Sea Ring",
 			  "level": 25,
 			  "materials": {
-				"iron-scale": 1200,
+				"iron-scales": 1200,
 				"dragonglass": 1200,
 				"kingswood-oak": 1200,
 				"weirwood": 1200
@@ -1912,7 +1912,7 @@ const season10 = {
 			  "name": "Notched Glaive",
 			  "level": 25,
 			  "materials": {
-				"iron-scale": 1200,
+				"iron-scales": 1200,
 				"weirwood": 1200,
 				"black-iron": 1200,
 				"goldenheart-wood": 1200
