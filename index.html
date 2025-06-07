@@ -143,8 +143,11 @@
 			</div>
 			
 			<div class="warlord-toggle"><input type="checkbox" id="includeWarlords" checked><label for="includeWarlords">Include CTW items</label></div>
-			<div class="warlord-toggle"><input type="checkbox" id="level1OnlyWarlords"><label for="level1OnlyWarlords">Use only CTW items for Level 1</label></div>
-			<p id="toggleAdvMaterials" class="adv-toggle">Also use gear materials</p>
+                        <div class="warlord-toggle"><input type="checkbox" id="level1OnlyWarlords"><label for="level1OnlyWarlords">Use only CTW items for Level 1</label></div>
+						<p class="odds-info">Leaves out the lower-odds items from season 0 + CTW <span>Normal odds level is always included</span></p>
+                        <div class="warlord-toggle"><input type="checkbox" id="includeLowOdds"><label for="includeLowOdds">Include low odds items</label></div>
+                        <div class="warlord-toggle"><input type="checkbox" id="includeMediumOdds"><label for="includeMediumOdds">Include medium odds items</label></div>
+                        <p id="toggleAdvMaterials" class="adv-toggle">Also use gear materials</p>
 			<div id="advMaterials" class="materials-list" style="display:none;"></div>
 			<button id="calculateWithPreferences">Calculate</button>
 		</div>
