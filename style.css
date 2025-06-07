@@ -34,7 +34,7 @@ body {
 
 .temps {
     padding: 0;
-    height: 31px;
+    height: 34px;
     background: transparent;
     padding: 7px 10px;
     border: 1px solid var(--primary-color);
@@ -53,6 +53,14 @@ body {
 .warlord-toggle {
     position: relative;
     margin-top: 10px;
+}
+.warlord-toggle ~ p.odds-info {
+    margin-bottom: -5px;
+    font-size: 15px;
+}
+.warlord-toggle ~ p.odds-info span {
+    display: block;
+    font-size: 13px;
 }
 
 .wrapper {
@@ -381,6 +389,13 @@ button.multiplier-btn {
     cursor: pointer;
     color: var(--primary-color);
     font-weight: bold;
+}
+
+.adv-toggle::after,
+#advMaterials h4::after {
+    content: '▼';
+    margin-left: 5px;
+    font-size: 0.8em;
 }
 
 #advMaterials h4 {
