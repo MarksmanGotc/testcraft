@@ -206,7 +206,16 @@ function calculateMaterials() {
 
     
             if (product && amount > 0) {
-                templateCounts[level].push({ name: productName, amount: amount, img: product.img, materials: product.materials, multiplier: qualityMultipliers[level] || 1 });
+                //templateCounts[level].push({ name: productName, amount: amount, img: product.img, materials: product.materials, multiplier: qualityMultipliers[level] || 1 });
+				templateCounts[level].push({
+                    name: productName,
+                    amount: amount,
+                    img: product.img,
+                    materials: product.materials,
+                    multiplier: qualityMultipliers[level] || 1,
+                    setName: product.setName,
+                    season: product.season
+                });
     
                 Object.entries(product.materials).forEach(([rawName, requiredAmount]) => {
 					const materialName = Object.keys(allMaterials).find(
@@ -472,9 +481,20 @@ document.getElementById('calculateWithPreferences').addEventListener('click', fu
 	
 	setTimeout(() => {
 		
-		let availableMaterials = gatherMaterialsFromInputs();
+		/*let availableMaterials = gatherMaterialsFromInputs();
 		if (Object.keys(initialMaterials).length === 0) {
 			initialMaterials = { ...availableMaterials };
+		}*/
+		
+		let availableMaterials = gatherMaterialsFromInputs();
+		if (Object.keys(initialMaterials).length === 0) {
+				initialMaterials = { ...availableMaterials };
+		} else {
+				Object.entries(availableMaterials).forEach(([mat, amt]) => {
+						if (!(mat in initialMaterials)) {
+								initialMaterials[mat] = amt;
+						}
+				});
 		}
 
 		let templatesByLevel = {};
@@ -562,6 +582,9 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
     const level1OnlyWarlords = document.getElementById('level1OnlyWarlords')?.checked ?? false;
 	const includeLowOdds = document.getElementById('includeLowOdds')?.checked ?? true;
     const includeMediumOdds = document.getElementById('includeMediumOdds')?.checked ?? true;
+	const gearLevelSelect = document.getElementById('gearMaterialLevels');
+    const allowedGearLevels = gearLevelSelect ? Array.from(gearLevelSelect.selectedOptions).map(o => parseInt(o.value, 10)) : [];
+
 	
     let remaining = { ...templatesByLevel };
 
@@ -576,6 +599,10 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                 levelProducts = craftItem.products.filter(product => product.level === 1 && product.warlord);
             } else {
                 levelProducts = craftItem.products.filter(product => product.level === level && (includeWarlords || !product.warlord));
+            }
+			
+			if (!allowedGearLevels.includes(level)) {
+                levelProducts = levelProducts.filter(product => product.season === 0);
             }
 			
 			levelProducts = levelProducts.filter(product => {
