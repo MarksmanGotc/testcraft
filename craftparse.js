@@ -271,12 +271,10 @@ function calculateMaterials() {
 		const originalAmount = matchedKey ? initialMaterials[matchedKey] : 0;
 
 		
-		if(originalAmount>0){
-			const remainingAmount = originalAmount - data.amount;
-			if(remainingAmount>=0){
-				pAvailableMaterials.textContent = `${new Intl.NumberFormat('en-US').format(remainingAmount)}`;
-			}
-		}
+                if (originalAmount > 0) {
+                        const remainingAmount = originalAmount - data.amount;
+                        pAvailableMaterials.textContent = `${new Intl.NumberFormat('en-US').format(Math.max(remainingAmount, 0))}`;
+                }
 		
 		
         materialContainer.dataset.material = materialName;
