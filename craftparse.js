@@ -128,6 +128,7 @@ function closeResults() {
     resultsDiv.innerHTML = ''; // Tyhjennä aiemmat tulokset
 	document.getElementById('results').style.display = 'none';
 	document.getElementById('generatebychoice').style.display = 'block';
+	initialMaterials = {}; // Reset materials to allow fresh input values
 }
 
 function createCloseButton(parentElement) {
