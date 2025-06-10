@@ -393,12 +393,13 @@ button.multiplier-btn {
 }
 
 #advMaterials h4 {
-    margin: 10px 0;
-    cursor: pointer;
-    color: var(--primary-color);
-    font-weight: bold;
-    display: inline-flex;
-    align-items: center;
+	margin: 10px 0;
+	cursor: pointer;
+	color: var(--primary-color);
+	font-weight: bold;
+	display: inline-flex;
+	align-items: center;
+	width: 100%;
 }
 
 .adv-toggle {
