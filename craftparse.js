@@ -876,14 +876,18 @@ function initAdvMaterialSection() {
     if (!toggle || !container || typeof seasons === 'undefined') return;
 
     toggle.addEventListener('click', () => {
-        container.style.display = container.style.display === 'none' ? 'block' : 'none';
+        const isHidden = container.style.display === 'none';
+        container.style.display = isHidden ? 'block' : 'none';
+        toggle.classList.toggle('open', isHidden);
     });
 
     const seasonData = seasons.filter(s => s.season !== 0).sort((a, b) => b.season - a.season);
 
+    const arrowSvg = '<svg class="toggle-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"/></svg>';
+
     seasonData.forEach(season => {
         const header = document.createElement('h4');
-        header.textContent = `Season ${season.season}`;
+        header.innerHTML = `Season ${season.season}${arrowSvg}`;
         container.appendChild(header);
 
         const seasonDiv = document.createElement('div');
@@ -891,7 +895,9 @@ function initAdvMaterialSection() {
         container.appendChild(seasonDiv);
 
         header.addEventListener('click', () => {
-            seasonDiv.style.display = seasonDiv.style.display === 'none' ? 'block' : 'none';
+            const isHidden = seasonDiv.style.display === 'none';
+            seasonDiv.style.display = isHidden ? 'block' : 'none';
+            header.classList.toggle('open', isHidden);
         });
 
         season.sets.forEach(set => {

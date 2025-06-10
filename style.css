@@ -392,24 +392,38 @@ button.multiplier-btn {
     box-sizing: border-box;
 }
 
+#advMaterials h4 {
+    margin: 10px 0;
+    cursor: pointer;
+    color: var(--primary-color);
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+}
+
 .adv-toggle {
     margin-top: 10px;
     cursor: pointer;
     color: var(--primary-color);
     font-weight: bold;
+    display: inline-flex;
+    align-items: center;
 }
 
-.adv-toggle::after,
-#advMaterials h4::after {
-    content: '▼';
+
+.toggle-arrow {
+    width: 0.8em;
+    height: 0.8em;
     margin-left: 5px;
-    font-size: 0.8em;
+    transition: transform 0.2s ease;
+    fill: currentColor;
 }
 
-#advMaterials h4 {
-    cursor: pointer;
-    margin: 10px 0;
+.adv-toggle.open .toggle-arrow,
+#advMaterials h4.open .toggle-arrow {
+    transform: rotate(180deg);
 }
+
 
 .level-select-container {
     margin-top: 10px;
