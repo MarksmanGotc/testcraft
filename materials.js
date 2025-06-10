@@ -84,5 +84,18 @@ const materials = {
 				"Original-name": "Umber Chains"
 			},
 		}
+	},
+	12: {
+		season: 12,
+		mats: {
+			"burning-stag-hide": {
+				"img": "materials/season10/burning-stag-hide.png",
+				"Original-name": "Burning Stag Hide"
+			},
+			"frost-crusted-abalone": {
+				"img": "materials/season10/frost-crusted-abalone.png",
+				"Original-name": "Frost Crusted Abalone"
+			}
+		}
 	}
 }
