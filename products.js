@@ -14,6 +14,13 @@ let craftItem = {
 				season: season10.season
 			}))
 		),
+		...season11.sets.flatMap(set =>
+			set.products.map(product => ({
+				...product,
+				setName: set.setName,
+				season: season11.season
+			}))
+		),
 		...season12.sets.flatMap(set =>
 			set.products.map(product => ({
 				...product,
@@ -24,4 +31,4 @@ let craftItem = {
 	]
 };
 
-window.seasons = [season0, season10, season12];
+window.seasons = [season0, season10, season11, season12];
