@@ -85,6 +85,39 @@ const materials = {
 			},
 		}
 	},
+	11: {
+		season: 11,
+		mats: {
+			"ash-cloaked-clow": {
+				"img": "materials/season11/ash-cloaked-clow.png",
+				"Original-name": "Ash Cloaked Clow"
+			},
+			"charred-driftwood": {
+				"img": "materials/season11/charred-driftwood.png",
+				"Original-name": "Charred Driftwood"
+			},
+			"frostbitten-leather": {
+				"img": "materials/season11/frostbitten-leather.png",
+				"Original-name": "Frostbitten Leather"
+			},
+			"frozen-weirwood-sap": {
+				"img": "materials/season11/frozen-weirwood-sap.png",
+				"Original-name": "Frozen Weirwood Sap"
+			},
+			"greenfyre-penny": {
+				"img": "materials/season11/greenfyre-penny.png",
+				"Original-name": "Greenfyre Penny"
+			},
+			"iron-laurel": {
+				"img": "materials/season11/iron-laurel.png",
+				"Original-name": "Iron Laurel"
+			},
+			"targaryen-cloth-bolt": {
+				"img": "materials/season11/targaryen-cloth-bolt.png",
+				"Original-name": "Targaryen Cloth Bolt"
+			},
+		}
+	},
 	12: {
 		season: 12,
 		mats: {
