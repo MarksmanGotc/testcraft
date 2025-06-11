@@ -178,6 +178,7 @@ function createLevelStructure() {
             const input = document.createElement('input');
             input.type = 'number';
             input.name = product.name;
+            input.dataset.productId = product.id;
             input.placeholder = 'amount';
 
             productDiv.appendChild(label);
@@ -207,9 +208,9 @@ function calculateMaterials() {
         const level = parseInt(levelDiv.id.split('-')[1]);
         levelDiv.querySelectorAll('input[type="number"]').forEach(input => {
             const amount = parseInt(input.value) || 0;
-            const productName = input.name;
-            //const product = craftItem.products.find(p => p.name === productName);
-			const product = craftItem.products.find(p => p.name === productName && p.level === level);
+            const productId = parseInt(input.dataset.productId);
+            const product = craftItem.products.find(p => p.id === productId);
+            const productName = product ? product.name : input.name;
 
     
             if (product && amount > 0) {
@@ -653,10 +654,10 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
     
 
             if (selectedProduct && canProductBeProduced(selectedProduct, availableMaterials, multiplier)) {
-                productionPlan[level].push(selectedProduct.name);
+                productionPlan[level].push(selectedProduct.id);
                 productsSelectedThisRound[level] = selectedProduct; // Tallennetaan valittu tuote
                 updateAvailableMaterials(availableMaterials, selectedProduct, multiplier); // Päivitetään materiaalien määrä
-				remaining[level]--; 
+                                remaining[level]--;
             } else {
                 // Jos tuotetta ei voi valita, keskeytetään prosessi ja poistetaan edelliset tuotteet
                 LEVELS.forEach(l => {
@@ -874,12 +875,10 @@ function canProductBeProduced(product, availableMaterials, multiplier = 1) {
 
 
 function listSelectedProducts(productionPlan) {
-    Object.entries(productionPlan).forEach(([level, productNames]) => {
-        productNames.forEach(productName => {
-            // Etsi olemassa oleva input-kenttä tuotenimen perusteella
-            const inputElement = document.querySelector(`#level-${level}-items input[name="${productName}"]`);
+    Object.entries(productionPlan).forEach(([level, productIds]) => {
+        productIds.forEach(id => {
+            const inputElement = document.querySelector(`#level-${level}-items input[data-product-id="${id}"]`);
             if (inputElement) {
-                // Päivitä input-kentän arvo valittujen tuotteiden määrällä
                 inputElement.value = (parseInt(inputElement.value) || 0) + 1;
             }
         });
