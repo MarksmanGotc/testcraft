@@ -1056,7 +1056,7 @@ function initAdvMaterialSection() {
         const optionDiv = document.createElement('div');
         optionDiv.dataset.value = l;
         optionDiv.textContent = l;
-        if (![5,10].includes(l)) {
+        if (![5,10,15].includes(l)) {
             optionDiv.classList.add('selected');
         }
         dropdown.appendChild(optionDiv);
