@@ -301,8 +301,11 @@ h2 {
 #manualInput button {
     margin-right: 10px;
 }
-.materials p.name {
-    display: none;
+
+.materials p.material-name {
+    display: block;
+    text-align: center;
+    margin: 0;
 }
 
 .level-group p.name {
