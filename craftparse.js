@@ -22,6 +22,15 @@ const LEFTOVER_WEIGHT_BASE = 7;
 const LEFTOVER_WEIGHT_GEAR = 3;
 const BALANCE_WEIGHT = 0.1;
 
+function slug(str) {
+    return (str || '')
+        .toString()
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/['"`]/g, '')
+        .replace(/[^a-z0-9-]/g, '');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     createLevelStructure();
     addCalculateButton();
@@ -96,7 +105,8 @@ function setTemplateValues(templates) {
     // Aseta sitten uudet arvot
     Object.entries(templates).forEach(([level, items]) => {
         Object.entries(items).forEach(([itemName, amount]) => {
-            const inputElement = document.querySelector(`input[name="${itemName}"]`);
+            const slugName = slug(itemName);
+            const inputElement = document.querySelector(`input[name^="${slugName}_"]`);
             if (inputElement) {
                 inputElement.value = amount;
             }
@@ -174,10 +184,16 @@ function createLevelStructure() {
         craftItem.products.filter(product => product.level === level).forEach(product => {
             const productDiv = document.createElement('div');
             const label = document.createElement('label');
-            label.textContent = product.name;
+            if (product.season === 0) {
+                label.textContent = product.name;
+            } else {
+                label.textContent = `${product.name} - ${product.setName} (S${product.season})`;
+            }
             const input = document.createElement('input');
             input.type = 'number';
-            input.name = product.name;
+            const nameSlug = slug(product.name);
+            const setSlug = slug(product.setName || 'no-set');
+            input.name = `${nameSlug}_${product.season}_${setSlug}`;
             input.placeholder = 'amount';
 
             productDiv.appendChild(label);
@@ -207,15 +223,19 @@ function calculateMaterials() {
         const level = parseInt(levelDiv.id.split('-')[1]);
         levelDiv.querySelectorAll('input[type="number"]').forEach(input => {
             const amount = parseInt(input.value) || 0;
-            const productName = input.name;
-            //const product = craftItem.products.find(p => p.name === productName);
-			const product = craftItem.products.find(p => p.name === productName && p.level === level);
+            const [nameSlug, seasonStr, setSlug] = input.name.split('_');
+            const season = parseInt(seasonStr, 10);
+            const product = craftItem.products.find(p =>
+                slug(p.name) === nameSlug &&
+                p.level === level &&
+                p.season === season &&
+                slug(p.setName || 'no-set') === setSlug
+            );
 
     
             if (product && amount > 0) {
-                //templateCounts[level].push({ name: productName, amount: amount, img: product.img, materials: product.materials, multiplier: qualityMultipliers[level] || 1 });
-				templateCounts[level].push({
-                    name: productName,
+                templateCounts[level].push({
+                    name: product.name,
                     amount: amount,
                     img: product.img,
                     materials: product.materials,
@@ -653,10 +673,10 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
     
 
             if (selectedProduct && canProductBeProduced(selectedProduct, availableMaterials, multiplier)) {
-                productionPlan[level].push(selectedProduct.name);
+                productionPlan[level].push({ name: selectedProduct.name, season: selectedProduct.season, setName: selectedProduct.setName });
                 productsSelectedThisRound[level] = selectedProduct; // Tallennetaan valittu tuote
                 updateAvailableMaterials(availableMaterials, selectedProduct, multiplier); // Päivitetään materiaalien määrä
-				remaining[level]--; 
+                                remaining[level]--;
             } else {
                 // Jos tuotetta ei voi valita, keskeytetään prosessi ja poistetaan edelliset tuotteet
                 LEVELS.forEach(l => {
@@ -874,12 +894,11 @@ function canProductBeProduced(product, availableMaterials, multiplier = 1) {
 
 
 function listSelectedProducts(productionPlan) {
-    Object.entries(productionPlan).forEach(([level, productNames]) => {
-        productNames.forEach(productName => {
-            // Etsi olemassa oleva input-kenttä tuotenimen perusteella
-            const inputElement = document.querySelector(`#level-${level}-items input[name="${productName}"]`);
+    Object.entries(productionPlan).forEach(([level, products]) => {
+        products.forEach(({ name, season, setName }) => {
+            const selector = `#level-${level}-items input[name="${slug(name)}_${season}_${slug(setName || 'no-set')}"]`;
+            const inputElement = document.querySelector(selector);
             if (inputElement) {
-                // Päivitä input-kentän arvo valittujen tuotteiden määrällä
                 inputElement.value = (parseInt(inputElement.value) || 0) + 1;
             }
         });
