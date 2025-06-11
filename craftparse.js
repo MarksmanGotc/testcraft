@@ -491,16 +491,17 @@ document.getElementById('calculateWithPreferences').addEventListener('click', fu
 			initialMaterials = { ...availableMaterials };
 		}*/
 		
-		let availableMaterials = gatherMaterialsFromInputs();
-		if (Object.keys(initialMaterials).length === 0) {
-				initialMaterials = { ...availableMaterials };
-		} else {
-				Object.entries(availableMaterials).forEach(([mat, amt]) => {
-						if (!(mat in initialMaterials)) {
-								initialMaterials[mat] = amt;
-						}
-				});
-		}
+                let availableMaterials = gatherMaterialsFromInputs();
+                availableMaterials = sanitizeGearMaterials(availableMaterials);
+                if (Object.keys(initialMaterials).length === 0) {
+                                initialMaterials = { ...availableMaterials };
+                } else {
+                                Object.entries(availableMaterials).forEach(([mat, amt]) => {
+                                                if (!(mat in initialMaterials)) {
+                                                                initialMaterials[mat] = amt;
+                                                }
+                                });
+                }
 
 		let templatesByLevel = {};
 		let totalTemplates = 0;
@@ -579,9 +580,20 @@ function gatherMaterialsFromInputs() {
     return materialsInput;
 }
 
-function filterProductsByAvailableGear(products, availableMaterials) {
+function sanitizeGearMaterials(materialsInput) {
+    const cleaned = { ...materialsInput };
+    Object.entries(materialsInput).forEach(([name, amount]) => {
+        const season = materialToSeason[name] || 0;
+        if (season !== 0 && (!amount || amount <= 0)) {
+            delete cleaned[name];
+        }
+    });
+    return cleaned;
+}
+
+function filterProductsByAvailableGear(products, availableMaterials, multiplier = 1) {
     return products.filter(product => {
-        return Object.entries(product.materials).every(([mat, _]) => {
+        return Object.entries(product.materials).every(([mat, amt]) => {
             const normalized = mat.toLowerCase().replace(/\s/g, '-');
             const season = materialToSeason[normalized] || 0;
             if (season === 0) {
@@ -590,7 +602,7 @@ function filterProductsByAvailableGear(products, availableMaterials) {
             const matchedKey = Object.keys(availableMaterials).find(key =>
                 key.toLowerCase().replace(/\s/g, '-') === normalized
             );
-            return matchedKey && availableMaterials[matchedKey] > 0;
+            return matchedKey && availableMaterials[matchedKey] >= amt * multiplier;
         });
     });
 }
@@ -634,10 +646,9 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                 return true; // normal odds
             });
 
-            levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials);
-			
-			
             const multiplier = qualityMultipliers[level] || 1;
+
+            levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
             const selectedProduct = selectBestAvailableProduct(levelProducts, preferences.mostAvailableMaterials, preferences.secondMostAvailableMaterials, preferences.leastAvailableMaterials, availableMaterials, multiplier);
     
 
