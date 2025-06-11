@@ -89,8 +89,8 @@ function setTemplateValues(templates) {
 
     // Aseta sitten uudet arvot
     Object.entries(templates).forEach(([level, items]) => {
-        Object.entries(items).forEach(([itemName, amount]) => {
-            const inputElement = document.querySelector(`input[name="${itemName}"]`);
+        Object.entries(items).forEach(([key, amount]) => {
+            const inputElement = document.querySelector(`input[name="${key}"]`);
             if (inputElement) {
                 inputElement.value = amount;
             }
@@ -168,10 +168,10 @@ function createLevelStructure() {
         craftItem.products.filter(product => product.level === level).forEach(product => {
             const productDiv = document.createElement('div');
             const label = document.createElement('label');
-            label.textContent = product.name;
+            label.textContent = product.setName ? `${product.name} (${product.setName})` : product.name;
             const input = document.createElement('input');
             input.type = 'number';
-            input.name = product.name;
+            input.name = `${product.name}::${product.setName}`;
             input.placeholder = 'amount';
 
             productDiv.appendChild(label);
@@ -201,14 +201,12 @@ function calculateMaterials() {
         const level = parseInt(levelDiv.id.split('-')[1]);
         levelDiv.querySelectorAll('input[type="number"]').forEach(input => {
             const amount = parseInt(input.value) || 0;
-            const productName = input.name;
-            //const product = craftItem.products.find(p => p.name === productName);
-			const product = craftItem.products.find(p => p.name === productName && p.level === level);
+            const [productName, setName] = input.name.split('::');
+            const product = craftItem.products.find(p => p.name === productName && p.setName === setName && p.level === level);
 
     
             if (product && amount > 0) {
-                //templateCounts[level].push({ name: productName, amount: amount, img: product.img, materials: product.materials, multiplier: qualityMultipliers[level] || 1 });
-				templateCounts[level].push({
+                templateCounts[level].push({
                     name: productName,
                     amount: amount,
                     img: product.img,
@@ -617,10 +615,10 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
     
 
             if (selectedProduct && canProductBeProduced(selectedProduct, availableMaterials, multiplier)) {
-                productionPlan[level].push(selectedProduct.name);
+                productionPlan[level].push({ name: selectedProduct.name, setName: selectedProduct.setName });
                 productsSelectedThisRound[level] = selectedProduct; // Tallennetaan valittu tuote
                 updateAvailableMaterials(availableMaterials, selectedProduct, multiplier); // Päivitetään materiaalien määrä
-				remaining[level]--; 
+                                remaining[level]--;
             } else {
                 // Jos tuotetta ei voi valita, keskeytetään prosessi ja poistetaan edelliset tuotteet
                 LEVELS.forEach(l => {
@@ -799,12 +797,10 @@ function canProductBeProduced(product, availableMaterials, multiplier = 1) {
 
 
 function listSelectedProducts(productionPlan) {
-    Object.entries(productionPlan).forEach(([level, productNames]) => {
-        productNames.forEach(productName => {
-            // Etsi olemassa oleva input-kenttä tuotenimen perusteella
-            const inputElement = document.querySelector(`#level-${level}-items input[name="${productName}"]`);
+    Object.entries(productionPlan).forEach(([level, products]) => {
+        products.forEach(prod => {
+            const inputElement = document.querySelector(`#level-${level}-items input[name="${prod.name}::${prod.setName}"]`);
             if (inputElement) {
-                // Päivitä input-kentän arvo valittujen tuotteiden määrällä
                 inputElement.value = (parseInt(inputElement.value) || 0) + 1;
             }
         });
