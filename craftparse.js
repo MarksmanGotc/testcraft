@@ -15,6 +15,7 @@ Object.values(materials).forEach(season => {
 let qualityMultipliers = {};
 const WARLORD_PENALTY = 3;
 const LEFTOVER_WEIGHT = 5;
+const GEAR_LEFTOVER_MULT = 2;
 let materialUsageCount = {};
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -590,8 +591,9 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
     let remaining = { ...templatesByLevel };
 
     while (Object.values(remaining).some(v => v > 0)) {
+        let progress = false;
         let preferences = getUserPreferences(availableMaterials);
-         let productsSelectedThisRound = {};
+        let productsSelectedThisRound = {};
 
         for (let level of LEVELS) {
             if (remaining[level] <= 0) continue;
@@ -622,7 +624,8 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                 productionPlan[level].push({ name: selectedProduct.name, setName: selectedProduct.setName });
                 productsSelectedThisRound[level] = selectedProduct; // Tallennetaan valittu tuote
                 updateAvailableMaterials(availableMaterials, selectedProduct, multiplier); // Päivitetään materiaalien määrä
-                                remaining[level]--;
+                remaining[level]--;
+                progress = true;
             } else {
                 // Jos tuotetta ei voi valita, keskeytetään prosessi ja poistetaan edelliset tuotteet
                 LEVELS.forEach(l => {
@@ -637,6 +640,9 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
 
                 return productionPlan; // Palautetaan jo tuotettu tuotantosuunnitelma
             }
+        }
+        if (!progress) {
+            break;
         }
     }
     return productionPlan; // Kaikki pyydetyt templatet onnistuttiin tuottamaan
@@ -785,7 +791,9 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
             const available = availableMaterials[matchedKey];
             const remaining = available - amount * multiplier;
             if (available > 0) {
-                score -= (remaining / available) * LEFTOVER_WEIGHT;
+                const season = materialToSeason[matchedKey] || 0;
+                const weight = season > 0 ? LEFTOVER_WEIGHT * GEAR_LEFTOVER_MULT : LEFTOVER_WEIGHT;
+                score -= (remaining / available) * weight;
             }
         }
     });
