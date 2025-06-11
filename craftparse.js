@@ -281,17 +281,19 @@ function calculateMaterials() {
         const pMatAmount = document.createElement('p');
         const pRemaining = document.createElement('p');
         const pAvailableMaterials = document.createElement('p');
+        const pSeason = document.createElement('p');
         pMatName.className = 'material-name';
         pMatAmount.className = 'amount';
         pRemaining.className = 'remaining-to-use';
         pAvailableMaterials.className = 'available-materials';
-		
-                let matText = allMaterials[materialName] ? allMaterials[materialName]["Original-name"] || materialName : materialName;
-                const matSeason = materialToSeason[materialName] || 0;
-                if (matSeason !== 0) {
-                    matText = `Season ${matSeason} ${matText}`;
-                }
-                pMatName.textContent = matText;
+        pSeason.className = 'season-id';
+
+        let matText = allMaterials[materialName] ? allMaterials[materialName]["Original-name"] || materialName : materialName;
+        const matSeason = materialToSeason[materialName] || 0;
+        if (matSeason !== 0) {
+            pSeason.textContent = `Season ${matSeason}`;
+        }
+        pMatName.textContent = matText;
         pMatAmount.textContent = `-${new Intl.NumberFormat('en-US').format(data.amount)}`;
 		pRemaining.textContent = pMatAmount.textContent;
         remainingUse[materialName] = data.amount;
@@ -309,6 +311,9 @@ function calculateMaterials() {
 		
 		
         materialContainer.dataset.material = materialName;
+        if (matSeason !== 0) {
+            materialContainer.appendChild(pSeason);
+        }
         materialContainer.appendChild(pMatName);
         materialContainer.appendChild(pMatAmount);
         materialContainer.appendChild(pRemaining);

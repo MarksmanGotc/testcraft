@@ -307,6 +307,11 @@ h2 {
     text-align: center;
     margin: 0;
 }
+.materials p.season-id {
+    text-align: center;
+    margin: 0;
+    font-style: italic;
+}
 
 .level-group p.name {
     text-align: center;
