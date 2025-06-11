@@ -12,6 +12,7 @@ Object.values(materials).forEach(season => {
         materialToSeason[mat] = season.season;
     });
 });
+
 let qualityMultipliers = {};
 const WARLORD_PENALTY = 3;
 const LEFTOVER_WEIGHT = 5;
