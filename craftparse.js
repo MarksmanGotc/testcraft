@@ -815,21 +815,21 @@ function rollbackMaterials(availableMaterials, product, multiplier = 1) {
 }
 
 function computeBaseUsageStd(materialsState) {
-    const used = [];
-    Object.entries(initialMaterials).forEach(([material, original]) => {
+    const remaining = [];
+    Object.entries(initialMaterials).forEach(([material, _]) => {
         const normalized = material.toLowerCase().replace(/\s/g, '-');
         const matchedKey = Object.keys(materialsState).find(key =>
             key.toLowerCase().replace(/\s/g, '-') === normalized
         );
-        if (matchedKey && materialToSeason[normalized] === 0 && original > 0) {
-            used.push(original - materialsState[matchedKey]);
+        if (matchedKey && materialToSeason[normalized] === 0) {
+            remaining.push(materialsState[matchedKey]);
         }
     });
-    if (used.length === 0) {
+    if (remaining.length === 0) {
         return 0;
     }
-    const mean = used.reduce((a, b) => a + b, 0) / used.length;
-    const variance = used.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / used.length;
+    const mean = remaining.reduce((a, b) => a + b, 0) / remaining.length;
+    const variance = remaining.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / remaining.length;
     return Math.sqrt(variance);
 }
 
