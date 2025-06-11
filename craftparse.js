@@ -15,6 +15,7 @@ Object.values(materials).forEach(season => {
 let qualityMultipliers = {};
 const WARLORD_PENALTY = 3;
 const LEFTOVER_WEIGHT = 5;
+let materialUsageCount = {};
 
 document.addEventListener('DOMContentLoaded', function() {
     createLevelStructure();
@@ -579,8 +580,11 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
     const level1OnlyWarlords = document.getElementById('level1OnlyWarlords')?.checked ?? false;
 	const includeLowOdds = document.getElementById('includeLowOdds')?.checked ?? true;
     const includeMediumOdds = document.getElementById('includeMediumOdds')?.checked ?? true;
-	const gearLevelSelect = document.getElementById('gearMaterialLevels');
+    const gearLevelSelect = document.getElementById('gearMaterialLevels');
     const allowedGearLevels = gearLevelSelect ? Array.from(gearLevelSelect.selectedOptions).map(o => parseInt(o.value, 10)) : [];
+
+    materialUsageCount = {};
+    Object.keys(availableMaterials).forEach(mat => { materialUsageCount[mat] = 0; });
 
 	
     let remaining = { ...templatesByLevel };
@@ -611,7 +615,7 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
 			
 			
             const multiplier = qualityMultipliers[level] || 1;
-            const selectedProduct = selectBestAvailableProduct(levelProducts, preferences.mostAvailableMaterials, preferences.secondMostAvailableMaterials, preferences.leastAvailableMaterials, availableMaterials, multiplier);
+            const selectedProduct = selectBestAvailableProduct(levelProducts, preferences.mostAvailableMaterials, preferences.secondMostAvailableMaterials, preferences.leastAvailableMaterials, availableMaterials, multiplier, materialUsageCount);
     
 
             if (selectedProduct && canProductBeProduced(selectedProduct, availableMaterials, multiplier)) {
@@ -660,6 +664,7 @@ function updateAvailableMaterials(availableMaterials, selectedProduct, multiplie
 
         if (matchedKey) {
             availableMaterials[matchedKey] -= amountRequired * multiplier;
+            materialUsageCount[matchedKey] = (materialUsageCount[matchedKey] || 0) + amountRequired * multiplier;
         }
     });
 }
@@ -709,16 +714,19 @@ function getUserPreferences(availableMaterials) {
     return { mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials };
 }
 
-function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1) {
+function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1, usageCount = {}) {
     // Järjestä tuotteet pisteiden mukaan
     const candidates = levelProducts
         .map(product => ({
             product,
-			score: getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier)
+            score: getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier),
+            usage: Object.entries(product.materials).reduce((sum, [mat]) => sum + (usageCount[mat] || 0), 0)
         }))
-        .sort((a, b) => b.score - a.score); // suurimmasta pienimpään
+        .sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return a.usage - b.usage;
+        });
 
-    // Etsi ensimmäinen tuote, jonka materiaalit riittävät
     for (const { product } of candidates) {
         if (canProductBeProduced(product, availableMaterials, multiplier)) {
             return product;
@@ -738,6 +746,7 @@ function rollbackMaterials(availableMaterials, product, multiplier = 1) {
 
         if (matchedKey) {
             availableMaterials[matchedKey] += amountRequired * multiplier;
+            materialUsageCount[matchedKey] = (materialUsageCount[matchedKey] || 0) - amountRequired * multiplier;
         }
     });
 }
