@@ -324,9 +324,11 @@ h2 {
 .level-group p.season-info {
     text-align: center;
     margin: 0;
+	font-size: 14px;
 }
 .level-group p.season-info {
     font-style: italic;
+    margin-bottom: 4px;
 }
 
 button.multiplier-btn {
@@ -411,6 +413,7 @@ button.multiplier-btn {
 	display: inline-flex;
 	align-items: center;
 	width: 100%;
+	font-size: 16px;
 }
 
 .adv-toggle {
@@ -420,6 +423,7 @@ button.multiplier-btn {
     font-weight: bold;
     display: inline-flex;
     align-items: center;
+    font-size: 18px;
 }
 
 
