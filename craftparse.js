@@ -281,13 +281,17 @@ function calculateMaterials() {
         const pMatAmount = document.createElement('p');
         const pRemaining = document.createElement('p');
         const pAvailableMaterials = document.createElement('p');
-        pMatName.className = 'name';
+        pMatName.className = 'material-name';
         pMatAmount.className = 'amount';
         pRemaining.className = 'remaining-to-use';
         pAvailableMaterials.className = 'available-materials';
 		
-		//pMatName.textContent = `${materialName}`;
-		pMatName.textContent = allMaterials[materialName] ? allMaterials[materialName]["Original-name"] || materialName : materialName;
+                let matText = allMaterials[materialName] ? allMaterials[materialName]["Original-name"] || materialName : materialName;
+                const matSeason = materialToSeason[materialName] || 0;
+                if (matSeason !== 0) {
+                    matText = `Season ${matSeason} ${matText}`;
+                }
+                pMatName.textContent = matText;
         pMatAmount.textContent = `-${new Intl.NumberFormat('en-US').format(data.amount)}`;
 		pRemaining.textContent = pMatAmount.textContent;
         remainingUse[materialName] = data.amount;
@@ -368,17 +372,17 @@ function calculateMaterials() {
                 img.src = template.img;
                 img.alt = template.name;
                 templateDiv.appendChild(img);
-				
-				if (template.season && template.season !== 0) {
-                    const pSetName = document.createElement('p');
-                    pSetName.className = 'set-name';
-                    pSetName.textContent = template.setName || '';
-                    templateDiv.appendChild(pSetName);
 
-                    const pSeasonInfo = document.createElement('p');
+                let pSeasonInfo;
+                let pSetName;
+                if (template.season && template.season !== 0) {
+                    pSeasonInfo = document.createElement('p');
                     pSeasonInfo.className = 'season-info';
                     pSeasonInfo.textContent = `Season ${template.season}`;
-                    templateDiv.appendChild(pSeasonInfo);
+
+                    pSetName = document.createElement('p');
+                    pSetName.className = 'set-name';
+                    pSetName.textContent = template.setName || '';
                 }
 
                 const pTemplateName = document.createElement('p');
@@ -388,6 +392,11 @@ function calculateMaterials() {
 
                 pTemplateName.textContent = `${template.name}`;
                 pTemplateamount.textContent = `${new Intl.NumberFormat('en-US').format(template.amount)}`;
+
+                if (template.season && template.season !== 0) {
+                    templateDiv.appendChild(pSeasonInfo);
+                    templateDiv.appendChild(pSetName);
+                }
 
                 templateDiv.appendChild(pTemplateName);
                 templateDiv.appendChild(pTemplateamount);
