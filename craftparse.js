@@ -20,6 +20,7 @@ const GEAR_MOST_WEIGHT = 6;
 const GEAR_SECOND_WEIGHT = 3;
 const LEFTOVER_WEIGHT_BASE = 7;
 const LEFTOVER_WEIGHT_GEAR = 3;
+const BALANCE_WEIGHT = 0.1;
 
 document.addEventListener('DOMContentLoaded', function() {
     createLevelStructure();
@@ -767,6 +768,39 @@ function rollbackMaterials(availableMaterials, product, multiplier = 1) {
     });
 }
 
+function computeBaseUsageStd(materialsState) {
+    const used = [];
+    Object.entries(initialMaterials).forEach(([material, original]) => {
+        const normalized = material.toLowerCase().replace(/\s/g, '-');
+        const matchedKey = Object.keys(materialsState).find(key =>
+            key.toLowerCase().replace(/\s/g, '-') === normalized
+        );
+        if (matchedKey && materialToSeason[normalized] === 0 && original > 0) {
+            used.push(original - materialsState[matchedKey]);
+        }
+    });
+    if (used.length === 0) {
+        return 0;
+    }
+    const mean = used.reduce((a, b) => a + b, 0) / used.length;
+    const variance = used.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / used.length;
+    return Math.sqrt(variance);
+}
+
+function computeBalancePenalty(product, availableMaterials, multiplier = 1) {
+    const predicted = { ...availableMaterials };
+    Object.entries(product.materials).forEach(([material, amt]) => {
+        const normalized = material.toLowerCase().replace(/\s/g, '-');
+        const matchedKey = Object.keys(predicted).find(key =>
+            key.toLowerCase().replace(/\s/g, '-') === normalized
+        );
+        if (matchedKey) {
+            predicted[matchedKey] -= amt * multiplier;
+        }
+    });
+    return computeBaseUsageStd(predicted);
+}
+
 
 function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1) {
     let score = 0;
@@ -802,6 +836,9 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
             }
         }
     });
+
+    const balancePenalty = computeBalancePenalty(product, availableMaterials, multiplier);
+    score -= balancePenalty * BALANCE_WEIGHT;
 
     return score;
 }
