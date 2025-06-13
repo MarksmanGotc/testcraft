@@ -819,8 +819,8 @@ button.multiplier-btn {
   --newBrdrClr: var(--brdr-hovr);
 }
 .checkbox-wrapper-30 .checkbox input:checked {
-  --newBrdrClr: var(--brdr-actv);
-  transition-delay: calc(var(--dur) /1.3);
+  --newBrdrClr: var();
+  --newBrdrClr: var(--primary-color);
 }
 .checkbox-wrapper-30 .checkbox input:checked + svg {
   --dashArray: 16 93;
