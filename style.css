@@ -85,6 +85,7 @@ body {
 .section-title span {
     position: relative;
     padding: 0 10px;
+    font-size: 14px;
 }
 
 .info-btn {
@@ -144,11 +145,11 @@ button.info-btn:hover {
 	max-width: 20px;
 	fill: var(--button-bg-hover);
 	height: 20px;
-	transition: 0.2s;
 }
 
 .info-overlay .close-popup:hover svg {
     transform: rotate(90deg);
+    transition: 0.2s;
 }
 
 .wrapper {
@@ -771,9 +772,10 @@ button.multiplier-btn {
   --brdr: #d1d6ee;
   --brdr-actv: #1e2235;
   --brdr-hovr: #bbc1e1;
-  --dur: calc((var(--size, 2)/2) * 0.6s);
+  --size: 1;
+  --dur: calc((var(--size, 2)/2) * 1s);
   display: inline-block;
-  width: calc(var(--size, 1) * 22px);
+  width: calc(var(--size, 1) * 20px);
   position: relative;
 }
 .checkbox-wrapper-30 .checkbox:after {
@@ -837,4 +839,5 @@ button.multiplier-btn {
   cursor: pointer;
   margin-left: 8px;
   user-select: none;
+  font-size: 14px;
 }
