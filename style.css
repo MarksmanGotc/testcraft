@@ -190,7 +190,7 @@ button {
     margin-top: 10px;
     color: var(--secondary-color);
     width: 100%;
-    display: inline-block;
+    display: block;
     margin-right: 10px;
     font-size: 12px;
 }

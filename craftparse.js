@@ -21,6 +21,8 @@ const GEAR_SECOND_WEIGHT = 3;
 const LEFTOVER_WEIGHT_BASE = 7;
 const LEFTOVER_WEIGHT_GEAR = 3;
 const BALANCE_WEIGHT = 0.1;
+let failedLevels = [];
+let requestedTemplates = {};
 
 function slug(str) {
     return (str || '')
@@ -73,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     ctwPopup?.addEventListener('click', (e) => {
-        if (e.target === ctwPopup || e.target.classList.contains('close-popup')) {
+        if (e.target === ctwPopup || e.target.closest('.close-popup')) {
             ctwPopup.style.display = 'none';
         }
     });
@@ -86,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     oddsPopup?.addEventListener('click', (e) => {
-        if (e.target === oddsPopup || e.target.classList.contains('close-popup')) {
+        if (e.target === oddsPopup || e.target.closest('.close-popup')) {
             oddsPopup.style.display = 'none';
         }
     });
@@ -267,7 +269,8 @@ function calculateMaterials() {
                     materials: product.materials,
                     multiplier: qualityMultipliers[level] || 1,
                     setName: product.setName,
-                    season: product.season
+                    season: product.season,
+                    warlord: product.warlord || false
                 });
     
                 Object.entries(product.materials).forEach(([rawName, requiredAmount]) => {
@@ -359,6 +362,16 @@ function calculateMaterials() {
     // Tarkista, ovatko kaikkien tasojen item-määrät samat
     const levelItemCounts = calculateTotalItemsByLevel(templateCounts);
     const allSameCount = areAllCountsSame(levelItemCounts);
+    const allFailed = LEVELS.every(l => failedLevels.includes(l) && requestedTemplates[l] > 0);
+
+    if (allFailed) {
+        const msg = document.createElement('h3');
+        msg.textContent = 'No suitable products found for your criteria';
+        resultsDiv.appendChild(msg);
+        createCloseButton(resultsDiv);
+        showResults();
+        return;
+    }
 
     if (allSameCount && levelItemCounts["1"] > 0) {
         // Jos kaikkien tasojen määrät ovat samat, lisää "Total templates" -teksti materialsDivin jälkeen
@@ -385,18 +398,18 @@ function calculateMaterials() {
 
     // Lisää itemit ja tasot itemsDiviin
     Object.entries(templateCounts).forEach(([level, templates]) => {
-        if (templates.length > 0) {
+        const lvl = parseInt(level, 10);
+        if (templates.length > 0 || (failedLevels.includes(lvl) && requestedTemplates[lvl] > 0)) {
             const levelHeader = document.createElement('h4');
-			levelHeader.textContent = allSameCount ? `Level ${level}` : `Level ${level} (${new Intl.NumberFormat('en-US').format(levelItemCounts[level])} pcs)`;
+            levelHeader.textContent = allSameCount ? `Level ${level}` : `Level ${level} (${new Intl.NumberFormat('en-US').format(levelItemCounts[level])} pcs)`;
 
             itemsDiv.appendChild(levelHeader);
-			
-
 
             const levelGroup = document.createElement('div');
             levelGroup.className = 'level-group';
             itemsDiv.appendChild(levelGroup);
 
+            if (templates.length > 0) {
              templates.forEach(template => {
                 const templateDiv = document.createElement('div');
                 const img = document.createElement('img');
@@ -406,10 +419,11 @@ function calculateMaterials() {
 
                 let pSeasonInfo;
                 let pSetName;
-                if (template.season && template.season !== 0) {
+                const displaySeason = template.warlord ? 3 : template.season;
+                if (displaySeason && displaySeason !== 0) {
                     pSeasonInfo = document.createElement('p');
                     pSeasonInfo.className = 'season-info';
-                    pSeasonInfo.textContent = `Season ${template.season}`;
+                    pSeasonInfo.textContent = `Season ${displaySeason}`;
 
                     pSetName = document.createElement('p');
                     pSetName.className = 'set-name';
@@ -424,7 +438,7 @@ function calculateMaterials() {
                 pTemplateName.textContent = `${template.name}`;
                 pTemplateamount.textContent = `${new Intl.NumberFormat('en-US').format(template.amount)}`;
 
-                if (template.season && template.season !== 0) {
+                if (displaySeason && displaySeason !== 0) {
                     templateDiv.appendChild(pSeasonInfo);
                     templateDiv.appendChild(pSetName);
                 }
@@ -465,6 +479,12 @@ function calculateMaterials() {
 
                 levelGroup.appendChild(templateDiv);
             });
+            } else {
+                const msg = document.createElement('p');
+                msg.className = 'no-products';
+                msg.textContent = 'No suitable products found for your criteria';
+                levelGroup.appendChild(msg);
+            }
         }
     });
 
@@ -563,15 +583,16 @@ document.getElementById('calculateWithPreferences').addEventListener('click', fu
                                 });
                 }
 
-		let templatesByLevel = {};
-		let totalTemplates = 0;
-		LEVELS.forEach(level => {
-				const val = parseInt(document.getElementById(`templateAmount${level}`).value.replace(/,/g, '')) || 0;
-				templatesByLevel[level] = val;
-				totalTemplates += val;
-				const quality = document.getElementById(`temp${level}`).value;
-				qualityMultipliers[level] = getQualityMultiplier(quality);
-		});
+                let templatesByLevel = {};
+                let totalTemplates = 0;
+                LEVELS.forEach(level => {
+                                const val = parseInt(document.getElementById(`templateAmount${level}`).value.replace(/,/g, '')) || 0;
+                                templatesByLevel[level] = val;
+                                requestedTemplates[level] = val;
+                                totalTemplates += val;
+                                const quality = document.getElementById(`temp${level}`).value;
+                                qualityMultipliers[level] = getQualityMultiplier(quality);
+                });
 		if (totalTemplates === 0) {
 				document.querySelector('.spinner-wrap').classList.remove('active');
 				return;
@@ -610,13 +631,14 @@ document.getElementById('calculateWithPreferences').addEventListener('click', fu
 			});
 		}
 
-		let productionPlan = calculateProductionPlan(availableMaterials, templatesByLevel);
+                const resultPlan = calculateProductionPlan(availableMaterials, templatesByLevel);
+                failedLevels = resultPlan.failedLevels;
 
-		document.querySelectorAll('#manualInput input[type="number"]').forEach(input => {
-			input.value = ''; // Nollaa kaikki input-kentät
-		});
-		listSelectedProducts(productionPlan);
-		const calculateBtn = document.querySelector('.calculate-button');
+                document.querySelectorAll('#manualInput input[type="number"]').forEach(input => {
+                        input.value = ''; // Nollaa kaikki input-kentät
+                });
+                listSelectedProducts(resultPlan.plan);
+                const calculateBtn = document.querySelector('.calculate-button');
 		if (calculateBtn) {
 			calculateBtn.click(); // Simuloi napin klikkausta
 		}
@@ -670,70 +692,80 @@ function filterProductsByAvailableGear(products, availableMaterials, multiplier 
 
 
 
+}
 function calculateProductionPlan(availableMaterials, templatesByLevel) {
     let productionPlan = { "1": [], "5": [], "10": [], "15": [], "20": [], "25": [] };
+    const failed = new Set();
     const includeWarlords = document.getElementById('includeWarlords')?.checked ?? true;
     const level1OnlyWarlords = document.getElementById('level1OnlyWarlords')?.checked ?? false;
-	const includeLowOdds = document.getElementById('includeLowOdds')?.checked ?? true;
+    const includeLowOdds = document.getElementById('includeLowOdds')?.checked ?? true;
     const includeMediumOdds = document.getElementById('includeMediumOdds')?.checked ?? true;
-	const gearLevelSelect = document.getElementById('gearMaterialLevels');
+    const gearLevelSelect = document.getElementById('gearMaterialLevels');
     const allowedGearLevels = gearLevelSelect ? Array.from(gearLevelSelect.selectedOptions).map(o => parseInt(o.value, 10)) : [];
 
-	
+    LEVELS.forEach(level => {
+        if (templatesByLevel[level] <= 0) return;
+        let levelProducts = craftItem.products.filter(p => p.level === level && (includeWarlords || !p.warlord));
+        if (level === 1 && level1OnlyWarlords) {
+            levelProducts = craftItem.products.filter(p => p.level === 1 && p.warlord);
+        }
+        if (!allowedGearLevels.includes(level)) {
+            levelProducts = levelProducts.filter(p => p.season == 0);
+        }
+        levelProducts = levelProducts.filter(p => {
+            if (p.season !== 0 || !p.odds) return true;
+            if (p.odds === 'low') return includeLowOdds;
+            if (p.odds === 'medium') return includeMediumOdds;
+            return true;
+        });
+        const multiplier = qualityMultipliers[level] || 1;
+        levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
+        if (levelProducts.length === 0) {
+            failed.add(level);
+            templatesByLevel[level] = 0;
+        }
+    });
+
     let remaining = { ...templatesByLevel };
 
     while (Object.values(remaining).some(v => v > 0)) {
         let preferences = getUserPreferences(availableMaterials);
-         let productsSelectedThisRound = {};
+        let anySelected = false;
 
         for (let level of LEVELS) {
             if (remaining[level] <= 0) continue;
-            let levelProducts;
+            let levelProducts = craftItem.products.filter(p => p.level === level && (includeWarlords || !p.warlord));
             if (level === 1 && level1OnlyWarlords) {
-                levelProducts = craftItem.products.filter(product => product.level === 1 && product.warlord);
-            } else {
-                levelProducts = craftItem.products.filter(product => product.level === level && (includeWarlords || !product.warlord));
+                levelProducts = craftItem.products.filter(p => p.level === 1 && p.warlord);
             }
-			
-			if (!allowedGearLevels.includes(level)) {
-                levelProducts = levelProducts.filter(product => product.season === 0);
+            if (!allowedGearLevels.includes(level)) {
+                levelProducts = levelProducts.filter(p => p.season == 0);
             }
-			
-            levelProducts = levelProducts.filter(product => {
-                if (product.season !== 0 || !product.odds) return true;
-                if (product.odds === 'low') return includeLowOdds;
-                if (product.odds === 'medium') return includeMediumOdds;
-                return true; // normal odds
+            levelProducts = levelProducts.filter(p => {
+                if (p.season !== 0 || !p.odds) return true;
+                if (p.odds === 'low') return includeLowOdds;
+                if (p.odds === 'medium') return includeMediumOdds;
+                return true;
             });
-
             const multiplier = qualityMultipliers[level] || 1;
-
             levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
             const selectedProduct = selectBestAvailableProduct(levelProducts, preferences.mostAvailableMaterials, preferences.secondMostAvailableMaterials, preferences.leastAvailableMaterials, availableMaterials, multiplier);
-    
 
             if (selectedProduct && canProductBeProduced(selectedProduct, availableMaterials, multiplier)) {
-                productionPlan[level].push({ name: selectedProduct.name, season: selectedProduct.season, setName: selectedProduct.setName });
-                productsSelectedThisRound[level] = selectedProduct; // Tallennetaan valittu tuote
-                updateAvailableMaterials(availableMaterials, selectedProduct, multiplier); // Päivitetään materiaalien määrä
-                                remaining[level]--;
+                productionPlan[level].push({ name: selectedProduct.name, season: selectedProduct.season, setName: selectedProduct.setName, warlord: selectedProduct.warlord });
+                updateAvailableMaterials(availableMaterials, selectedProduct, multiplier);
+                remaining[level]--;
+                anySelected = true;
             } else {
-                // Jos tuotetta ei voi valita, keskeytetään prosessi ja poistetaan edelliset tuotteet
-                LEVELS.forEach(l => {
-                    if (productsSelectedThisRound[l]) {
-                        rollbackMaterials(availableMaterials, productsSelectedThisRound[l], qualityMultipliers[l] || 1);
-                        productionPlan[l].pop();
-                        if (remaining[l] >= 0) {
-                            remaining[l]++;
-                        }
-                    }
-                });
-
-                return productionPlan; // Palautetaan jo tuotettu tuotantosuunnitelma
+                failed.add(level);
+                remaining[level] = 0;
             }
         }
+
+        if (!anySelected) break;
     }
-    return productionPlan; // Kaikki pyydetyt templatet onnistuttiin tuottamaan
+
+    return { plan: productionPlan, failedLevels: Array.from(failed) };
 }
 
 function displayUserMessage(message) {
