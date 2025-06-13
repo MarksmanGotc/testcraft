@@ -69,7 +69,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const ctwPopup = document.getElementById('ctwInfoPopup');
     ctwBtn?.addEventListener('click', () => {
         if (ctwPopup) {
-            ctwPopup.style.display = ctwPopup.style.display === 'block' ? 'none' : 'block';
+            ctwPopup.style.display = 'flex';
+        }
+    });
+    ctwPopup?.addEventListener('click', (e) => {
+        if (e.target === ctwPopup || e.target.classList.contains('close-popup')) {
+            ctwPopup.style.display = 'none';
         }
     });
 
@@ -77,7 +82,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const oddsPopup = document.getElementById('oddsInfoPopup');
     oddsBtn?.addEventListener('click', () => {
         if (oddsPopup) {
-            oddsPopup.style.display = oddsPopup.style.display === 'block' ? 'none' : 'block';
+            oddsPopup.style.display = 'flex';
+        }
+    });
+    oddsPopup?.addEventListener('click', (e) => {
+        if (e.target === oddsPopup || e.target.classList.contains('close-popup')) {
+            oddsPopup.style.display = 'none';
         }
     });
 });
