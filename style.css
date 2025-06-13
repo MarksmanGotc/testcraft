@@ -243,6 +243,11 @@ footer div {
 	background: none;
 	width: max-content;
 }
+div#results h3 ~ #closeResults {
+    margin: 0;
+    top: -40px;
+    right: -20px;
+}
 #results .items {
     margin-bottom: 10px;
     display: flex;
