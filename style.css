@@ -68,6 +68,19 @@ body {
     color: var(--primary-color);
     font-weight: bold;
 }
+.section-title:before {
+    content: "";
+    background: var(--button-bg-hover);
+    width: 100%;
+    position: absolute;
+    height: 2px;
+}
+
+.checkbox-header {
+    background: #fff;
+    z-index: 10;
+    display: flex;
+}
 
 .section-title span {
     position: relative;
@@ -76,7 +89,7 @@ body {
 
 .section-title span:before,
 .section-title span:after {
-    content: '';
+    /* content: ''; */
     flex: 1;
     border-bottom: 1px solid var(--primary-color);
 }
@@ -94,6 +107,7 @@ body {
     border: none;
     padding: 0;
     margin-left: 5px;
+    margin-top: 0px;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -125,13 +139,28 @@ body {
 
 .info-overlay .close-popup {
     position: absolute;
-    top: 5px;
-    right: 5px;
     background: none;
-    border: none;
-    font-size: 20px;
-    color: var(--primary-color);
     cursor: pointer;
+    top: 0px;
+    right: 0;
+    float: right;
+    margin: 0;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    z-index: 10;
+}
+
+button.info-btn:hover {
+    background: initial;
+}
+
+.info-overlay .close-popup svg {
+    max-width: 20px;
+}
+
+.info-overlay .close-popup svg {
+    fill: var(--button-bg-hover);
 }
 
 .wrapper {
@@ -488,7 +517,7 @@ button.multiplier-btn {
 }
 
 .adv-toggle {
-    margin-top: 10px;
+    margin-top: 35px;
     cursor: pointer;
     color: var(--primary-color);
     font-weight: bold;
