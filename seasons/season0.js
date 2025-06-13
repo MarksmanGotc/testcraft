@@ -40,42 +40,42 @@ const season0 = {
 					"img": "item/icon_eq_standard_weapon_dagger.png"
 				},
 				{
-					"name": "Warlord helmet",
+					"name": "Helm",
 					"level": 1,
 					"materials": {"silk": 6, "black-iron": 6, "copper-bar": 6},
 					"img": "item/ctw-head.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord plate",
+					"name": "Chestplate",
 					"level": 1,
 					"materials": {"milk-of-the-poppy": 6, "hide": 6, "ironwood": 6},
 					"img": "item/ctw-chest.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord pants",
+					"name": "Pants",
 					"level": 1,
 					"materials": {"kingswood-oak": 6, "wildfire": 6, "hide": 6},
 					"img": "item/ctw-pants.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord shoos",
+					"name": "Boots",
 					"level": 1,
 					"materials": {"ironwood": 6, "goldenheart-wood": 6, "wildfire": 6},
 					"img": "item/ctw-boots.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord ring",
+					"name": "Ring",
 					"level": 1,
 					"materials": {"weirwood": 6, "leather-straps": 6, "black-iron": 6},
 					"img": "item/ctw-ring.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord dagger",
+					"name": "Sword",
 					"level": 1,
 					"materials": {"ironwood": 6, "goldenheart-wood": 6, "wildfire": 6},
 					"img": "item/ctw-weapon.png",
@@ -118,84 +118,84 @@ const season0 = {
 					"img": "item/icon_eq_standard_weapon_spear.webp"
 				},	
 				{
-					"name": "Warlord helmet",
+					"name": "Helm",
 					"level": 5,
 					"materials": {"kingswood-oak": 10, "wildfire": 10, "hide": 10},
 					"img": "item/ctw-head.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord plate",
+					"name": "Chestplate",
 					"level": 5,
 					"materials": {"silk": 10, "black-iron": 10, "copper-bar": 10},
 					"img": "item/ctw-chest.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord pants",
+					"name": "Pants",
 					"level": 5,
 					"materials": {"weirwood": 10, "leather-straps": 10, "black-iron": 10},
 					"img": "item/ctw-pants.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord shoos",
+					"name": "Boots",
 					"level": 5,
 					"materials": {"milk-of-the-poppy": 10, "hide": 10, "ironwood": 10},
 					"img": "item/ctw-boots.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord ring",
+					"name": "Ring",
 					"level": 5,
 					"materials": {"ironwood": 10, "goldenheart-wood": 10, "wildfire": 10},
 					"img": "item/ctw-ring.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord dagger",
+					"name": "Sword",
 					"level": 5,
 					"materials": {"copper-bar": 10, "dragonglass": 10, "leather-straps": 10},
 					"img": "item/ctw-weapon.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord helmet",
+					"name": "Helm",
 					"level": 10,
 					"materials": {"kingswood-oak": 20, "wildfire": 20, "hide": 20},
 					"img": "item/ctw-head.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord plate",
+					"name": "Chestplate",
 					"level": 10,
 					"materials": {"silk": 20, "black-iron": 20, "copper-bar": 20},
 					"img": "item/ctw-chest.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord pants",
+					"name": "Pants",
 					"level": 10,
 					"materials": {"weirwood": 20, "leather-straps": 20, "black-iron": 20},
 					"img": "item/ctw-pants.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord shoos",
+					"name": "Boots",
 					"level": 10,
 					"materials": {"milk-of-the-poppy": 20, "hide": 20, "ironwood": 20},
 					"img": "item/ctw-boots.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord ring",
+					"name": "Ring",
 					"level": 10,
 					"materials": {"ironwood": 20, "goldenheart-wood": 20, "wildfire": 20},
 					"img": "item/ctw-ring.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord dagger",
+					"name": "Sword",
 					"level": 10,
 					"materials": {"copper-bar": 20, "dragonglass": 20, "leather-straps": 20},
 					"img": "item/ctw-weapon.png",
@@ -400,42 +400,42 @@ const season0 = {
 					"img": "item/15-25/icon_eq_standard_weapon_shortsword.png"
 				},
 				{
-					"name": "Warlord helmet",
+					"name": "Helm",
 					"level": 15,
 					"materials": {"kingswood-oak": 120, "wildfire": 120, "hide": 120},
 					"img": "item/ctw-head.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord plate",
+					"name": "Chestplate",
 					"level": 15,
 					"materials": {"silk": 120, "black-iron": 120, "copper-bar": 120},
 					"img": "item/ctw-chest.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord pants",
+					"name": "Pants",
 					"level": 15,
 					"materials": {"weirwood": 120, "leather-straps": 120, "black-iron": 120},
 					"img": "item/ctw-pants.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord shoos",
+					"name": "Boots",
 					"level": 15,
 					"materials": {"milk-of-the-poppy": 120, "hide": 120, "ironwood": 120},
 					"img": "item/ctw-boots.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord ring",
+					"name": "Ring",
 					"level": 15,
 					"materials": {"ironwood": 120, "goldenheart-wood": 120, "wildfire": 120},
 					"img": "item/ctw-ring.png",
 					"warlord": true
 				},
 				{
-					"name": "Warlord dagger",
+					"name": "Sword",
 					"level": 15,
 					"materials": {"copper-bar": 120, "dragonglass": 120, "leather-straps": 120},
 					"img": "item/ctw-weapon.png",
