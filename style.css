@@ -141,11 +141,14 @@ button.info-btn:hover {
 }
 
 .info-overlay .close-popup svg {
-    max-width: 20px;
+	max-width: 20px;
+	fill: var(--button-bg-hover);
+	height: 20px;
 }
 
-.info-overlay .close-popup svg {
-    fill: var(--button-bg-hover);
+.info-overlay .close-popup:hover svg {
+    transform: rotate(90deg);
+    transition: 0.2s;
 }
 
 .wrapper {
