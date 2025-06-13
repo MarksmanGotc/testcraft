@@ -45,6 +45,7 @@ const season0 = {
 					"materials": {"silk": 6, "black-iron": 6, "copper-bar": 6},
 					"img": "item/ctw-head.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Chestplate",
@@ -52,6 +53,7 @@ const season0 = {
 					"materials": {"milk-of-the-poppy": 6, "hide": 6, "ironwood": 6},
 					"img": "item/ctw-chest.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Pants",
@@ -59,6 +61,7 @@ const season0 = {
 					"materials": {"kingswood-oak": 6, "wildfire": 6, "hide": 6},
 					"img": "item/ctw-pants.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Boots",
@@ -66,6 +69,7 @@ const season0 = {
 					"materials": {"ironwood": 6, "goldenheart-wood": 6, "wildfire": 6},
 					"img": "item/ctw-boots.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Ring",
@@ -73,6 +77,7 @@ const season0 = {
 					"materials": {"weirwood": 6, "leather-straps": 6, "black-iron": 6},
 					"img": "item/ctw-ring.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Sword",
@@ -80,6 +85,7 @@ const season0 = {
 					"materials": {"ironwood": 6, "goldenheart-wood": 6, "wildfire": 6},
 					"img": "item/ctw-weapon.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Wool Bandana",
@@ -123,6 +129,7 @@ const season0 = {
 					"materials": {"kingswood-oak": 10, "wildfire": 10, "hide": 10},
 					"img": "item/ctw-head.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Chestplate",
@@ -130,6 +137,7 @@ const season0 = {
 					"materials": {"silk": 10, "black-iron": 10, "copper-bar": 10},
 					"img": "item/ctw-chest.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Pants",
@@ -137,6 +145,7 @@ const season0 = {
 					"materials": {"weirwood": 10, "leather-straps": 10, "black-iron": 10},
 					"img": "item/ctw-pants.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Boots",
@@ -144,6 +153,7 @@ const season0 = {
 					"materials": {"milk-of-the-poppy": 10, "hide": 10, "ironwood": 10},
 					"img": "item/ctw-boots.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Ring",
@@ -151,6 +161,7 @@ const season0 = {
 					"materials": {"ironwood": 10, "goldenheart-wood": 10, "wildfire": 10},
 					"img": "item/ctw-ring.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Sword",
@@ -158,6 +169,7 @@ const season0 = {
 					"materials": {"copper-bar": 10, "dragonglass": 10, "leather-straps": 10},
 					"img": "item/ctw-weapon.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Helm",
@@ -165,6 +177,7 @@ const season0 = {
 					"materials": {"kingswood-oak": 20, "wildfire": 20, "hide": 20},
 					"img": "item/ctw-head.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Chestplate",
@@ -172,6 +185,7 @@ const season0 = {
 					"materials": {"silk": 20, "black-iron": 20, "copper-bar": 20},
 					"img": "item/ctw-chest.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Pants",
@@ -179,6 +193,7 @@ const season0 = {
 					"materials": {"weirwood": 20, "leather-straps": 20, "black-iron": 20},
 					"img": "item/ctw-pants.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Boots",
@@ -186,6 +201,7 @@ const season0 = {
 					"materials": {"milk-of-the-poppy": 20, "hide": 20, "ironwood": 20},
 					"img": "item/ctw-boots.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Ring",
@@ -193,6 +209,7 @@ const season0 = {
 					"materials": {"ironwood": 20, "goldenheart-wood": 20, "wildfire": 20},
 					"img": "item/ctw-ring.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Sword",
@@ -200,6 +217,7 @@ const season0 = {
 					"materials": {"copper-bar": 20, "dragonglass": 20, "leather-straps": 20},
 					"img": "item/ctw-weapon.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Copper Pot",
@@ -405,6 +423,7 @@ const season0 = {
 					"materials": {"kingswood-oak": 120, "wildfire": 120, "hide": 120},
 					"img": "item/ctw-head.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Chestplate",
@@ -412,6 +431,7 @@ const season0 = {
 					"materials": {"silk": 120, "black-iron": 120, "copper-bar": 120},
 					"img": "item/ctw-chest.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Pants",
@@ -419,6 +439,7 @@ const season0 = {
 					"materials": {"weirwood": 120, "leather-straps": 120, "black-iron": 120},
 					"img": "item/ctw-pants.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Boots",
@@ -426,6 +447,7 @@ const season0 = {
 					"materials": {"milk-of-the-poppy": 120, "hide": 120, "ironwood": 120},
 					"img": "item/ctw-boots.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Ring",
@@ -433,6 +455,7 @@ const season0 = {
 					"materials": {"ironwood": 120, "goldenheart-wood": 120, "wildfire": 120},
 					"img": "item/ctw-ring.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 				{
 					"name": "Sword",
@@ -440,6 +463,7 @@ const season0 = {
 					"materials": {"copper-bar": 120, "dragonglass": 120, "leather-straps": 120},
 					"img": "item/ctw-weapon.png",
 					"warlord": true
+                                        "setName": "Ceremonial Targaryen Warlord"
 				},
 			]
 		}
