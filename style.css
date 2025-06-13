@@ -43,11 +43,56 @@ body {
     width: 110px;
 }
 
+
+/* Custom checkbox styling */
+.warlord-toggle input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
 .warlord-toggle label {
-    top: 1px;
-    left: 25px;
-    padding: 0;
+    position: relative;
+    padding-left: 28px;
+    cursor: pointer;
     user-select: none;
+    display: inline-block;
+}
+
+.warlord-toggle label:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--primary-color);
+    border-radius: 4px;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.warlord-toggle label:after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 6px;
+    width: 6px;
+    height: 10px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: scale(0) rotate(45deg);
+    opacity: 0;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.warlord-toggle input[type="checkbox"]:checked + label:before {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.warlord-toggle input[type="checkbox"]:checked + label:after {
+    transform: scale(1) rotate(45deg);
+    opacity: 1;
 }
 
 .warlord-toggle {
