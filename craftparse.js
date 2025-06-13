@@ -689,10 +689,6 @@ function filterProductsByAvailableGear(products, availableMaterials, multiplier 
     });
 }
 
-
-
-
-}
 function calculateProductionPlan(availableMaterials, templatesByLevel) {
     let productionPlan = { "1": [], "5": [], "10": [], "15": [], "20": [], "25": [] };
     const failed = new Set();
