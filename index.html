@@ -146,16 +146,16 @@
 				</select>
 			</div>
 			
-                        <div class="section-title"><span>Use Ceremonial Targ items</span><button id="ctwInfoBtn" class="info-btn" aria-label="CTW info">
+                        <div class="section-title"><span>Ceremonial Targ items</span><button id="ctwInfoBtn" class="info-btn" aria-label="CTW info">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M256 48a208 208 0 1 1 0 416 208 208 0 1 1 0-416zm0 464A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336c-13.3 0-24 10.7-24 24s10.7 24 24 24l80 0c13.3 0 24-10.7 24-24s-10.7-24-24-24l-8 0 0-88c0-13.3-10.7-24-24-24l-48 0c-13.3 0-24 10.7-24 24s10.7 24 24 24l24 0 0 64-24 0zm40-144a32 32 0 1 0 0-64 32 32 0 1 0 0 64z"/></svg>
                         </button></div>
-                        <div id="ctwInfoPopup" class="info-popup">Ceremonial Targ items are special items from CTW events. "Include in calculations" lets the planner pick them for any level. "Only use for level 1" restricts level 1 to these items, but other levels may still use them.</div>
-                        <div class="warlord-toggle"><input type="checkbox" id="includeWarlords"><label for="includeWarlords">Include in calculations</label></div>
-                        <div class="warlord-toggle"><input type="checkbox" id="level1OnlyWarlords" checked><label for="level1OnlyWarlords">Only use for level 1</label></div>
+                        <div id="ctwInfoPopup" class="info-overlay"><div class="info-content"><button class="close-popup" aria-label="Close">&times;</button><p>Ceremonial Targ items are special items from CTW events. "Allow at all levels" lets the planner pick them for any level. "Limit to level 1" restricts them to level 1 only.</p></div></div>
+                        <div class="warlord-toggle"><input type="checkbox" id="includeWarlords"><label for="includeWarlords">Allow at all levels</label></div>
+                        <div class="warlord-toggle"><input type="checkbox" id="level1OnlyWarlords" checked><label for="level1OnlyWarlords">Limit to level 1</label></div>
                         <div class="section-title"><span>Odds</span><button id="oddsInfoBtn" class="info-btn" aria-label="Odds info">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M256 48a208 208 0 1 1 0 416 208 208 0 1 1 0-416zm0 464A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336c-13.3 0-24 10.7-24 24s10.7 24 24 24l80 0c13.3 0 24-10.7 24-24s-10.7-24-24-24l-8 0 0-88c0-13.3-10.7-24-24-24l-48 0c-13.3 0-24 10.7-24 24s10.7 24 24 24l24 0 0 64-24 0zm40-144a32 32 0 1 0 0-64 32 32 0 1 0 0 64z"/></svg>
                         </button></div>
-                        <div id="oddsInfoPopup" class="info-popup">When unchecked, low or medium odds items from season 0 and CTW are skipped. Normal odds items are always included.</div>
+                        <div id="oddsInfoPopup" class="info-overlay"><div class="info-content"><button class="close-popup" aria-label="Close">&times;</button><p>When unchecked, low or medium odds items from season 0 and CTW are skipped. Normal odds items are always included.</p></div></div>
                         <div class="warlord-toggle"><input type="checkbox" id="includeLowOdds"><label for="includeLowOdds">Include low odds items</label></div>
                         <div class="warlord-toggle"><input type="checkbox" id="includeMediumOdds"><label for="includeMediumOdds">Include medium odds items</label></div>
                         <p id="toggleAdvMaterials" class="adv-toggle">Also use gear materials
