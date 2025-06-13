@@ -148,6 +148,11 @@ button.info-btn:hover {
     fill: var(--button-bg-hover);
 }
 
+.info-overlay .close-popup:hover svg {
+    transform: rotate(90deg);
+    transition: 0.2s;
+}
+
 .wrapper {
     max-width: 600px;
     margin: 20px auto;

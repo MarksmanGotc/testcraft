@@ -238,7 +238,6 @@ function calculateMaterials() {
 
     const materialsDiv = document.createElement('div');
     materialsDiv.className = 'materials';
-    resultsDiv.appendChild(materialsDiv);
 
     // Täytä materialsDiv materiaalien tiedoilla...
 
@@ -350,8 +349,15 @@ function calculateMaterials() {
 
         materialsDiv.appendChild(materialContainer);
     });
-	
-	
+
+    if (materialsDiv.children.length === 0) {
+        createCloseButton(resultsDiv);
+        showResults();
+        return;
+    }
+
+    resultsDiv.appendChild(materialsDiv);
+
     // Luo generateDiv ja lisää se heti materialsDivin jälkeen
     const generateDiv = document.createElement('div');
     generateDiv.className = 'generate';
@@ -410,8 +416,12 @@ function calculateMaterials() {
             itemsDiv.appendChild(levelGroup);
 
             if (templates.length > 0) {
-             templates.forEach(template => {
+            templates.forEach(template => {
                 const templateDiv = document.createElement('div');
+                templateDiv.classList.add('item');
+                if (template.warlord) {
+                    templateDiv.classList.add('item-ctw');
+                }
                 const img = document.createElement('img');
                 img.src = template.img;
                 img.alt = template.name;
@@ -1118,7 +1128,7 @@ function initAdvMaterialSection() {
         const opt = document.createElement('option');
         opt.value = l;
         opt.textContent = l;
-        if (![5,10].includes(l)) {
+        if (![5,10,15].includes(l)) {
             opt.selected = true;
         }
         select.appendChild(opt);
