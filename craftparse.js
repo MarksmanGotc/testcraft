@@ -351,6 +351,9 @@ function calculateMaterials() {
     });
 
     if (materialsDiv.children.length === 0) {
+        const msg = document.createElement('h3');
+        msg.textContent = 'No suitable products found for your criteria';
+        resultsDiv.appendChild(msg);
         createCloseButton(resultsDiv);
         showResults();
         return;
