@@ -64,22 +64,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         wrapperDiv.style.display = 'block';
     });
-
-    const ctwBtn = document.getElementById('ctwInfoBtn');
-    const ctwPopup = document.getElementById('ctwInfoPopup');
-    ctwBtn?.addEventListener('click', () => {
-        if (ctwPopup) {
-            ctwPopup.style.display = ctwPopup.style.display === 'block' ? 'none' : 'block';
-        }
-    });
-
-    const oddsBtn = document.getElementById('oddsInfoBtn');
-    const oddsPopup = document.getElementById('oddsInfoPopup');
-    oddsBtn?.addEventListener('click', () => {
-        if (oddsPopup) {
-            oddsPopup.style.display = oddsPopup.style.display === 'block' ? 'none' : 'block';
-        }
-    });
 });
 
 function formatPlaceholderWithCommas(number) {
