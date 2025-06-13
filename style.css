@@ -78,28 +78,13 @@ body {
 
 .checkbox-header {
     background: #fff;
-    z-index: 10;
+    z-index: 1;
     display: flex;
 }
 
 .section-title span {
     position: relative;
     padding: 0 10px;
-}
-
-.section-title span:before,
-.section-title span:after {
-    /* content: ''; */
-    flex: 1;
-    border-bottom: 1px solid var(--primary-color);
-}
-
-.section-title span:before {
-    margin-right: 10px;
-}
-
-.section-title span:after {
-    margin-left: 10px;
 }
 
 .info-btn {
