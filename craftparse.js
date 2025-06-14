@@ -1076,7 +1076,11 @@ function initAdvMaterialSection() {
         });
 
         season.sets.forEach(set => {
-            const matKey = set.setMat.toLowerCase().replace(/\s/g, '-');
+            const matKey = set.setMat
+                .toLowerCase()
+                .replace(/'s/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/[^a-z0-9-]/g, '');
             const matInfo = materials[season.season] && materials[season.season].mats[matKey];
             if (!matInfo) return;
 
