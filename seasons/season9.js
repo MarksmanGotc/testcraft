@@ -1606,6 +1606,648 @@ const season9 = {
 			  "img": "item/season9/harvest-fool/weapon.png"
 			}
 		  ]
-		}		
+		},
+		{
+		  "setName": "Faceless Wolf's",
+		  "setMat": "Northern Leathers",
+		  "products": [
+			{
+			  "name": "Stolen Face",
+			  "level": 5,
+			  "materials": {
+				"northern-leathers": 10,
+				"silk": 10,
+				"dragonglass": 10
+			  },
+			  "img": "item/season9/faceless-wolf/head.png"
+			},
+			{
+			  "name": "Cloaked Leathers",
+			  "level": 5,
+			  "materials": {
+				"northern-leathers": 10,
+				"black-iron": 10,
+				"silk": 10
+			  },
+			  "img": "item/season9/faceless-wolf/chest.png"
+			},
+			{
+			  "name": "Noble Belt",
+			  "level": 5,
+			  "materials": {
+				"northern-leathers": 10,
+				"goldenheart-wood": 10,
+				"wildfire": 10
+			  },
+			  "img": "item/season9/faceless-wolf/pants.png"
+			},
+			{
+			  "name": "Leather Boots",
+			  "level": 5,
+			  "materials": {
+				"northern-leathers": 10,
+				"kingswood-oak": 10,
+				"weirwood": 10
+			  },
+			  "img": "item/season9/faceless-wolf/boots.png"
+			},
+			{
+			  "name": "Poison Ring",
+			  "level": 5,
+			  "materials": {
+				"northern-leathers": 10,
+				"copper-bar": 10,
+				"milk-of-the-poppy": 10
+			  },
+			  "img": "item/season9/faceless-wolf/ring.png"
+			},
+			{
+			  "name": "Valyrian Steel Dagger",
+			  "level": 5,
+			  "materials": {
+				"northern-leathers": 10,
+				"wildfire": 10,
+				"ironwood": 10
+			  },
+			  "img": "item/season9/faceless-wolf/weapon.png"
+			},
+
+			{
+			  "name": "Stolen Face",
+			  "level": 10,
+			  "materials": {
+				"northern-leathers": 20,
+				"silk": 20,
+				"dragonglass": 20
+			  },
+			  "img": "item/season9/faceless-wolf/head.png"
+			},
+			{
+			  "name": "Cloaked Leathers",
+			  "level": 10,
+			  "materials": {
+				"northern-leathers": 20,
+				"black-iron": 20,
+				"silk": 20
+			  },
+			  "img": "item/season9/faceless-wolf/chest.png"
+			},
+			{
+			  "name": "Noble Belt",
+			  "level": 10,
+			  "materials": {
+				"northern-leathers": 20,
+				"goldenheart-wood": 20,
+				"wildfire": 20
+			  },
+			  "img": "item/season9/faceless-wolf/pants.png"
+			},
+			{
+			  "name": "Leather Boots",
+			  "level": 10,
+			  "materials": {
+				"northern-leathers": 20,
+				"kingswood-oak": 20,
+				"weirwood": 20
+			  },
+			  "img": "item/season9/faceless-wolf/boots.png"
+			},
+			{
+			  "name": "Poison Ring",
+			  "level": 10,
+			  "materials": {
+				"northern-leathers": 20,
+				"copper-bar": 20,
+				"milk-of-the-poppy": 20
+			  },
+			  "img": "item/season9/faceless-wolf/ring.png"
+			},
+			{
+			  "name": "Valyrian Steel Dagger",
+			  "level": 10,
+			  "materials": {
+				"northern-leathers": 20,
+				"wildfire": 20,
+				"ironwood": 20
+			  },
+			  "img": "item/season9/faceless-wolf/weapon.png"
+			},
+
+			{
+			  "name": "Stolen Face",
+			  "level": 15,
+			  "materials": {
+				"northern-leathers": 120,
+				"silk": 120,
+				"dragonglass": 120
+			  },
+			  "img": "item/season9/faceless-wolf/head.png"
+			},
+			{
+			  "name": "Cloaked Leathers",
+			  "level": 15,
+			  "materials": {
+				"northern-leathers": 120,
+				"black-iron": 120,
+				"silk": 120
+			  },
+			  "img": "item/season9/faceless-wolf/chest.png"
+			},
+			{
+			  "name": "Noble Belt",
+			  "level": 15,
+			  "materials": {
+				"northern-leathers": 120,
+				"goldenheart-wood": 120,
+				"wildfire": 120
+			  },
+			  "img": "item/season9/faceless-wolf/pants.png"
+			},
+			{
+			  "name": "Leather Boots",
+			  "level": 15,
+			  "materials": {
+				"northern-leathers": 120,
+				"kingswood-oak": 120,
+				"weirwood": 120
+			  },
+			  "img": "item/season9/faceless-wolf/boots.png"
+			},
+			{
+			  "name": "Poison Ring",
+			  "level": 15,
+			  "materials": {
+				"northern-leathers": 120,
+				"copper-bar": 120,
+				"milk-of-the-poppy": 120
+			  },
+			  "img": "item/season9/faceless-wolf/ring.png"
+			},
+			{
+			  "name": "Valyrian Steel Dagger",
+			  "level": 15,
+			  "materials": {
+				"northern-leathers": 120,
+				"wildfire": 120,
+				"ironwood": 120
+			  },
+			  "img": "item/season9/faceless-wolf/weapon.png"
+			},
+
+			{
+			  "name": "Stolen Face",
+			  "level": 20,
+			  "materials": {
+				"northern-leathers": 400,
+				"silk": 400,
+				"dragonglass": 400,
+				"milk-of-the-poppy": 400
+			  },
+			  "img": "item/season9/faceless-wolf/head.png"
+			},
+			{
+			  "name": "Cloaked Leathers",
+			  "level": 20,
+			  "materials": {
+				"northern-leathers": 400,
+				"black-iron": 400,
+				"silk": 400,
+				"hide": 400
+			  },
+			  "img": "item/season9/faceless-wolf/chest.png"
+			},
+			{
+			  "name": "Noble Belt",
+			  "level": 20,
+			  "materials": {
+				"northern-leathers": 400,
+				"goldenheart-wood": 400,
+				"wildfire": 400,
+				"weirwood": 400
+			  },
+			  "img": "item/season9/faceless-wolf/pants.png"
+			},
+			{
+			  "name": "Leather Boots",
+			  "level": 20,
+			  "materials": {
+				"northern-leathers": 400,
+				"kingswood-oak": 400,
+				"weirwood": 400,
+				"leather-straps": 400
+			  },
+			  "img": "item/season9/faceless-wolf/boots.png"
+			},
+			{
+			  "name": "Poison Ring",
+			  "level": 20,
+			  "materials": {
+				"northern-leathers": 400,
+				"copper-bar": 400,
+				"milk-of-the-poppy": 400,
+				"black-iron": 400
+			  },
+			  "img": "item/season9/faceless-wolf/ring.png"
+			},
+			{
+			  "name": "Valyrian Steel Dagger",
+			  "level": 20,
+			  "materials": {
+				"northern-leathers": 400,
+				"wildfire": 400,
+				"ironwood": 400,
+				"kingswood-oak": 400
+			  },
+			  "img": "item/season9/faceless-wolf/weapon.png"
+			},
+
+			{
+			  "name": "Stolen Face",
+			  "level": 25,
+			  "materials": {
+				"northern-leathers": 1200,
+				"silk": 1200,
+				"dragonglass": 1200,
+				"milk-of-the-poppy": 1200
+			  },
+			  "img": "item/season9/faceless-wolf/head.png"
+			},
+			{
+			  "name": "Cloaked Leathers",
+			  "level": 25,
+			  "materials": {
+				"northern-leathers": 1200,
+				"black-iron": 1200,
+				"silk": 1200,
+				"hide": 1200
+			  },
+			  "img": "item/season9/faceless-wolf/chest.png"
+			},
+			{
+			  "name": "Noble Belt",
+			  "level": 25,
+			  "materials": {
+				"northern-leathers": 1200,
+				"goldenheart-wood": 1200,
+				"wildfire": 1200,
+				"weirwood": 1200
+			  },
+			  "img": "item/season9/faceless-wolf/pants.png"
+			},
+			{
+			  "name": "Leather Boots",
+			  "level": 25,
+			  "materials": {
+				"northern-leathers": 1200,
+				"kingswood-oak": 1200,
+				"weirwood": 1200,
+				"leather-straps": 1200
+			  },
+			  "img": "item/season9/faceless-wolf/boots.png"
+			},
+			{
+			  "name": "Poison Ring",
+			  "level": 25,
+			  "materials": {
+				"northern-leathers": 1200,
+				"copper-bar": 1200,
+				"milk-of-the-poppy": 1200,
+				"black-iron": 1200
+			  },
+			  "img": "item/season9/faceless-wolf/ring.png"
+			},
+			{
+			  "name": "Valyrian Steel Dagger",
+			  "level": 25,
+			  "materials": {
+				"northern-leathers": 1200,
+				"wildfire": 1200,
+				"ironwood": 1200,
+				"kingswood-oak": 1200
+			  },
+			  "img": "item/season9/faceless-wolf/weapon.png"
+			}
+		  ]
+		},
+		{
+		  "setName": "Lost Targaryen's",
+		  "setMat": "Steel Scales",
+		  "products": [
+			{
+			  "name": "Crown",
+			  "level": 5,
+			  "materials": {
+				"steel-scales": 10,
+				"weirwood": 10,
+				"silk": 10
+			  },
+			  "img": "item/season9/lost-targaryen/head.png"
+			},
+			{
+			  "name": "Scale Armor",
+			  "level": 5,
+			  "materials": {
+				"steel-scales": 10,
+				"hide": 10,
+				"black-iron": 10
+			  },
+			  "img": "item/season9/lost-targaryen/chest.png"
+			},
+			{
+			  "name": "Sword Belt",
+			  "level": 5,
+			  "materials": {
+				"steel-scales": 10,
+				"goldenheart-wood": 10,
+				"copper-bar": 10
+			  },
+			  "img": "item/season9/lost-targaryen/pants.png"
+			},
+			{
+			  "name": "Sabatons",
+			  "level": 5,
+			  "materials": {
+				"steel-scales": 10,
+				"copper-bar": 10,
+				"milk-of-the-poppy": 10
+			  },
+			  "img": "item/season9/lost-targaryen/boots.png"
+			},
+			{
+			  "name": "Ring",
+			  "level": 5,
+			  "materials": {
+				"steel-scales": 10,
+				"wildfire": 10,
+				"milk-of-the-poppy": 10
+			  },
+			  "img": "item/season9/lost-targaryen/ring.png"
+			},
+			{
+			  "name": "Queenslayer Dagger",
+			  "level": 5,
+			  "materials": {
+				"steel-scales": 10,
+				"ironwood": 10,
+				"dragonglass": 10
+			  },
+			  "img": "item/season9/lost-targaryen/weapon.png"
+			},
+			{
+			  "name": "Crown",
+			  "level": 10,
+			  "materials": {
+				"steel-scales": 20,
+				"weirwood": 20,
+				"silk": 20
+			  },
+			  "img": "item/season9/lost-targaryen/head.png"
+			},
+			{
+			  "name": "Scale Armor",
+			  "level": 10,
+			  "materials": {
+				"steel-scales": 20,
+				"hide": 20,
+				"black-iron": 20
+			  },
+			  "img": "item/season9/lost-targaryen/chest.png"
+			},
+			{
+			  "name": "Sword Belt",
+			  "level": 10,
+			  "materials": {
+				"steel-scales": 20,
+				"goldenheart-wood": 20,
+				"copper-bar": 20
+			  },
+			  "img": "item/season9/lost-targaryen/pants.png"
+			},
+			{
+			  "name": "Sabatons",
+			  "level": 10,
+			  "materials": {
+				"steel-scales": 20,
+				"copper-bar": 20,
+				"milk-of-the-poppy": 20
+			  },
+			  "img": "item/season9/lost-targaryen/boots.png"
+			},
+			{
+			  "name": "Ring",
+			  "level": 10,
+			  "materials": {
+				"steel-scales": 20,
+				"wildfire": 20,
+				"milk-of-the-poppy": 20
+			  },
+			  "img": "item/season9/lost-targaryen/ring.png"
+			},
+			{
+			  "name": "Queenslayer Dagger",
+			  "level": 10,
+			  "materials": {
+				"steel-scales": 20,
+				"ironwood": 20,
+				"dragonglass": 20
+			  },
+			  "img": "item/season9/lost-targaryen/weapon.png"
+			},
+
+			{
+			  "name": "Crown",
+			  "level": 15,
+			  "materials": {
+				"steel-scales": 120,
+				"weirwood": 120,
+				"silk": 120
+			  },
+			  "img": "item/season9/lost-targaryen/head.png"
+			},
+			{
+			  "name": "Scale Armor",
+			  "level": 15,
+			  "materials": {
+				"steel-scales": 120,
+				"hide": 120,
+				"black-iron": 120
+			  },
+			  "img": "item/season9/lost-targaryen/chest.png"
+			},
+			{
+			  "name": "Sword Belt",
+			  "level": 15,
+			  "materials": {
+				"steel-scales": 120,
+				"goldenheart-wood": 120,
+				"copper-bar": 120
+			  },
+			  "img": "item/season9/lost-targaryen/pants.png"
+			},
+			{
+			  "name": "Sabatons",
+			  "level": 15,
+			  "materials": {
+				"steel-scales": 120,
+				"copper-bar": 120,
+				"milk-of-the-poppy": 120
+			  },
+			  "img": "item/season9/lost-targaryen/boots.png"
+			},
+			{
+			  "name": "Ring",
+			  "level": 15,
+			  "materials": {
+				"steel-scales": 120,
+				"wildfire": 120,
+				"milk-of-the-poppy": 120
+			  },
+			  "img": "item/season9/lost-targaryen/ring.png"
+			},
+			{
+			  "name": "Queenslayer Dagger",
+			  "level": 15,
+			  "materials": {
+				"steel-scales": 120,
+				"ironwood": 120,
+				"dragonglass": 120
+			  },
+			  "img": "item/season9/lost-targaryen/weapon.png"
+			},
+
+			{
+			  "name": "Crown",
+			  "level": 20,
+			  "materials": {
+				"steel-scales": 400,
+				"weirwood": 400,
+				"silk": 400,
+				"wildfire": 400
+			  },
+			  "img": "item/season9/lost-targaryen/head.png"
+			},
+			{
+			  "name": "Scale Armor",
+			  "level": 20,
+			  "materials": {
+				"steel-scales": 400,
+				"hide": 400,
+				"black-iron": 400,
+				"leather-straps": 400
+			  },
+			  "img": "item/season9/lost-targaryen/chest.png"
+			},
+			{
+			  "name": "Sword Belt",
+			  "level": 20,
+			  "materials": {
+				"steel-scales": 400,
+				"goldenheart-wood": 400,
+				"copper-bar": 400,
+				"leather-straps": 400
+			  },
+			  "img": "item/season9/lost-targaryen/pants.png"
+			},
+			{
+			  "name": "Sabatons",
+			  "level": 20,
+			  "materials": {
+				"steel-scales": 400,
+				"copper-bar": 400,
+				"milk-of-the-poppy": 400,
+				"kingswood-oak": 400
+			  },
+			  "img": "item/season9/lost-targaryen/boots.png"
+			},
+			{
+			  "name": "Ring",
+			  "level": 20,
+			  "materials": {
+				"steel-scales": 400,
+				"wildfire": 400,
+				"milk-of-the-poppy": 400,
+				"kingswood-oak": 400
+			  },
+			  "img": "item/season9/lost-targaryen/ring.png"
+			},
+			{
+			  "name": "Queenslayer Dagger",
+			  "level": 20,
+			  "materials": {
+				"steel-scales": 400,
+				"ironwood": 400,
+				"dragonglass": 400,
+				"black-iron": 400
+			  },
+			  "img": "item/season9/lost-targaryen/weapon.png"
+			},
+			{
+			  "name": "Crown",
+			  "level": 25,
+			  "materials": {
+				"steel-scales": 1200,
+				"weirwood": 1200,
+				"silk": 1200,
+				"wildfire": 1200
+			  },
+			  "img": "item/season9/lost-targaryen/head.png"
+			},
+			{
+			  "name": "Scale Armor",
+			  "level": 25,
+			  "materials": {
+				"steel-scales": 1200,
+				"hide": 1200,
+				"black-iron": 1200,
+				"leather-straps": 1200
+			  },
+			  "img": "item/season9/lost-targaryen/chest.png"
+			},
+			{
+			  "name": "Sword Belt",
+			  "level": 25,
+			  "materials": {
+				"steel-scales": 1200,
+				"goldenheart-wood": 1200,
+				"copper-bar": 1200,
+				"leather-straps": 1200
+			  },
+			  "img": "item/season9/lost-targaryen/pants.png"
+			},
+			{
+			  "name": "Sabatons",
+			  "level": 25,
+			  "materials": {
+				"steel-scales": 1200,
+				"copper-bar": 1200,
+				"milk-of-the-poppy": 1200,
+				"kingswood-oak": 1200
+			  },
+			  "img": "item/season9/lost-targaryen/boots.png"
+			},
+			{
+			  "name": "Ring",
+			  "level": 25,
+			  "materials": {
+				"steel-scales": 1200,
+				"wildfire": 1200,
+				"milk-of-the-poppy": 1200,
+				"kingswood-oak": 1200
+			  },
+			  "img": "item/season9/lost-targaryen/ring.png"
+			},
+			{
+			  "name": "Queenslayer Dagger",
+			  "level": 25,
+			  "materials": {
+				"steel-scales": 1200,
+				"ironwood": 1200,
+				"dragonglass": 1200,
+				"black-iron": 1200
+			  },
+			  "img": "item/season9/lost-targaryen/weapon.png"
+			}
+		  ]
+		}
 	]
 };
