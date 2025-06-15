@@ -82,6 +82,13 @@ body {
     display: flex;
 }
 
+.items-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
 .section-title span {
     position: relative;
     padding: 0 10px;

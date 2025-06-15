@@ -403,16 +403,49 @@ function calculateMaterials() {
     // Luo itemsDiv kaikille itemeille yhteisesti ja lisää se generateDivin jälkeen
     const itemsDiv = document.createElement('div');
     itemsDiv.className = 'items';
+
+    // Info painike ja popup ensimmäiselle tasolle
+    const itemsInfoBtn = document.createElement('button');
+    itemsInfoBtn.id = 'itemsInfoBtn';
+    itemsInfoBtn.className = 'info-btn';
+    itemsInfoBtn.setAttribute('aria-label', 'Items info');
+    itemsInfoBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M256 48a208 208 0 1 1 0 416 208 208 0 1 1 0-416zm0 464A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336c-13.3 0-24 10.7-24 24s10.7 24 24 24l80 0c13.3 0 24-10.7 24-24s-10.7-24-24-24l-8 0 0-88c0-13.3-10.7-24-24-24l-48 0c-13.3 0-24 10.7-24 24s10.7 24 24 24l24 0 0 64-24 0zm40-144a32 32 0 1 0 0-64 32 32 0 1 0 0 64z"/></svg>`;
+
+    const itemsInfoPopup = document.createElement('div');
+    itemsInfoPopup.id = 'itemsInfoPopup';
+    itemsInfoPopup.className = 'info-overlay';
+    itemsInfoPopup.innerHTML = `<div class="info-content"><button class="close-popup" aria-label="Close"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M345 137c9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0l-119 119L73 103c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l119 119L39 375c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l119-119L311 409c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-119-119L345 137z"/></svg></button><p>Click an item once it is crafted. Completed items fade, making it easy to see what is still missing.</p></div>`;
+
+    itemsInfoBtn.addEventListener('click', () => {
+        itemsInfoPopup.style.display = 'flex';
+    });
+    itemsInfoPopup.addEventListener('click', (e) => {
+        if (e.target === itemsInfoPopup || e.target.closest('.close-popup')) {
+            itemsInfoPopup.style.display = 'none';
+        }
+    });
+
     allSameCount ? generateDiv.after(itemsDiv) : generateDiv.after(itemsDiv);
+    itemsDiv.after(itemsInfoPopup);
 
     // Lisää itemit ja tasot itemsDiviin
+    let firstLevelHeader = true;
     Object.entries(templateCounts).forEach(([level, templates]) => {
         const lvl = parseInt(level, 10);
         if (templates.length > 0 || (failedLevels.includes(lvl) && requestedTemplates[lvl] > 0)) {
             const levelHeader = document.createElement('h4');
             levelHeader.textContent = allSameCount ? `Level ${level}` : `Level ${level} (${new Intl.NumberFormat('en-US').format(levelItemCounts[level])} pcs)`;
 
-            itemsDiv.appendChild(levelHeader);
+            if (firstLevelHeader) {
+                const headerWrap = document.createElement('div');
+                headerWrap.className = 'items-header';
+                headerWrap.appendChild(levelHeader);
+                headerWrap.appendChild(itemsInfoBtn);
+                itemsDiv.appendChild(headerWrap);
+                firstLevelHeader = false;
+            } else {
+                itemsDiv.appendChild(levelHeader);
+            }
 
             const levelGroup = document.createElement('div');
             levelGroup.className = 'level-group';
