@@ -532,7 +532,7 @@ button.multiplier-btn {
 	cursor: pointer;
 	color: var(--primary-color);
 	font-weight: bold;
-	display: inline-flex;
+	display: flex;
 	align-items: center;
 	width: 100%;
 	font-size: 16px;
