@@ -105,6 +105,19 @@ document.addEventListener('DOMContentLoaded', function() {
             gearPopup.style.display = 'none';
         }
     });
+
+    const scaleBtn = document.getElementById('scaleInfoBtn');
+    const scalePopup = document.getElementById('scaleInfoPopup');
+    scaleBtn?.addEventListener('click', () => {
+        if (scalePopup) {
+            scalePopup.style.display = 'flex';
+        }
+    });
+    scalePopup?.addEventListener('click', (e) => {
+        if (e.target === scalePopup || e.target.closest('.close-popup')) {
+            scalePopup.style.display = 'none';
+        }
+    });
 });
 
 function formatPlaceholderWithCommas(number) {
@@ -112,21 +125,21 @@ function formatPlaceholderWithCommas(number) {
 }
 
 function formatedInputNumber(){
-	document.addEventListener('input', function(e) {
-		if (e.target.classList.contains('numeric-input')) {
-			let inputValue = e.target.value;
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('numeric-input')) {
+                let inputValue = e.target.value;
 
-			// Poista kaikki muut merkit paitsi numerot ja pilkut
-			let numericValue = inputValue.replace(/[^0-9,]/g, '');
+                // Salli numerot, pilkut ja pisteet desimaaleille
+                let numericValue = inputValue.replace(/[^0-9.,]/g, '');
 
-			// Muunna numero USA-formaattiin
-			let formattedValue = numericValue
-				.replace(/,/g, '') // Poista ensin olemassa olevat pilkut, jotta ne eivät häiritse
-				.replace(/\B(?=(\d{3})+(?!\d))/g, ","); // Lisää pilkut joka kolmannen numeron jälkeen
+                // Erottele desimaaliosa, jos sellainen on
+                let parts = numericValue.split('.');
+                let integerPart = parts[0].replace(/,/g, '');
+                integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-			e.target.value = formattedValue;
-		}
-	});
+                e.target.value = parts.length > 1 ? `${integerPart}.${parts[1]}` : integerPart;
+            }
+        });
 
 }
 
@@ -705,16 +718,19 @@ document.getElementById('calculateWithPreferences').addEventListener('click', fu
 });
 
 function gatherMaterialsFromInputs() {
+    const scaleSelect = document.getElementById('scaleSelect');
+    const scale = scaleSelect ? parseFloat(scaleSelect.value) || 1 : 1;
     let materialsInput = {};
     document.querySelectorAll('.my-material input[type="text"]').forEach(input => {
         const id = input.getAttribute('id').replace('my-', '');
         const materialName = Object.keys(allMaterials).find(name => name.toLowerCase().replace(/\s/g, '-') === id);
-        const materialAmount = parseInt(input.value.replace(/,/g, ''), 10);
+        const raw = input.value.replace(/,/g, '');
+        const materialAmount = parseFloat(raw);
         if (!materialName) {
             return;
         }
         if (!isNaN(materialAmount)) {
-            materialsInput[materialName] = materialAmount;
+            materialsInput[materialName] = materialAmount * scale;
         }
     });
 
