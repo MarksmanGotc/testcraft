@@ -302,9 +302,9 @@ const materials = {
 				"img": "materials/season8/dark-steel-plate.png",
 				"Original-name": "Dark Steel Plate"
 			},
-			"dragon-tempered": {
-				"img": "materials/season8/dragon-tempered.png",
-				"Original-name": "Dragon Tempered Fabrics"
+                        "dragon-tempered-fabrics": {
+                                "img": "materials/season8/dragon-tempered.png",
+                                "Original-name": "Dragon Tempered Fabrics"
 			},
 			"gilded-mail": {
 				"img": "materials/season8/gilded-mail.png",

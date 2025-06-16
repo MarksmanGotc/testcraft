@@ -327,7 +327,7 @@ const season8 = {
 			  "name": "Jeweled Adornment",
 			  "level": 5,
 			  "materials": {
-				"dragon-tempered": 10,
+				"dragon-tempered-fabrics": 10,
 				"wildfire": 10,
 				"dragonglass": 10
 			  },
@@ -337,7 +337,7 @@ const season8 = {
 			  "name": "Jacket",
 			  "level": 5,
 			  "materials": {
-				"dragon-tempered": 10,
+				"dragon-tempered-fabrics": 10,
 				"kingswood-oak": 10,
 				"copper-bar": 10
 			  },
@@ -347,7 +347,7 @@ const season8 = {
 			  "name": "Bases",
 			  "level": 5,
 			  "materials": {
-				"dragon-tempered": 10,
+				"dragon-tempered-fabrics": 10,
 				"ironwood": 10,
 				"wildfire": 10
 			  },
@@ -357,7 +357,7 @@ const season8 = {
 			  "name": "Heeled Boots",
 			  "level": 5,
 			  "materials": {
-				"dragon-tempered": 10,
+				"dragon-tempered-fabrics": 10,
 				"milk-of-the-poppy": 10,
 				"kingswood-oak": 10
 			  },
@@ -367,7 +367,7 @@ const season8 = {
 			  "name": "Encrusted Ring",
 			  "level": 5,
 			  "materials": {
-				"dragon-tempered": 10,
+				"dragon-tempered-fabrics": 10,
 				"weirwood": 10,
 				"black-iron": 10
 			  },
@@ -377,7 +377,7 @@ const season8 = {
 			  "name": "Keen Spears",
 			  "level": 5,
 			  "materials": {
-				"dragon-tempered": 10,
+				"dragon-tempered-fabrics": 10,
 				"hide": 10,
 				"goldenheart-wood": 10
 			  },
@@ -387,7 +387,7 @@ const season8 = {
 			  "name": "Jeweled Adornment",
 			  "level": 10,
 			  "materials": {
-				"dragon-tempered": 20,
+				"dragon-tempered-fabrics": 20,
 				"wildfire": 20,
 				"dragonglass": 20
 			  },
@@ -397,7 +397,7 @@ const season8 = {
 			  "name": "Jacket",
 			  "level": 10,
 			  "materials": {
-				"dragon-tempered": 20,
+				"dragon-tempered-fabrics": 20,
 				"kingswood-oak": 20,
 				"copper-bar": 20
 			  },
@@ -407,7 +407,7 @@ const season8 = {
 			  "name": "Bases",
 			  "level": 10,
 			  "materials": {
-				"dragon-tempered": 20,
+				"dragon-tempered-fabrics": 20,
 				"ironwood": 20,
 				"wildfire": 20
 			  },
@@ -417,7 +417,7 @@ const season8 = {
 			  "name": "Heeled Boots",
 			  "level": 10,
 			  "materials": {
-				"dragon-tempered": 20,
+				"dragon-tempered-fabrics": 20,
 				"milk-of-the-poppy": 20,
 				"kingswood-oak": 20
 			  },
@@ -427,7 +427,7 @@ const season8 = {
 			  "name": "Encrusted Ring",
 			  "level": 10,
 			  "materials": {
-				"dragon-tempered": 20,
+				"dragon-tempered-fabrics": 20,
 				"weirwood": 20,
 				"black-iron": 20
 			  },
@@ -437,7 +437,7 @@ const season8 = {
 			  "name": "Keen Spears",
 			  "level": 10,
 			  "materials": {
-				"dragon-tempered": 20,
+				"dragon-tempered-fabrics": 20,
 				"hide": 20,
 				"goldenheart-wood": 20
 			  },
@@ -447,7 +447,7 @@ const season8 = {
 			  "name": "Jeweled Adornment",
 			  "level": 15,
 			  "materials": {
-				"dragon-tempered": 120,
+				"dragon-tempered-fabrics": 120,
 				"wildfire": 120,
 				"dragonglass": 120
 			  },
@@ -457,7 +457,7 @@ const season8 = {
 			  "name": "Jacket",
 			  "level": 15,
 			  "materials": {
-				"dragon-tempered": 120,
+				"dragon-tempered-fabrics": 120,
 				"kingswood-oak": 120,
 				"copper-bar": 120
 			  },
@@ -467,7 +467,7 @@ const season8 = {
 			  "name": "Bases",
 			  "level": 15,
 			  "materials": {
-				"dragon-tempered": 120,
+				"dragon-tempered-fabrics": 120,
 				"ironwood": 120,
 				"wildfire": 120
 			  },
@@ -477,7 +477,7 @@ const season8 = {
 			  "name": "Heeled Boots",
 			  "level": 15,
 			  "materials": {
-				"dragon-tempered": 120,
+				"dragon-tempered-fabrics": 120,
 				"milk-of-the-poppy": 120,
 				"kingswood-oak": 120
 			  },
@@ -487,7 +487,7 @@ const season8 = {
 			  "name": "Encrusted Ring",
 			  "level": 15,
 			  "materials": {
-				"dragon-tempered": 120,
+				"dragon-tempered-fabrics": 120,
 				"weirwood": 120,
 				"black-iron": 120
 			  },
@@ -497,7 +497,7 @@ const season8 = {
 			  "name": "Keen Spears",
 			  "level": 15,
 			  "materials": {
-				"dragon-tempered": 120,
+				"dragon-tempered-fabrics": 120,
 				"hide": 120,
 				"goldenheart-wood": 120
 			  },
@@ -507,7 +507,7 @@ const season8 = {
 			  "name": "Jeweled Adornment",
 			  "level": 20,
 			  "materials": {
-				"dragon-tempered": 400,
+				"dragon-tempered-fabrics": 400,
 				"wildfire": 400,
 				"dragonglass": 400,
 				"milk-of-the-poppy": 400
@@ -518,7 +518,7 @@ const season8 = {
 			  "name": "Jacket",
 			  "level": 20,
 			  "materials": {
-				"dragon-tempered": 400,
+				"dragon-tempered-fabrics": 400,
 				"kingswood-oak": 400,
 				"copper-bar": 400,
 				"goldenheart-wood": 400
@@ -529,7 +529,7 @@ const season8 = {
 			  "name": "Bases",
 			  "level": 20,
 			  "materials": {
-				"dragon-tempered": 400,
+				"dragon-tempered-fabrics": 400,
 				"ironwood": 400,
 				"wildfire": 400,
 				"copper-bar": 400
@@ -540,7 +540,7 @@ const season8 = {
 			  "name": "Heeled Boots",
 			  "level": 20,
 			  "materials": {
-				"dragon-tempered": 400,
+				"dragon-tempered-fabrics": 400,
 				"milk-of-the-poppy": 400,
 				"kingswood-oak": 400,
 				"ironwood": 400
@@ -551,7 +551,7 @@ const season8 = {
 			  "name": "Encrusted Ring",
 			  "level": 20,
 			  "materials": {
-				"dragon-tempered": 400,
+				"dragon-tempered-fabrics": 400,
 				"weirwood": 400,
 				"black-iron": 400,
 				"silk": 400
@@ -562,7 +562,7 @@ const season8 = {
 			  "name": "Keen Spears",
 			  "level": 20,
 			  "materials": {
-				"dragon-tempered": 400,
+				"dragon-tempered-fabrics": 400,
 				"hide": 400,
 				"goldenheart-wood": 400,
 				"leather-straps": 400
@@ -573,7 +573,7 @@ const season8 = {
 			  "name": "Jeweled Adornment",
 			  "level": 25,
 			  "materials": {
-				"dragon-tempered": 1200,
+				"dragon-tempered-fabrics": 1200,
 				"wildfire": 1200,
 				"dragonglass": 1200,
 				"milk-of-the-poppy": 1200
@@ -584,7 +584,7 @@ const season8 = {
 			  "name": "Jacket",
 			  "level": 25,
 			  "materials": {
-				"dragon-tempered": 1200,
+				"dragon-tempered-fabrics": 1200,
 				"kingswood-oak": 1200,
 				"copper-bar": 1200,
 				"goldenheart-wood": 1200
@@ -595,7 +595,7 @@ const season8 = {
 			  "name": "Bases",
 			  "level": 25,
 			  "materials": {
-				"dragon-tempered": 1200,
+				"dragon-tempered-fabrics": 1200,
 				"ironwood": 1200,
 				"wildfire": 1200,
 				"copper-bar": 1200
@@ -606,7 +606,7 @@ const season8 = {
 			  "name": "Heeled Boots",
 			  "level": 25,
 			  "materials": {
-				"dragon-tempered": 1200,
+				"dragon-tempered-fabrics": 1200,
 				"milk-of-the-poppy": 1200,
 				"kingswood-oak": 1200,
 				"ironwood": 1200
@@ -617,7 +617,7 @@ const season8 = {
 			  "name": "Encrusted Ring",
 			  "level": 25,
 			  "materials": {
-				"dragon-tempered": 1200,
+				"dragon-tempered-fabrics": 1200,
 				"weirwood": 1200,
 				"black-iron": 1200,
 				"silk": 1200
@@ -628,7 +628,7 @@ const season8 = {
 			  "name": "Keen Spears",
 			  "level": 25,
 			  "materials": {
-				"dragon-tempered": 1200,
+				"dragon-tempered-fabrics": 1200,
 				"hide": 1200,
 				"goldenheart-wood": 1200,
 				"leather-straps": 1200
