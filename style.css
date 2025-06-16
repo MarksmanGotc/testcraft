@@ -318,6 +318,7 @@ div#results h3 ~ #closeResults {
     gap: 20px; /* VÃ¤li materiaalien/itemien vÃ¤lillÃ¤ */
     justify-content: center;
     margin-bottom: 20px; /* VÃ¤li materiaaliluetteloiden ja item-luetteloiden vÃ¤lillÃ¤ */
+    align-items: stretch;
 }
 
 .material, .item {
@@ -330,11 +331,6 @@ div#results h3 ~ #closeResults {
     width: 50px;
     height: 50px;
     margin-bottom: 5px; /* VÃ¤li kuvan ja tekstin vÃ¤lillÃ¤ */
-}
-.materials > div {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
 }
 
 #results .material {
@@ -401,8 +397,32 @@ h4{
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 118px;
+    max-width: calc(100% / 6);
+    flex: 1 1 10%;
+    justify-content: space-between;
 }
+
+@media only screen and (max-width: 620px) {
+  .materials > div {
+  flex: 1 1 20%;
+  max-width: initial;
+  }
+}
+
+@media only screen and (max-width: 420px) {
+  .materials > div {
+  flex: 1 1 25%;
+  max-width: initial;
+  }
+}
+
+@media only screen and (max-width: 325px) {
+  .materials > div {
+  flex: 1 1 30%;
+  max-width: initial;
+  }
+}
+
 
 h2 {
     margin: 0 auto;
