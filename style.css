@@ -32,6 +32,9 @@ body {
     column-gap: 10px;
 }
 
+.leveltmp1 {
+    margin-top: 15px;
+}
 .temps {
     padding: 0;
     height: 34px;
@@ -40,9 +43,17 @@ body {
     border: 1px solid var(--primary-color);
     box-sizing: border-box;
     border-radius: 4px;
-    width: 110px;
 }
-
+select#scaleSelect {
+	width: 100%;
+	margin-top: 10px;
+}
+select#scaleSelect option {
+	text-align: center;
+}
+.material-choices .materials-list {
+	margin-top: 10px;
+}
 .warlord-toggle {
     position: relative;
     margin-top: 10px;
