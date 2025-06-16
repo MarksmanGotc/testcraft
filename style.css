@@ -293,10 +293,14 @@ footer div {
     justify-content: center;
     align-items: center;
 }
-#copyLink svg {
+#results #copyLink svg {
     fill: var(--primary-color);
     padding-left: 10px;
     height: 18px;
+}
+#results #copyLink svg:hover {
+	transform: rotate(0deg);
+	fill: initial;
 }
 div#results h3 ~ #closeResults {
     margin: 0;
