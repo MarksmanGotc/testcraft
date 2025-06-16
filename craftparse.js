@@ -50,7 +50,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (e) {
             console.error('Invalid share data');
         }
-        return;
     }
 	
     // Kun footerin sisällä olevaa SVG:tä painetaan
