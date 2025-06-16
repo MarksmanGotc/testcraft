@@ -220,7 +220,11 @@ function populateInputsFromShare(data) {
             });
             if (total > 0) {
                 const amountInput = document.getElementById(`templateAmount${level}`);
-                if (amountInput) amountInput.value = total;
+                if (amountInput) {
+                    amountInput.value = total;
+                    const wrap = document.querySelector(`.leveltmp${level} .templateAmountWrap`);
+                    if (wrap) wrap.classList.add('active');
+                }
             }
             if (quality) {
                 const sel = document.getElementById(`temp${level}`);
@@ -247,6 +251,11 @@ function populateInputsFromShare(data) {
                 if (divOpt) divOpt.classList.toggle('selected', isSel);
             });
         }
+    }
+    if (history.replaceState) {
+        const url = new URL(window.location);
+        url.searchParams.delete('share');
+        history.replaceState({}, '', url.pathname + url.search);
     }
 }
 
