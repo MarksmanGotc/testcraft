@@ -260,7 +260,7 @@ function createLevelStructure() {
 function calculateMaterials() {
 	
     const resultsDiv = document.getElementById('results');
-    //resultsDiv.innerHTML = ''; // Tyhjennä aiemmat tulokset
+    resultsDiv.innerHTML = ''; // Tyhjennä aiemmat tulokset
 
     const materialsDiv = document.createElement('div');
     materialsDiv.className = 'materials';
@@ -378,7 +378,7 @@ function calculateMaterials() {
 
     if (materialsDiv.children.length === 0) {
         const msg = document.createElement('h3');
-        msg.textContent = 'No suitable products found for your criteria';
+        msg.textContent = 'No items could be crafted with the available materials';
         resultsDiv.appendChild(msg);
         createCloseButton(resultsDiv);
         showResults();
@@ -397,11 +397,12 @@ function calculateMaterials() {
     // Tarkista, ovatko kaikkien tasojen item-määrät samat
     const levelItemCounts = calculateTotalItemsByLevel(templateCounts);
     const allSameCount = areAllCountsSame(levelItemCounts);
-    const allFailed = LEVELS.every(l => failedLevels.includes(l) && requestedTemplates[l] > 0);
+    const totalItems = Object.values(levelItemCounts).reduce((sum, c) => sum + c, 0);
+    const allFailed = totalItems === 0;
 
     if (allFailed) {
         const msg = document.createElement('h3');
-        msg.textContent = 'No suitable products found for your criteria';
+        msg.textContent = 'No items could be crafted with the available materials';
         resultsDiv.appendChild(msg);
         createCloseButton(resultsDiv);
         showResults();
@@ -554,7 +555,7 @@ function calculateMaterials() {
             } else {
                 const msg = document.createElement('p');
                 msg.className = 'no-products';
-                msg.textContent = 'No suitable products found for your criteria';
+                msg.textContent = 'No items could be crafted with the available materials';
                 levelGroup.appendChild(msg);
             }
         }
