@@ -283,14 +283,20 @@ footer div {
         width: max-content;
 }
 #copyLink {
-    position: absolute;
-    top: -32px;
-    right: 20px;
+    font-size: 14px;
     cursor: pointer;
-    background: var(--button-bg);
-    color: var(--button-text-color);
+    background: initial;
+    color: var(--primary-color);
     border: none;
-    padding: 4px 8px;
+    display: flex;
+    font-weight: bold;
+    justify-content: center;
+    align-items: center;
+}
+#copyLink svg {
+    fill: var(--primary-color);
+    padding-left: 10px;
+    height: 18px;
 }
 div#results h3 ~ #closeResults {
     margin: 0;
