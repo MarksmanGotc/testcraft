@@ -23,6 +23,7 @@ const LEFTOVER_WEIGHT_GEAR = 3;
 const BALANCE_WEIGHT = 0.1;
 let failedLevels = [];
 let requestedTemplates = {};
+let remainingUse = {};
 
 function slug(str) {
     return (str || '')
@@ -36,9 +37,21 @@ function slug(str) {
 document.addEventListener('DOMContentLoaded', function() {
     createLevelStructure();
     addCalculateButton();
-	formatedInputNumber();
-	inputActive();
-	initAdvMaterialSection();
+        formatedInputNumber();
+        inputActive();
+        initAdvMaterialSection();
+
+    const shareParam = urlParams.get('share');
+    if (shareParam) {
+        try {
+            const data = JSON.parse(atob(shareParam));
+            initialMaterials = data.initialMaterials || {};
+            renderResults(data.templates, data.materials);
+        } catch (e) {
+            console.error('Invalid share data');
+        }
+        return;
+    }
 	
     // Kun footerin sisällä olevaa SVG:tä painetaan
     document.querySelectorAll('footer svg, #openGiftFromHeader').forEach(element => {
@@ -209,6 +222,21 @@ function createCloseButton(parentElement) {
     parentElement.appendChild(closeButton);
 }
 
+function createCopyButton(parentElement, data) {
+    const copyButton = document.createElement('button');
+    copyButton.id = 'copyLink';
+    copyButton.textContent = 'Copy';
+    copyButton.addEventListener('click', () => {
+        const encoded = btoa(JSON.stringify(data));
+        const url = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(encoded)}`;
+        navigator.clipboard.writeText(url).then(() => {
+            copyButton.textContent = 'Copied!';
+            setTimeout(() => { copyButton.textContent = 'Copy'; }, 2000);
+        });
+    });
+    parentElement.appendChild(copyButton);
+}
+
 function createLevelStructure() {
     const manualInputDiv = document.getElementById('manualInput');
     //manualInputDiv.style.display = 'block'; // Aseta näkyväksi
@@ -269,7 +297,6 @@ function calculateMaterials() {
 
     const templateCounts = { 1: [], 5: [], 10: [], 15: [], 20: [], 25: [] };
     const materialCounts = {};
-	const remainingUse = {};
     
     // Kerää tiedot kaikista syötetyistä itemeistä
     document.querySelectorAll('div[id^="level-"]').forEach(levelDiv => {
@@ -310,12 +337,22 @@ function calculateMaterials() {
 						};
 					}
 					const multiplier = qualityMultipliers[level] || 1;
-					materialCounts[materialName].amount += requiredAmount * amount * multiplier;
+                materialCounts[materialName].amount += requiredAmount * amount * multiplier;
                 });
             }
         });
     });
-	Object.entries(materialCounts)
+    renderResults(templateCounts, materialCounts);
+}
+
+function renderResults(templateCounts, materialCounts) {
+    const resultsDiv = document.getElementById('results');
+    resultsDiv.innerHTML = '';
+
+    const materialsDiv = document.createElement('div');
+    materialsDiv.className = 'materials';
+
+    Object.entries(materialCounts)
         .sort(([aName], [bName]) => {
             const seasonA = materialToSeason[aName] || 0;
             const seasonB = materialToSeason[bName] || 0;
@@ -325,56 +362,52 @@ function calculateMaterials() {
             return aName.localeCompare(bName);
         })
         .forEach(([materialName, data]) => {
-        const materialContainer = document.createElement('div');
-        const img = document.createElement('img');
-        img.src = data.img; // Oleta, että osoittaa materiaalin kuvaan
-        img.alt = materialName;
-        materialContainer.appendChild(img);
+            const materialContainer = document.createElement('div');
+            const img = document.createElement('img');
+            img.src = data.img;
+            img.alt = materialName;
+            materialContainer.appendChild(img);
 
-        const pMatName = document.createElement('p');
-        const pMatAmount = document.createElement('p');
-        const pRemaining = document.createElement('p');
-        const pAvailableMaterials = document.createElement('p');
-        const pSeason = document.createElement('p');
-        pMatName.className = 'material-name';
-        pMatAmount.className = 'amount';
-        pRemaining.className = 'remaining-to-use';
-        pAvailableMaterials.className = 'available-materials';
-        pSeason.className = 'season-id';
+            const pMatName = document.createElement('p');
+            const pMatAmount = document.createElement('p');
+            const pRemaining = document.createElement('p');
+            const pAvailableMaterials = document.createElement('p');
+            const pSeason = document.createElement('p');
+            pMatName.className = 'material-name';
+            pMatAmount.className = 'amount';
+            pRemaining.className = 'remaining-to-use';
+            pAvailableMaterials.className = 'available-materials';
+            pSeason.className = 'season-id';
 
-        let matText = allMaterials[materialName] ? allMaterials[materialName]["Original-name"] || materialName : materialName;
-        const matSeason = materialToSeason[materialName] || 0;
-        if (matSeason !== 0) {
-            pSeason.textContent = `Season ${matSeason}`;
-        }
-        pMatName.textContent = matText;
-        pMatAmount.textContent = `-${new Intl.NumberFormat('en-US').format(data.amount)}`;
-		pRemaining.textContent = pMatAmount.textContent;
-        remainingUse[materialName] = data.amount;
-		// Laske ja näytä jäljellä oleva materiaalimäärä
-		const matchedKey = Object.keys(initialMaterials).find(
-			key => key.toLowerCase().replace(/\s/g, '-') === materialName.toLowerCase().replace(/\s/g, '-')
-		);
-		const originalAmount = matchedKey ? initialMaterials[matchedKey] : 0;
+            let matText = allMaterials[materialName] ? allMaterials[materialName]["Original-name"] || materialName : materialName;
+            const matSeason = materialToSeason[materialName] || 0;
+            if (matSeason !== 0) {
+                pSeason.textContent = `Season ${matSeason}`;
+            }
+            pMatName.textContent = matText;
+            pMatAmount.textContent = `-${new Intl.NumberFormat('en-US').format(data.amount)}`;
+            pRemaining.textContent = pMatAmount.textContent;
+            remainingUse[materialName] = data.amount;
+            const matchedKey = Object.keys(initialMaterials).find(
+                key => key.toLowerCase().replace(/\s/g, '-') === materialName.toLowerCase().replace(/\s/g, '-')
+            );
+            const originalAmount = matchedKey ? initialMaterials[matchedKey] : 0;
+            if (originalAmount > 0) {
+                const remainingAmount = originalAmount - data.amount;
+                pAvailableMaterials.textContent = `${new Intl.NumberFormat('en-US').format(Math.max(remainingAmount, 0))}`;
+            }
 
-		
-                if (originalAmount > 0) {
-                        const remainingAmount = originalAmount - data.amount;
-                        pAvailableMaterials.textContent = `${new Intl.NumberFormat('en-US').format(Math.max(remainingAmount, 0))}`;
-                }
-		
-		
-        materialContainer.dataset.material = materialName;
-        if (matSeason !== 0) {
-            materialContainer.appendChild(pSeason);
-        }
-        materialContainer.appendChild(pMatName);
-        materialContainer.appendChild(pMatAmount);
-        materialContainer.appendChild(pRemaining);
-        materialContainer.appendChild(pAvailableMaterials);
+            materialContainer.dataset.material = materialName;
+            if (matSeason !== 0) {
+                materialContainer.appendChild(pSeason);
+            }
+            materialContainer.appendChild(pMatName);
+            materialContainer.appendChild(pMatAmount);
+            materialContainer.appendChild(pRemaining);
+            materialContainer.appendChild(pAvailableMaterials);
 
-        materialsDiv.appendChild(materialContainer);
-    });
+            materialsDiv.appendChild(materialContainer);
+        });
 
     if (materialsDiv.children.length === 0) {
         const msg = document.createElement('h3');
@@ -387,14 +420,10 @@ function calculateMaterials() {
 
     resultsDiv.appendChild(materialsDiv);
 
-    // Luo generateDiv ja lisää se heti materialsDivin jälkeen
     const generateDiv = document.createElement('div');
     generateDiv.className = 'generate';
     materialsDiv.after(generateDiv);
 
-    // Lisää kerroin-napit generateDiviin, jos tarpeen (x2, x3, x4)...
-
-    // Tarkista, ovatko kaikkien tasojen item-määrät samat
     const levelItemCounts = calculateTotalItemsByLevel(templateCounts);
     const allSameCount = areAllCountsSame(levelItemCounts);
     const totalItems = Object.values(levelItemCounts).reduce((sum, c) => sum + c, 0);
@@ -410,28 +439,23 @@ function calculateMaterials() {
     }
 
     if (allSameCount && levelItemCounts["1"] > 0) {
-        // Jos kaikkien tasojen määrät ovat samat, lisää "Total templates" -teksti materialsDivin jälkeen
         const totalTemplatesHeader = document.createElement('h2');
         totalTemplatesHeader.textContent = `Total templates: ${new Intl.NumberFormat('en-US').format(levelItemCounts["1"])} pcs`;
-	
-		if (!isDebugMode){
-			gtag('event', 'total_templates', {
-				'event_total_templates': levelItemCounts,
-				'value': 1
-			});
-		}
-		
+        if (!isDebugMode){
+            gtag('event', 'total_templates', {
+                'event_total_templates': levelItemCounts,
+                'value': 1
+            });
+        }
         materialsDiv.after(totalTemplatesHeader);
-        totalTemplatesHeader.after(generateDiv); // generateDiv lisätään totalTemplatesHeaderin jälkeen
+        totalTemplatesHeader.after(generateDiv);
     } else {
-        materialsDiv.after(generateDiv); // Jos määrät eivät ole samat, generateDiv lisätään materialsDivin jälkeen
+        materialsDiv.after(generateDiv);
     }
 
-    // Luo itemsDiv kaikille itemeille yhteisesti ja lisää se generateDivin jälkeen
     const itemsDiv = document.createElement('div');
     itemsDiv.className = 'items';
 
-    // Info painike ja popup ensimmäiselle tasolle
     const itemsInfoBtn = document.createElement('button');
     itemsInfoBtn.id = 'itemsInfoBtn';
     itemsInfoBtn.className = 'info-btn';
@@ -452,10 +476,9 @@ function calculateMaterials() {
         }
     });
 
-    allSameCount ? generateDiv.after(itemsDiv) : generateDiv.after(itemsDiv);
+    generateDiv.after(itemsDiv);
     itemsDiv.after(itemsInfoPopup);
 
-    // Lisää itemit ja tasot itemsDiviin
     let firstLevelHeader = true;
     Object.entries(templateCounts).forEach(([level, templates]) => {
         const lvl = parseInt(level, 10);
@@ -479,79 +502,79 @@ function calculateMaterials() {
             itemsDiv.appendChild(levelGroup);
 
             if (templates.length > 0) {
-            templates.forEach(template => {
-                const templateDiv = document.createElement('div');
-                templateDiv.classList.add('item');
-                if (template.warlord) {
-                    templateDiv.classList.add('item-ctw');
-                }
-                const img = document.createElement('img');
-                img.src = template.img;
-                img.alt = template.name;
-                templateDiv.appendChild(img);
+                templates.forEach(template => {
+                    const templateDiv = document.createElement('div');
+                    templateDiv.classList.add('item');
+                    if (template.warlord) {
+                        templateDiv.classList.add('item-ctw');
+                    }
+                    const img = document.createElement('img');
+                    img.src = template.img;
+                    img.alt = template.name;
+                    templateDiv.appendChild(img);
 
-                let pSeasonInfo;
-                let pSetName;
-                const displaySeason = template.warlord ? 3 : template.season;
-                if (displaySeason && displaySeason !== 0) {
-                    pSeasonInfo = document.createElement('p');
-                    pSeasonInfo.className = 'season-info';
-                    pSeasonInfo.textContent = `Season ${displaySeason}`;
+                    let pSeasonInfo;
+                    let pSetName;
+                    const displaySeason = template.warlord ? 3 : template.season;
+                    if (displaySeason && displaySeason !== 0) {
+                        pSeasonInfo = document.createElement('p');
+                        pSeasonInfo.className = 'season-info';
+                        pSeasonInfo.textContent = `Season ${displaySeason}`;
 
-                    pSetName = document.createElement('p');
-                    pSetName.className = 'set-name';
-                    pSetName.textContent = template.setName || '';
-                }
+                        pSetName = document.createElement('p');
+                        pSetName.className = 'set-name';
+                        pSetName.textContent = template.setName || '';
+                    }
 
-                const pTemplateName = document.createElement('p');
-                const pTemplateamount = document.createElement('p');
-                pTemplateName.className = 'name';
-                pTemplateamount.className = 'amount';
+                    const pTemplateName = document.createElement('p');
+                    const pTemplateamount = document.createElement('p');
+                    pTemplateName.className = 'name';
+                    pTemplateamount.className = 'amount';
 
-                pTemplateName.textContent = `${template.name}`;
-                pTemplateamount.textContent = `${new Intl.NumberFormat('en-US').format(template.amount)}`;
+                    pTemplateName.textContent = `${template.name}`;
+                    pTemplateamount.textContent = `${new Intl.NumberFormat('en-US').format(template.amount)}`;
 
-                if (displaySeason && displaySeason !== 0) {
-                    templateDiv.appendChild(pSeasonInfo);
-                    templateDiv.appendChild(pSetName);
-                }
+                    if (displaySeason && displaySeason !== 0) {
+                        templateDiv.appendChild(pSeasonInfo);
+                        templateDiv.appendChild(pSetName);
+                    }
 
-                templateDiv.appendChild(pTemplateName);
-                templateDiv.appendChild(pTemplateamount);
+                    templateDiv.appendChild(pTemplateName);
+                    templateDiv.appendChild(pTemplateamount);
 
-                const matsDiv = document.createElement('div');
-                matsDiv.className = 'item-mats';
-                const materialUsage = {};
-                Object.entries(template.materials).forEach(([mat, amt]) => {
-                    const totalAmt = amt * template.amount * (template.multiplier || 1);
-                    materialUsage[mat] = totalAmt;
-                    const pLine = document.createElement('p');
-                    pLine.className = 'item-material';
-                    pLine.innerHTML = `${mat} <span>${new Intl.NumberFormat('en-US').format(totalAmt)}</span>`;
-                    matsDiv.appendChild(pLine);
-                });
-                templateDiv.dataset.materials = JSON.stringify(materialUsage);
-                templateDiv.appendChild(matsDiv);
-
-                templateDiv.addEventListener('click', function() {
-                    this.classList.toggle('opacity');
-                    const used = JSON.parse(this.dataset.materials);
-                    const done = this.classList.contains('opacity');
-                    Object.entries(used).forEach(([mat, amt]) => {
-                        if (done) {
-                            remainingUse[mat] -= amt;
-                        } else {
-                            remainingUse[mat] += amt;
-                        }
-                        const target = materialsDiv.querySelector(`div[data-material="${mat}"] .remaining-to-use`);
-                        if (target) {
-                            target.textContent = `-${new Intl.NumberFormat('en-US').format(remainingUse[mat])}`;
-                        }
+                    const matsDiv = document.createElement('div');
+                    matsDiv.className = 'item-mats';
+                    const materialUsage = {};
+                    Object.entries(template.materials).forEach(([mat, amt]) => {
+                        const totalAmt = amt * template.amount * (template.multiplier || 1);
+                        materialUsage[mat] = totalAmt;
+                        const pLine = document.createElement('p');
+                        pLine.className = 'item-material';
+                        pLine.innerHTML = `${mat} <span>${new Intl.NumberFormat('en-US').format(totalAmt)}</span>`;
+                        matsDiv.appendChild(pLine);
                     });
-                });
+                    templateDiv.dataset.materials = JSON.stringify(materialUsage);
+                    templateDiv.appendChild(matsDiv);
 
-                levelGroup.appendChild(templateDiv);
-            });
+                    templateDiv.addEventListener('click', function() {
+                        this.classList.toggle('opacity');
+                        const used = JSON.parse(this.dataset.materials);
+                        const done = this.classList.contains('opacity');
+                        Object.entries(used).forEach(([mat, amt]) => {
+                            if (done) {
+                                remainingUse[mat] -= amt;
+                            } else {
+                                remainingUse[mat] += amt;
+                            }
+                            const target = materialsDiv.querySelector(`div[data-material="${mat}"] .remaining-to-use`);
+                            if (target) {
+                                target.textContent = `-${new Intl.NumberFormat('en-US').format(remainingUse[mat])}`;
+                            }
+                        });
+                    });
+
+                    levelGroup.appendChild(templateDiv);
+                });
             } else {
                 const msg = document.createElement('p');
                 msg.className = 'no-products';
@@ -561,7 +584,8 @@ function calculateMaterials() {
         }
     });
 
-    // Lisää sulje-nappi
+    const shareData = { templates: templateCounts, materials: materialCounts, initialMaterials };
+    createCopyButton(resultsDiv, shareData);
     createCloseButton(resultsDiv);
     showResults();
 }

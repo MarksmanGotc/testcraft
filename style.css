@@ -279,13 +279,27 @@ footer div {
     top: -32px;
     right: -22px;
     cursor: pointer;
-	background: none;
-	width: max-content;
+        background: none;
+        width: max-content;
+}
+#copyLink {
+    position: absolute;
+    top: -32px;
+    right: 20px;
+    cursor: pointer;
+    background: var(--button-bg);
+    color: var(--button-text-color);
+    border: none;
+    padding: 4px 8px;
 }
 div#results h3 ~ #closeResults {
     margin: 0;
     top: -40px;
     right: -20px;
+}
+div#results h3 ~ #copyLink {
+    top: -40px;
+    right: 20px;
 }
 #results .items {
     margin-bottom: 10px;
