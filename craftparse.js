@@ -891,13 +891,15 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
         if (!allowedGearLevels.includes(level)) {
             levelProducts = levelProducts.filter(p => p.season == 0);
         }
+        const multiplier = qualityMultipliers[level] || 1;
+        const isLegendary = multiplier >= 1024;
         levelProducts = levelProducts.filter(p => {
-            if (p.season !== 0 || !p.odds) return true;
+            const applyOdds = !isLegendary && (p.season === 0 || (p.level === 20 && (p.season === 1 || p.season === 2)));
+            if (!applyOdds || !p.odds) return true;
             if (p.odds === 'low') return includeLowOdds;
             if (p.odds === 'medium') return includeMediumOdds;
             return true;
         });
-        const multiplier = qualityMultipliers[level] || 1;
         levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
         if (levelProducts.length === 0) {
             failed.add(level);
@@ -920,24 +922,36 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
             if (!allowedGearLevels.includes(level)) {
                 levelProducts = levelProducts.filter(p => p.season == 0);
             }
+            const multiplier = qualityMultipliers[level] || 1;
+            const isLegendary = multiplier >= 1024;
             levelProducts = levelProducts.filter(p => {
-                if (p.season !== 0 || !p.odds) return true;
+                const applyOdds = !isLegendary && (p.season === 0 || (p.level === 20 && (p.season === 1 || p.season === 2)));
+                if (!applyOdds || !p.odds) return true;
                 if (p.odds === 'low') return includeLowOdds;
                 if (p.odds === 'medium') return includeMediumOdds;
                 return true;
             });
-            const multiplier = qualityMultipliers[level] || 1;
             levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
-            const selectedProduct = selectBestAvailableProduct(levelProducts, preferences.mostAvailableMaterials, preferences.secondMostAvailableMaterials, preferences.leastAvailableMaterials, availableMaterials, multiplier);
 
-            if (selectedProduct && canProductBeProduced(selectedProduct, availableMaterials, multiplier)) {
-                productionPlan[level].push({ name: selectedProduct.name, season: selectedProduct.season, setName: selectedProduct.setName, warlord: selectedProduct.warlord });
-                updateAvailableMaterials(availableMaterials, selectedProduct, multiplier);
-                remaining[level]--;
-                anySelected = true;
-            } else {
-                failed.add(level);
-                remaining[level] = 0;
+            let produceCount = 1;
+            if (remaining[level] > 1000) {
+                produceCount = 5;
+            } else if (remaining[level] > 500) {
+                produceCount = 2;
+            }
+
+            for (let i = 0; i < produceCount && remaining[level] > 0; i++) {
+                const selectedProduct = selectBestAvailableProduct(levelProducts, preferences.mostAvailableMaterials, preferences.secondMostAvailableMaterials, preferences.leastAvailableMaterials, availableMaterials, multiplier);
+                if (selectedProduct && canProductBeProduced(selectedProduct, availableMaterials, multiplier)) {
+                    productionPlan[level].push({ name: selectedProduct.name, season: selectedProduct.season, setName: selectedProduct.setName, warlord: selectedProduct.warlord });
+                    updateAvailableMaterials(availableMaterials, selectedProduct, multiplier);
+                    remaining[level]--;
+                    anySelected = true;
+                } else {
+                    failed.add(level);
+                    remaining[level] = 0;
+                    break;
+                }
             }
         }
 
