@@ -1655,7 +1655,6 @@ const season3 = {
 				"kingswood-oak": 10
 			  }
 			},
-
 			{
 			  "name": "Helm",
 			  "level": 10,
@@ -1716,7 +1715,6 @@ const season3 = {
 				"kingswood-oak": 20
 			  }
 			},
-
 			{
 			  "name": "Helm",
 			  "level": 15,
@@ -1777,7 +1775,6 @@ const season3 = {
 				"kingswood-oak": 120
 			  }
 			},
-
 			{
 			  "name": "Helm",
 			  "level": 20,
@@ -1844,7 +1841,6 @@ const season3 = {
 				"hide": 400
 			  }
 			},
-
 			{
 			  "name": "Helm",
 			  "level": 25,
@@ -1933,7 +1929,7 @@ const season3 = {
 			  "img": "item/season3/falcon/chest.png",
 			  "materials": {
 				"silvered-steel": 10,
-				"weirwood": 10,
+				"black-iron": 10,
 				"copper-bar": 10
 			  }
 			},
@@ -1943,8 +1939,8 @@ const season3 = {
 			  "img": "item/season3/falcon/pants.png",
 			  "materials": {
 				"silvered-steel": 10,
-				"ironwood": 10,
-				"goldenheart-wood": 10
+				"silk": 10,
+				"milk-of-the-poppy": 10
 			  }
 			},
 			{
@@ -1953,7 +1949,7 @@ const season3 = {
 			  "img": "item/season3/falcon/boots.png",
 			  "materials": {
 				"silvered-steel": 10,
-				"hide": 10,
+				"milk-of-the-poppy": 10,
 				"kingswood-oak": 10
 			  }
 			},
@@ -1963,8 +1959,8 @@ const season3 = {
 			  "img": "item/season3/falcon/ring.png",
 			  "materials": {
 				"silvered-steel": 10,
-				"dragonglass": 10,
-				"leather-straps": 10
+				"milk-of-the-poppy": 10,
+				"silk": 10
 			  }
 			},
 			{
@@ -1973,8 +1969,8 @@ const season3 = {
 			  "img": "item/season3/falcon/weapon.png",
 			  "materials": {
 				"silvered-steel": 10,
-				"goldenheart-wood": 10,
-				"milk-of-the-poppy": 10
+				"wildfire": 10,
+				"hide": 10
 			  }
 			},
 			{
@@ -1993,7 +1989,7 @@ const season3 = {
 			  "img": "item/season3/falcon/chest.png",
 			  "materials": {
 				"silvered-steel": 20,
-				"weirwood": 20,
+				"black-iron": 20,
 				"copper-bar": 20
 			  }
 			},
@@ -2003,8 +1999,8 @@ const season3 = {
 			  "img": "item/season3/falcon/pants.png",
 			  "materials": {
 				"silvered-steel": 20,
-				"ironwood": 20,
-				"goldenheart-wood": 20
+				"silk": 20,
+				"milk-of-the-poppy": 20
 			  }
 			},
 			{
@@ -2013,7 +2009,7 @@ const season3 = {
 			  "img": "item/season3/falcon/boots.png",
 			  "materials": {
 				"silvered-steel": 20,
-				"hide": 20,
+				"milk-of-the-poppy": 20,
 				"kingswood-oak": 20
 			  }
 			},
@@ -2023,8 +2019,8 @@ const season3 = {
 			  "img": "item/season3/falcon/ring.png",
 			  "materials": {
 				"silvered-steel": 20,
-				"dragonglass": 20,
-				"leather-straps": 20
+				"milk-of-the-poppy": 20,
+				"silk": 20
 			  }
 			},
 			{
@@ -2033,8 +2029,8 @@ const season3 = {
 			  "img": "item/season3/falcon/weapon.png",
 			  "materials": {
 				"silvered-steel": 20,
-				"goldenheart-wood": 20,
-				"milk-of-the-poppy": 20
+				"wildfire": 20,
+				"hide": 20
 			  }
 			},
 			{
