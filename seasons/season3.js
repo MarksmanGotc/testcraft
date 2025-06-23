@@ -1922,9 +1922,9 @@ const season3 = {
 			  "level": 5,
 			  "img": "item/season3/falcon/head.png",
 			  "materials": {
-				"ancient-leather": 10,
+				"silvered-steel": 10,
 				"copper-bar": 10,
-				"kingswood-oak": 10
+				"black-iron": 10
 			  }
 			},
 			{
@@ -1932,7 +1932,7 @@ const season3 = {
 			  "level": 5,
 			  "img": "item/season3/falcon/chest.png",
 			  "materials": {
-				"ancient-leather": 10,
+				"silvered-steel": 10,
 				"weirwood": 10,
 				"copper-bar": 10
 			  }
@@ -1942,7 +1942,7 @@ const season3 = {
 			  "level": 5,
 			  "img": "item/season3/falcon/pants.png",
 			  "materials": {
-				"ancient-leather": 10,
+				"silvered-steel": 10,
 				"ironwood": 10,
 				"goldenheart-wood": 10
 			  }
@@ -1952,7 +1952,7 @@ const season3 = {
 			  "level": 5,
 			  "img": "item/season3/falcon/boots.png",
 			  "materials": {
-				"ancient-leather": 10,
+				"silvered-steel": 10,
 				"hide": 10,
 				"kingswood-oak": 10
 			  }
@@ -1962,7 +1962,7 @@ const season3 = {
 			  "level": 5,
 			  "img": "item/season3/falcon/ring.png",
 			  "materials": {
-				"ancient-leather": 10,
+				"silvered-steel": 10,
 				"dragonglass": 10,
 				"leather-straps": 10
 			  }
@@ -1972,7 +1972,7 @@ const season3 = {
 			  "level": 5,
 			  "img": "item/season3/falcon/weapon.png",
 			  "materials": {
-				"ancient-leather": 10,
+				"silvered-steel": 10,
 				"goldenheart-wood": 10,
 				"milk-of-the-poppy": 10
 			  }
@@ -1982,9 +1982,9 @@ const season3 = {
 			  "level": 10,
 			  "img": "item/season3/falcon/head.png",
 			  "materials": {
-				"ancient-leather": 20,
+				"silvered-steel": 20,
 				"copper-bar": 20,
-				"kingswood-oak": 20
+				"black-iron": 20
 			  }
 			},
 			{
@@ -1992,7 +1992,7 @@ const season3 = {
 			  "level": 10,
 			  "img": "item/season3/falcon/chest.png",
 			  "materials": {
-				"ancient-leather": 20,
+				"silvered-steel": 20,
 				"weirwood": 20,
 				"copper-bar": 20
 			  }
@@ -2002,7 +2002,7 @@ const season3 = {
 			  "level": 10,
 			  "img": "item/season3/falcon/pants.png",
 			  "materials": {
-				"ancient-leather": 20,
+				"silvered-steel": 20,
 				"ironwood": 20,
 				"goldenheart-wood": 20
 			  }
@@ -2012,7 +2012,7 @@ const season3 = {
 			  "level": 10,
 			  "img": "item/season3/falcon/boots.png",
 			  "materials": {
-				"ancient-leather": 20,
+				"silvered-steel": 20,
 				"hide": 20,
 				"kingswood-oak": 20
 			  }
@@ -2022,7 +2022,7 @@ const season3 = {
 			  "level": 10,
 			  "img": "item/season3/falcon/ring.png",
 			  "materials": {
-				"ancient-leather": 20,
+				"silvered-steel": 20,
 				"dragonglass": 20,
 				"leather-straps": 20
 			  }
@@ -2032,7 +2032,7 @@ const season3 = {
 			  "level": 10,
 			  "img": "item/season3/falcon/weapon.png",
 			  "materials": {
-				"ancient-leather": 20,
+				"silvered-steel": 20,
 				"goldenheart-wood": 20,
 				"milk-of-the-poppy": 20
 			  }
