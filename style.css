@@ -265,6 +265,14 @@ footer p {
     font-style: italic;
     color: #e5dfbc;
 }
+footer a {
+    color: #e5dfbc;
+    text-decoration: none;
+    font-style: italic;
+}
+footer a:hover {
+    text-decoration: underline;
+}
 footer div {
     width: 600px;
 }
