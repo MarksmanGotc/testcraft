@@ -701,7 +701,6 @@ const season7 = {
 			  },
 			  "img": "item/season7/winter-survivor/weapon.png"
 			},
-
 			{
 			  "name": "Iron Crest",
 			  "level": 10,
@@ -762,7 +761,6 @@ const season7 = {
 			  },
 			  "img": "item/season7/winter-survivor/weapon.png"
 			},
-
 			{
 			  "name": "Iron Crest",
 			  "level": 15,
@@ -823,7 +821,6 @@ const season7 = {
 			  },
 			  "img": "item/season7/winter-survivor/weapon.png"
 			},
-
 			{
 			  "name": "Iron Crest",
 			  "level": 20,
@@ -890,7 +887,6 @@ const season7 = {
 			  },
 			  "img": "item/season7/winter-survivor/weapon.png"
 			},
-
 			{
 			  "name": "Iron Crest",
 			  "level": 25,
