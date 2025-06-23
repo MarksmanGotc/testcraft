@@ -670,6 +670,29 @@ function renderResults(templateCounts, materialCounts) {
     copyBtn.after(itemsDiv);
     itemsDiv.after(itemsInfoPopup);
     createCloseButton(resultsDiv);
+
+    const seasonTotals = {};
+    let totalBasicMat = 0;
+    let totalAllSeason = 0;
+    Object.entries(materialCounts).forEach(([name, data]) => {
+        const season = materialToSeason[name] || 0;
+        if (season === 0) {
+            totalBasicMat += data.amount;
+        } else {
+            seasonTotals[season] = (seasonTotals[season] || 0) + data.amount;
+            totalAllSeason += data.amount;
+        }
+    });
+
+    const nf = new Intl.NumberFormat('fi-FI');
+    console.log(`Käytetty perusmateriaali: ${nf.format(totalBasicMat)}`);
+    Object.keys(seasonTotals)
+        .sort((a, b) => a - b)
+        .forEach(season => {
+            console.log(`Käytetty materiaali Season ${season}: ${nf.format(seasonTotals[season])}`);
+        });
+    console.log(`Käytetty Gear materiaali yhteensä: ${nf.format(totalAllSeason)}`);
+
     showResults();
 }
 
