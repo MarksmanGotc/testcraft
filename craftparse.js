@@ -47,6 +47,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = JSON.parse(atob(shareParam));
             initialMaterials = data.initialMaterials || {};
             populateInputsFromShare(data);
+            // Show spinner before automatic calculation
+            document.querySelector('.spinner-wrap').classList.add('active');
             // Automatically trigger calculation based on the populated inputs
             calculateMaterials();
         } catch (e) {
@@ -917,6 +919,46 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
     const includeMediumOdds = document.getElementById('includeMediumOdds')?.checked ?? true;
     const gearLevelSelect = document.getElementById('gearMaterialLevels');
     const allowedGearLevels = gearLevelSelect ? Array.from(gearLevelSelect.selectedOptions).map(o => parseInt(o.value, 10)) : [];
+
+    // Craft level 15 items first when only normal odds are allowed and
+    // no CTW or gear materials are in use at that level.
+    if (
+        templatesByLevel[15] > 0 &&
+        !includeWarlords &&
+        !includeLowOdds &&
+        !includeMediumOdds &&
+        !allowedGearLevels.includes(15)
+    ) {
+        let remaining15 = templatesByLevel[15];
+        const multiplier15 = qualityMultipliers[15] || 1;
+
+        while (remaining15 > 0) {
+            const prefs = getUserPreferences(availableMaterials);
+            let levelProducts = craftItem.products.filter(p => p.level === 15 && !p.warlord);
+            levelProducts = levelProducts.filter(p => p.season == 0);
+            levelProducts = levelProducts.filter(p => !p.odds || p.odds === 'normal');
+            levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier15);
+            const selected = selectBestAvailableProduct(
+                levelProducts,
+                prefs.mostAvailableMaterials,
+                prefs.secondMostAvailableMaterials,
+                prefs.leastAvailableMaterials,
+                availableMaterials,
+                multiplier15
+            );
+
+            if (selected && canProductBeProduced(selected, availableMaterials, multiplier15)) {
+                productionPlan[15].push({ name: selected.name, season: selected.season, setName: selected.setName, warlord: selected.warlord });
+                updateAvailableMaterials(availableMaterials, selected, multiplier15);
+                remaining15--;
+            } else {
+                failed.add(15);
+                break;
+            }
+        }
+
+        templatesByLevel[15] = 0; // Prevent further processing for level 15
+    }
 
     LEVELS.forEach(level => {
         if (templatesByLevel[level] <= 0) return;
