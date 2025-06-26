@@ -46,8 +46,9 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const data = JSON.parse(atob(shareParam));
             initialMaterials = data.initialMaterials || {};
-            renderResults(data.templates, data.materials);
             populateInputsFromShare(data);
+            // Automatically trigger calculation based on the populated inputs
+            calculateMaterials();
         } catch (e) {
             console.error('Invalid share data');
         }
@@ -664,7 +665,19 @@ function renderResults(templateCounts, materialCounts) {
         }
     });
 
-    const shareData = { templates: templateCounts, materials: materialCounts, initialMaterials };
+    // Prepare a lighter share payload containing only the user inputs
+    const minimalTemplates = {};
+    Object.entries(templateCounts).forEach(([lvl, items]) => {
+        minimalTemplates[lvl] = items.map(({ name, amount, setName, season, multiplier, warlord }) => ({
+            name,
+            amount,
+            setName,
+            season,
+            multiplier,
+            warlord
+        }));
+    });
+    const shareData = { templates: minimalTemplates, initialMaterials };
     const copyBtn = createCopyButton(shareData);
     generateDiv.after(copyBtn);
     copyBtn.after(itemsDiv);
