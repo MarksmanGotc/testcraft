@@ -326,8 +326,10 @@ function createScreenshotButton() {
             const prevDisplay = button.style.display;
             button.style.display = 'none';
             html2canvas(target, {
+                scrollY: -window.scrollY,
+                scrollX: -window.scrollX,
                 useCORS: true,
-                backgroundColor: null,
+                backgroundColor: '#ffffff',
                 scale: 1
             }).then(canvas => {
                 button.style.display = prevDisplay;
