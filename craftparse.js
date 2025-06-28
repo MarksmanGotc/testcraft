@@ -24,6 +24,7 @@ const BALANCE_WEIGHT = 0.1;
 let failedLevels = [];
 let requestedTemplates = {};
 let remainingUse = {};
+let ctwMediumNotice = false;
 
 function slug(str) {
     return (str || '')
@@ -576,6 +577,7 @@ function renderResults(templateCounts, materialCounts) {
             const levelHeader = document.createElement('h4');
             levelHeader.textContent = allSameCount ? `Level ${level}` : `Level ${level} (${new Intl.NumberFormat('en-US').format(levelItemCounts[level])} pcs)`;
 
+
             if (firstLevelHeader) {
                 const headerWrap = document.createElement('div');
                 headerWrap.className = 'items-header';
@@ -585,6 +587,13 @@ function renderResults(templateCounts, materialCounts) {
                 firstLevelHeader = false;
             } else {
                 itemsDiv.appendChild(levelHeader);
+            }
+
+            if (lvl === 20 && ctwMediumNotice) {
+                const extraInfo = document.createElement('p');
+                extraInfo.className = 'craft-extra-info';
+                extraInfo.textContent = "Poikkeuksellisesti 'Medium odds' tason itemeitä on käytetty, koska muuten laskelma ei saisi yhtään itemiä. Tasolla 20, Ceremonial Targaryen Warlord itemit kuuluu 'medium odds' tason piiriin.";
+                itemsDiv.appendChild(extraInfo);
             }
 
             const levelGroup = document.createElement('div');
@@ -924,6 +933,7 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
     const includeMediumOdds = document.getElementById('includeMediumOdds')?.checked ?? true;
     const gearLevelSelect = document.getElementById('gearMaterialLevels');
     const allowedGearLevels = gearLevelSelect ? Array.from(gearLevelSelect.selectedOptions).map(o => parseInt(o.value, 10)) : [];
+    ctwMediumNotice = includeWarlords && !includeMediumOdds && !allowedGearLevels.includes(20);
 
     // Craft level 15 items first when only normal odds are allowed and
     // no CTW or gear materials are in use at that level.
@@ -980,7 +990,7 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
             const applyOdds = !isLegendary && (p.season === 0 || (p.level === 20 && (p.season === 1 || p.season === 2)));
             if (!applyOdds || !p.odds) return true;
             if (p.odds === 'low') return includeLowOdds;
-            if (p.odds === 'medium') return includeMediumOdds;
+            if (p.odds === 'medium') return includeMediumOdds || (ctwMediumNotice && p.warlord && p.level === 20);
             return true;
         });
         levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
@@ -1011,7 +1021,7 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                 const applyOdds = !isLegendary && (p.season === 0 || (p.level === 20 && (p.season === 1 || p.season === 2)));
                 if (!applyOdds || !p.odds) return true;
                 if (p.odds === 'low') return includeLowOdds;
-                if (p.odds === 'medium') return includeMediumOdds;
+                if (p.odds === 'medium') return includeMediumOdds || (ctwMediumNotice && p.warlord && p.level === 20);
                 return true;
             });
             levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
