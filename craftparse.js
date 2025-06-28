@@ -333,37 +333,21 @@ function createScreenshotButton(fileName, targetSelector = '#results') {
   button.textContent = 'Capture screenshot';
   button.addEventListener('click', async () => {
     const target = document.querySelector(targetSelector);
-    if (!window.html2canvas || !target) return;
+    if (!window.domtoimage || !target) return;
 
     // Piilota nappi
     const prevDisplay = button.style.display;
     button.style.display = 'none';
 
     try {
-      const canvas = await html2canvas(target, {
-        scale: 1,
-        scrollX: -window.scrollX,
-        scrollY: -window.scrollY,
-        backgroundColor: null,
-        useCORS: true,
-        allowTaint: false,
-        onclone: (clonedDoc) => {
-          clonedDoc.querySelectorAll('img').forEach(img => {
-            img.setAttribute('crossorigin', 'anonymous');
-          });
-        },
-        foreignObjectRendering: true,
-        logging: false,
-        imageTimeout: 1000,
-      });
-
+      const dataUrl = await domtoimage.toPng(target);
       const link = document.createElement('a');
       link.download = fileName || 'screenshot.png';
-      link.href = canvas.toDataURL('image/png');
+      link.href = dataUrl;
       link.click();
     } catch (err) {
-      console.error('html2canvas failed:', err);
-      alert('Kaappaus epäonnistui – katso konsolista lisää.');
+      console.error('dom-to-image error', err);
+      alert('Kuvakaappaus epäonnistui');
     } finally {
       button.style.display = prevDisplay;
     }
