@@ -164,7 +164,13 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('keydown', e => {
         if (e.key === 'Enter' && document.activeElement.tagName === 'INPUT' &&
             document.getElementById('results').style.display === 'none') {
-            calculateMaterials();
+            const manualVisible = document.getElementById('manualInput').style.display !== 'none';
+            const choiceVisible = document.getElementById('generatebychoice').style.display !== 'none';
+            if (choiceVisible) {
+                calculateWithPreferences();
+            } else if (manualVisible) {
+                calculateMaterials();
+            }
         }
 
         if (e.key === 'Escape') {
@@ -179,13 +185,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Custom tab order for template amount inputs
+    // Custom tab order for template amount inputs and quality selects
     const templateInputs = LEVELS.map(l => document.getElementById(`templateAmount${l}`)).filter(Boolean);
+    const templateSelects = LEVELS.map(l => document.getElementById(`temp${l}`)).filter(Boolean);
+
     templateInputs.forEach((input, idx) => {
         input.addEventListener('keydown', e => {
             if (e.key === 'Tab' && !e.shiftKey) {
                 e.preventDefault();
                 const next = templateInputs[idx + 1];
+                if (next) {
+                    next.focus();
+                } else if (templateSelects[0]) {
+                    templateSelects[0].focus();
+                }
+            }
+        });
+    });
+
+    templateSelects.forEach((select, idx) => {
+        select.addEventListener('keydown', e => {
+            if (e.key === 'Tab' && !e.shiftKey) {
+                e.preventDefault();
+                const next = templateSelects[idx + 1];
                 if (next) {
                     next.focus();
                 } else {
@@ -795,7 +817,7 @@ function createMaterialImageElement(materialName, imgUrl, preference) {
     return imgElement;
 }
 
-document.getElementById('calculateWithPreferences').addEventListener('click', function() {
+function calculateWithPreferences() {
 	const materialInputs = document.querySelectorAll('.my-material input[type="text"]');
     const templateAmountInputs = LEVELS.map(l => document.querySelector(`#templateAmount${l}`));
     let isValid = true;
@@ -910,8 +932,10 @@ document.getElementById('calculateWithPreferences').addEventListener('click', fu
 		if (calculateBtn) {
 			calculateBtn.click(); // Simuloi napin klikkausta
 		}
-	}, 0);
-});
+        }, 0);
+}
+
+document.getElementById('calculateWithPreferences').addEventListener('click', calculateWithPreferences);
 
 function gatherMaterialsFromInputs() {
     const scaleSelect = document.getElementById('scaleSelect');
