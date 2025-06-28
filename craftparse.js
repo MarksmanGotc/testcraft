@@ -319,48 +319,61 @@ function createCloseButton(parentElement) {
  function createScreenshotButton() {
   const button = document.createElement('button');
   button.id = 'screenshotBtn';
-  button.innerHTML = `Capture screenshot …`;  // lyhennetty tässä
+  button.textContent = 'Capture screenshot';
   button.addEventListener('click', async () => {
-    const target = document.querySelector('.wrapper'); // varmista että valitset OIKEAN elementin
+    const target = document.querySelector('.wrapper');
     if (!window.html2canvas || !target) return;
 
-    // piilota nappi, jotta se ei tule mukaan screenshottiin
+    // Piilota nappi
     const prevDisplay = button.style.display;
     button.style.display = 'none';
 
     try {
       const canvas = await html2canvas(target, {
-        // jopa Retina-näytöillä scale=1 riittää, mutta voit laittaa max 2 jos haluat hiukan terävämmän
-        scale: Math.min(window.devicePixelRatio || 1, 2),
+        // 1× skaala riittää, pitää canvasin koon hallinnassa
+        scale: 1,
 
-        // ota mukaan ulkoiset objektit (SVG:t, webfontit jne.)
-        foreignObjectRendering: true,
-
-        // ota scroll-offset huomioon, niin elementti piirtyy oikeaan kohtaan
+        // ota scroll-offsetit huomioon
         scrollX: -window.scrollX,
         scrollY: -window.scrollY,
 
-        // tarvittaessa voit antaa myös koko ikkunan koot
+        // käytä CSS-taustaa (tai valkoista)
+        backgroundColor: window.getComputedStyle(target).backgroundColor || '#fff',
+
+        // CORS-kuvat läpi
+        useCORS: true,
+        allowTaint: false,
+
+        // jos palvelimella ei ole CORS-otsikoita, voit tarvittaessa hyödyntää proxyä:
+        // proxy: 'https://your-cors-proxy.example.com/',
+
+        // kloonaa DOM ja aseta img-tagit crossOrigin="anonymous"
+        onclone: (clonedDoc) => {
+          clonedDoc.querySelectorAll('img').forEach(img => {
+            img.setAttribute('crossorigin', 'anonymous');
+          });
+        },
+
+        // ota mukaan SVG:t ja webfontit
+        foreignObjectRendering: true,
+
+        // rajaa koko wrapperiin automaattisesti
         windowWidth:  document.documentElement.clientWidth,
         windowHeight: document.documentElement.clientHeight,
 
-        // jos taustasi on valkoinen, ota CSS-tausta talteen
-        backgroundColor: window.getComputedStyle(target).backgroundColor || '#ffffff',
-
-        useCORS: true,
-        logging: false,
-        imageTimeout: 1500,
-        // älä anna html2canvaksen yrittää rajata itse (width/height/x/y) —  
-        // anna sen piirtää juuri tuo elementti
+        // lyhyt timeout, ei debug-lokeja
+        logging:      false,
+        imageTimeout: 1000,
       });
 
+      // lataa
       const link = document.createElement('a');
       link.download = 'screenshot.png';
       link.href = canvas.toDataURL('image/png');
       link.click();
     } catch (err) {
-      console.error('Screenshot failed:', err);
-      alert('Screenshot epäonnistui, katso konsolista lisätietoja.');
+      console.error('html2canvas failed:', err);
+      alert('Kaappaus epäonnistui – katso konsolista lisää.');
     } finally {
       // näytä nappi takaisin
       button.style.display = prevDisplay;
@@ -369,6 +382,7 @@ function createCloseButton(parentElement) {
 
   return button;
 }
+
 
 function createLevelStructure() {
     const manualInputDiv = document.getElementById('manualInput');
