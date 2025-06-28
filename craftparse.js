@@ -327,34 +327,6 @@ function createCloseButton(parentElement) {
     parentElement.appendChild(closeButton);
 }
 
-function createScreenshotButton(fileName, targetSelector = '#results') {
-  const button = document.createElement('button');
-  button.id = 'screenshotBtn';
-  button.textContent = 'Capture screenshot';
-  button.addEventListener('click', async () => {
-    const target = document.querySelector(targetSelector);
-    if (!window.domtoimage || !target) return;
-
-    // Piilota nappi
-    const prevDisplay = button.style.display;
-    button.style.display = 'none';
-
-    try {
-      const dataUrl = await domtoimage.toPng(target);
-      const link = document.createElement('a');
-      link.download = fileName || 'screenshot.png';
-      link.href = dataUrl;
-      link.click();
-    } catch (err) {
-      console.error('dom-to-image error', err);
-      alert('Kuvakaappaus epäonnistui');
-    } finally {
-      button.style.display = prevDisplay;
-    }
-  });
-
-  return button;
-}
 
 function createLevelStructure() {
     const manualInputDiv = document.getElementById('manualInput');
@@ -715,21 +687,7 @@ function renderResults(templateCounts, materialCounts) {
         }));
     });
 
-    let screenshotName = 'screenshot.png';
-    const levelsWithTemplates = Object.keys(levelItemCounts).filter(l => levelItemCounts[l] > 0);
-    if (levelsWithTemplates.length) {
-        const highestLevel = Math.max(...levelsWithTemplates.map(Number));
-        const timestamp = formatTimestamp();
-        if (allSameCount) {
-            screenshotName = `crafting_${levelItemCounts[highestLevel]}temps_${timestamp}.png`;
-        } else {
-            screenshotName = `crafting_lv${highestLevel}_${levelItemCounts[highestLevel]}temps_${timestamp}.png`;
-        }
-    }
-
-    const screenshotBtn = createScreenshotButton(screenshotName, '#results');
-    generateDiv.after(screenshotBtn);
-    screenshotBtn.after(itemsDiv);
+    generateDiv.after(itemsDiv);
     itemsDiv.after(itemsInfoPopup);
     createCloseButton(resultsDiv);
 
