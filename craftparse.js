@@ -34,6 +34,17 @@ function slug(str) {
         .replace(/[^a-z0-9-]/g, '');
 }
 
+function formatTimestamp(date = new Date()) {
+    const pad = (n) => String(n).padStart(2, '0');
+    return (
+        date.getFullYear().toString() +
+        pad(date.getMonth() + 1) +
+        pad(date.getDate()) +
+        pad(date.getHours()) +
+        pad(date.getMinutes())
+    );
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     createLevelStructure();
     addCalculateButton();
@@ -316,12 +327,12 @@ function createCloseButton(parentElement) {
     parentElement.appendChild(closeButton);
 }
 
- function createScreenshotButton() {
+function createScreenshotButton(fileName, targetSelector = '#results') {
   const button = document.createElement('button');
   button.id = 'screenshotBtn';
   button.textContent = 'Capture screenshot';
   button.addEventListener('click', async () => {
-    const target = document.querySelector('.wrapper');
+    const target = document.querySelector(targetSelector);
     if (!window.html2canvas || !target) return;
 
     // Piilota nappi
@@ -330,52 +341,30 @@ function createCloseButton(parentElement) {
 
     try {
       const canvas = await html2canvas(target, {
-        // 1× skaala riittää, pitää canvasin koon hallinnassa
         scale: 1,
-
-        // ota scroll-offsetit huomioon
         scrollX: -window.scrollX,
         scrollY: -window.scrollY,
-
-        // käytä CSS-taustaa (tai valkoista)
-        backgroundColor: window.getComputedStyle(target).backgroundColor || '#fff',
-
-        // CORS-kuvat läpi
+        backgroundColor: null,
         useCORS: true,
         allowTaint: false,
-
-        // jos palvelimella ei ole CORS-otsikoita, voit tarvittaessa hyödyntää proxyä:
-        // proxy: 'https://your-cors-proxy.example.com/',
-
-        // kloonaa DOM ja aseta img-tagit crossOrigin="anonymous"
         onclone: (clonedDoc) => {
           clonedDoc.querySelectorAll('img').forEach(img => {
             img.setAttribute('crossorigin', 'anonymous');
           });
         },
-
-        // ota mukaan SVG:t ja webfontit
         foreignObjectRendering: true,
-
-        // rajaa koko wrapperiin automaattisesti
-        windowWidth:  document.documentElement.clientWidth,
-        windowHeight: document.documentElement.clientHeight,
-
-        // lyhyt timeout, ei debug-lokeja
-        logging:      false,
+        logging: false,
         imageTimeout: 1000,
       });
 
-      // lataa
       const link = document.createElement('a');
-      link.download = 'screenshot.png';
+      link.download = fileName || 'screenshot.png';
       link.href = canvas.toDataURL('image/png');
       link.click();
     } catch (err) {
       console.error('html2canvas failed:', err);
       alert('Kaappaus epäonnistui – katso konsolista lisää.');
     } finally {
-      // näytä nappi takaisin
       button.style.display = prevDisplay;
     }
   });
@@ -741,7 +730,20 @@ function renderResults(templateCounts, materialCounts) {
             warlord
         }));
     });
-    const screenshotBtn = createScreenshotButton();
+
+    let screenshotName = 'screenshot.png';
+    const levelsWithTemplates = Object.keys(levelItemCounts).filter(l => levelItemCounts[l] > 0);
+    if (levelsWithTemplates.length) {
+        const highestLevel = Math.max(...levelsWithTemplates.map(Number));
+        const timestamp = formatTimestamp();
+        if (allSameCount) {
+            screenshotName = `crafting_${levelItemCounts[highestLevel]}temps_${timestamp}.png`;
+        } else {
+            screenshotName = `crafting_lv${highestLevel}_${levelItemCounts[highestLevel]}temps_${timestamp}.png`;
+        }
+    }
+
+    const screenshotBtn = createScreenshotButton(screenshotName, '#results');
     generateDiv.after(screenshotBtn);
     screenshotBtn.after(itemsDiv);
     itemsDiv.after(itemsInfoPopup);
