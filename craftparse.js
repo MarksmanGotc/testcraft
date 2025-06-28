@@ -383,7 +383,6 @@ function createCloseButton(parentElement) {
   return button;
 }
 
-
 function createLevelStructure() {
     const manualInputDiv = document.getElementById('manualInput');
     //manualInputDiv.style.display = 'block'; // Aseta näkyväksi
