@@ -159,6 +159,42 @@ document.addEventListener('DOMContentLoaded', function() {
             templatesPopup.style.display = 'none';
         }
     });
+
+    // Trigger calculation when pressing Enter on any input
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && document.activeElement.tagName === 'INPUT' &&
+            document.getElementById('results').style.display === 'none') {
+            calculateMaterials();
+        }
+
+        if (e.key === 'Escape') {
+            if (document.getElementById('results').style.display === 'block') {
+                closeResults();
+            }
+            document.querySelectorAll('.info-overlay').forEach(overlay => {
+                if (overlay.style.display !== 'none') {
+                    overlay.style.display = 'none';
+                }
+            });
+        }
+    });
+
+    // Custom tab order for template amount inputs
+    const templateInputs = LEVELS.map(l => document.getElementById(`templateAmount${l}`)).filter(Boolean);
+    templateInputs.forEach((input, idx) => {
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Tab' && !e.shiftKey) {
+                e.preventDefault();
+                const next = templateInputs[idx + 1];
+                if (next) {
+                    next.focus();
+                } else {
+                    const firstMat = document.querySelector('.my-material input[type="text"]');
+                    if (firstMat) firstMat.focus();
+                }
+            }
+        });
+    });
 });
 
 function formatPlaceholderWithCommas(number) {
