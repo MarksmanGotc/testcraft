@@ -162,7 +162,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Trigger calculation when pressing Enter on any input
     document.addEventListener('keydown', e => {
-        if (e.key === 'Enter' && document.activeElement.tagName === 'INPUT' &&
+        const tag = document.activeElement.tagName;
+        if (e.key === 'Enter' && ['INPUT', 'SELECT'].includes(tag) &&
             document.getElementById('results').style.display === 'none') {
             const manualVisible = document.getElementById('manualInput').style.display !== 'none';
             const choiceVisible = document.getElementById('generatebychoice').style.display !== 'none';
