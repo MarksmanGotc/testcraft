@@ -659,13 +659,13 @@ function renderResults(templateCounts, materialCounts) {
             if (lvl === 20 && lowOddsNotice) {
                 const extraInfo = document.createElement('p');
                 extraInfo.className = 'craft-extra-info';
-                extraInfo.textContent = "Low odds items were used because CTW was not selected.";
+                extraInfo.textContent = "Low odds items were used because otherwise no items would be generated.";
                 itemsDiv.appendChild(extraInfo);
             }
             if (lvl === 25 && mediumOddsNotice25) {
                 const extraInfo = document.createElement('p');
                 extraInfo.className = 'craft-extra-info';
-                extraInfo.textContent = "Medium odds items were used because CTW was not selected.";
+                extraInfo.textContent = "Medium odds items were used because otherwise no items would be generated.";
                 itemsDiv.appendChild(extraInfo);
             }
 
