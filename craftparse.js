@@ -2,7 +2,7 @@ let initialMaterials = {};
 const urlParams = new URLSearchParams(window.location.search);
 const isDebugMode = urlParams.has('debug') && urlParams.get('debug') === 'true';
 
-const LEVELS = [1, 5, 10, 15, 20, 25];
+const LEVELS = [1, 5, 10, 15, 20, 25, 30, 35, 40, 45];
 const allMaterials = Object.values(materials).reduce((acc, season) => {
     return { ...acc, ...season.mats };
 }, {});
@@ -448,7 +448,7 @@ function calculateMaterials() {
 
     // Täytä materialsDiv materiaalien tiedoilla...
 
-    const templateCounts = { 1: [], 5: [], 10: [], 15: [], 20: [], 25: [] };
+    const templateCounts = { 1: [], 5: [], 10: [], 15: [], 20: [], 25: [], 30: [], 35: [], 40: [], 45: [] };
     const materialCounts = {};
     
     // Kerää tiedot kaikista syötetyistä itemeistä
@@ -1000,7 +1000,7 @@ function filterProductsByAvailableGear(products, availableMaterials, multiplier 
 }
 
 function calculateProductionPlan(availableMaterials, templatesByLevel) {
-    let productionPlan = { "1": [], "5": [], "10": [], "15": [], "20": [], "25": [] };
+    let productionPlan = { "1": [], "5": [], "10": [], "15": [], "20": [], "25": [], "30": [], "35": [], "40": [], "45": [] };
     const failed = new Set();
     const includeWarlords = document.getElementById('includeWarlords')?.checked ?? true;
     const level1OnlyWarlords = document.getElementById('level1OnlyWarlords')?.checked ?? false;
@@ -1374,7 +1374,7 @@ function inputActive(){
     });		
 
 	// Uusi osa: käsittele kaikki templateAmount-inputit tasoittain (1,5,10,...)
-	const levels = [1, 5, 10, 15, 20, 25];
+        const levels = [1, 5, 10, 15, 20, 25, 30, 35, 40, 45];
 	levels.forEach(level => {
 		const input = document.querySelector(`#templateAmount${level}`);
 		const wrap = document.querySelector(`.leveltmp${level} .templateAmountWrap`);
@@ -1490,7 +1490,7 @@ function initAdvMaterialSection() {
     select.multiple = true;
     select.style.display = 'none';
 
-    [5,10,15,20,25].forEach(l => {
+    [5,10,15,20,25,30,35,40,45].forEach(l => {
         const optionDiv = document.createElement('div');
         optionDiv.dataset.value = l;
         optionDiv.textContent = l;
