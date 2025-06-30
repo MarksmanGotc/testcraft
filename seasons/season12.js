@@ -1,6 +1,7 @@
 const season12 = {
-	season: 12,
-	sets: [
+        season: 12,
+        extraLevels: {30: 3000, 35: 12000, 40: 45000, 45: 120000},
+        sets: [
 		{
 		  "setName": "Burning Usurper's",
 		  "setMat": "Burning Stag Hide",
