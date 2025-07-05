@@ -1,7 +1,7 @@
 let initialMaterials = {}; 
 const urlParams = new URLSearchParams(window.location.search);
 const isDebugMode = urlParams.has('debug') && urlParams.get('debug') === 'true';
-
+ 
 const LEVELS = [1, 5, 10, 15, 20, 25, 30, 35, 40, 45];
 const allMaterials = Object.values(materials).reduce((acc, season) => {
     return { ...acc, ...season.mats };
