@@ -21,6 +21,8 @@ const GEAR_SECOND_WEIGHT = 3;
 const LEFTOVER_WEIGHT_BASE = 7;
 const LEFTOVER_WEIGHT_GEAR = 3;
 const BALANCE_WEIGHT = 0.1;
+// Extra penalty multiplier applied when preferSameItems is enabled
+const BALANCE_SAME_ITEM_MULT = 2;
 const REUSE_ITEM_BONUS = 8;
 let failedLevels = [];
 let requestedTemplates = {};
@@ -1325,8 +1327,9 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
         }
     });
 	
-	const balancePenalty = computeBalancePenalty(product, availableMaterials, multiplier);
-    score -= balancePenalty * BALANCE_WEIGHT;
+    const balancePenalty = computeBalancePenalty(product, availableMaterials, multiplier);
+    const penaltyWeight = preferSameItems ? BALANCE_WEIGHT * BALANCE_SAME_ITEM_MULT : BALANCE_WEIGHT;
+    score -= balancePenalty * penaltyWeight;
 	
     return score;
 }
