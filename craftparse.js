@@ -21,6 +21,7 @@ const GEAR_SECOND_WEIGHT = 3;
 const LEFTOVER_WEIGHT_BASE = 7;
 const LEFTOVER_WEIGHT_GEAR = 3;
 const BALANCE_WEIGHT = 0.1;
+const REUSE_ITEM_BONUS = 8;
 let failedLevels = [];
 let requestedTemplates = {};
 let remainingUse = {};
@@ -936,7 +937,8 @@ function calculateWithPreferences() {
 			});
 		}
 
-                const resultPlan = calculateProductionPlan(availableMaterials, templatesByLevel);
+                const preferSameItems = document.getElementById('preferSameItems')?.checked ?? false;
+                const resultPlan = calculateProductionPlan(availableMaterials, templatesByLevel, preferSameItems);
                 failedLevels = resultPlan.failedLevels;
 
                 document.querySelectorAll('#manualInput input[type="number"]').forEach(input => {
@@ -999,7 +1001,7 @@ function filterProductsByAvailableGear(products, availableMaterials, multiplier 
     });
 }
 
-function calculateProductionPlan(availableMaterials, templatesByLevel) {
+function calculateProductionPlan(availableMaterials, templatesByLevel, preferSameItems = false) {
     let productionPlan = { "1": [], "5": [], "10": [], "15": [], "20": [], "25": [], "30": [], "35": [], "40": [], "45": [] };
     const failed = new Set();
     const includeWarlords = document.getElementById('includeWarlords')?.checked ?? true;
@@ -1015,6 +1017,9 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
     ctwMediumNotice = includeWarlords && !includeMediumOdds && !level20Allowed;
     lowOddsNotice = !includeWarlords && !includeMediumOdds && !includeLowOdds;
     mediumOddsNotice25 = !includeWarlords && !includeMediumOdds;
+
+    const selectedCounts = {};
+    LEVELS.forEach(l => { selectedCounts[l] = {}; });
 
     // Craft level 15 items first when only normal odds are allowed and
     // no CTW or gear materials are in use at that level.
@@ -1040,12 +1045,16 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                 prefs.secondMostAvailableMaterials,
                 prefs.leastAvailableMaterials,
                 availableMaterials,
-                multiplier15
+                multiplier15,
+                selectedCounts[15],
+                preferSameItems
             );
 
             if (selected && canProductBeProduced(selected, availableMaterials, multiplier15)) {
                 productionPlan[15].push({ name: selected.name, season: selected.season, setName: selected.setName, warlord: selected.warlord });
                 updateAvailableMaterials(availableMaterials, selected, multiplier15);
+                const key = `${selected.name}|${selected.season}|${selected.setName || ''}`;
+                selectedCounts[15][key] = (selectedCounts[15][key] || 0) + 1;
                 remaining15--;
             } else {
                 failed.add(15);
@@ -1106,11 +1115,22 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                 return true;
             });
             levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
-            const selectedProduct = selectBestAvailableProduct(levelProducts, preferences.mostAvailableMaterials, preferences.secondMostAvailableMaterials, preferences.leastAvailableMaterials, availableMaterials, multiplier);
+            const selectedProduct = selectBestAvailableProduct(
+                levelProducts,
+                preferences.mostAvailableMaterials,
+                preferences.secondMostAvailableMaterials,
+                preferences.leastAvailableMaterials,
+                availableMaterials,
+                multiplier,
+                selectedCounts[level],
+                preferSameItems
+            );
 
             if (selectedProduct && canProductBeProduced(selectedProduct, availableMaterials, multiplier)) {
                 productionPlan[level].push({ name: selectedProduct.name, season: selectedProduct.season, setName: selectedProduct.setName, warlord: selectedProduct.warlord });
                 updateAvailableMaterials(availableMaterials, selectedProduct, multiplier);
+                const key = `${selectedProduct.name}|${selectedProduct.season}|${selectedProduct.setName || ''}`;
+                selectedCounts[level][key] = (selectedCounts[level][key] || 0) + 1;
                 remaining[level]--;
                 anySelected = true;
             } else {
@@ -1196,12 +1216,12 @@ function getUserPreferences(availableMaterials) {
     return { mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials };
 }
 
-function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1) {
+function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1, existingCounts = {}, preferSameItems = false) {
     // Järjestä tuotteet pisteiden mukaan
     const candidates = levelProducts
         .map(product => ({
             product,
-			score: getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier)
+            score: getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier, existingCounts, preferSameItems)
         }))
         .sort((a, b) => b.score - a.score); // suurimmasta pienimpään
 
@@ -1262,7 +1282,7 @@ function computeBalancePenalty(product, availableMaterials, multiplier = 1) {
     return computeBaseUsageStd(predicted);
 }
 
-function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1) {
+function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1, existingCounts = {}, preferSameItems = false) {
     let score = 0;
     Object.entries(product.materials).forEach(([material, _]) => {
         const season = materialToSeason[material] || 0;
@@ -1279,6 +1299,14 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
     });
     if (product.warlord) {
         score -= WARLORD_PENALTY;
+    }
+
+    if (preferSameItems) {
+        const key = `${product.name}|${product.season}|${product.setName || ''}`;
+        const count = existingCounts[key] || 0;
+        if (count > 0) {
+            score += REUSE_ITEM_BONUS * count;
+        }
     }
 
     Object.entries(product.materials).forEach(([material, amount]) => {
