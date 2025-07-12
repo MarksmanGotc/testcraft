@@ -1144,43 +1144,6 @@ function calculateProductionPlan(availableMaterials, templatesByLevel, preferSam
         if (!anySelected) break;
     }
 
-    // Ensure CTW fallback at level 20 even when other levels are processed
-    if (ctwMediumNotice && productionPlan[20].length === 0 && (requestedTemplates[20] || 0) > 0) {
-        let remaining20 = requestedTemplates[20];
-        const multiplier20 = qualityMultipliers[20] || 1;
-        let ctwProducts = craftItem.products.filter(p => p.level === 20 && p.warlord && p.odds === 'medium');
-        ctwProducts = filterProductsByAvailableGear(ctwProducts, availableMaterials, multiplier20);
-        while (remaining20 > 0) {
-            const prefs = getUserPreferences(availableMaterials);
-            const selected = selectBestAvailableProduct(
-                ctwProducts,
-                prefs.mostAvailableMaterials,
-                prefs.secondMostAvailableMaterials,
-                prefs.leastAvailableMaterials,
-                availableMaterials,
-                multiplier20,
-                selectedCounts[20],
-                preferSameItems
-            );
-
-            if (selected && canProductBeProduced(selected, availableMaterials, multiplier20)) {
-                productionPlan[20].push({ name: selected.name, season: selected.season, setName: selected.setName, warlord: selected.warlord });
-                updateAvailableMaterials(availableMaterials, selected, multiplier20);
-                const key = `${selected.name}|${selected.season}|${selected.setName || ''}`;
-                selectedCounts[20][key] = (selectedCounts[20][key] || 0) + 1;
-                remaining20--;
-            } else {
-                break;
-            }
-        }
-
-        if (productionPlan[20].length > 0) {
-            failed.delete(20);
-        } else {
-            failed.add(20);
-        }
-    }
-
     return { plan: productionPlan, failedLevels: Array.from(failed) };
 }
 
