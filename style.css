@@ -50,6 +50,39 @@ h1.calc-header {
     box-sizing: border-box;
     border-radius: 4px;
 }
+
+/* Color-coded options for template quality */
+.temps option[value="poor"] {
+    background-color: #A9A9A9;
+    color: #000;
+}
+.temps option[value="common"] {
+    background-color: #32CD32;
+    color: #000;
+}
+.temps option[value="fine"] {
+    background-color: #0070DD;
+    color: #fff;
+}
+.temps option[value="exquisite"] {
+    background-color: #A335EE;
+    color: #fff;
+}
+.temps option[value="epic"] {
+    background-color: #FF8000;
+    color: #000;
+}
+.temps option[value="legendary"] {
+    background-color: #E5CC80;
+    color: #000;
+}
+
+/* Custom hover styling for options */
+.temps option:hover {
+    background-color: inherit;
+    text-decoration: underline;
+    text-transform: uppercase;
+}
 select#scaleSelect {
 	width: 100%;
 	margin-top: 10px;
