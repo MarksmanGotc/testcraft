@@ -223,6 +223,39 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    const qualityColorMap = {
+        poor: '#A9A9A9',
+        common: '#32CD32',
+        fine: '#0070DD',
+        exquisite: '#A335EE',
+        epic: '#FF8000',
+        legendary: '#E5CC80'
+    };
+
+    function getContrastColor(hex) {
+        const r = parseInt(hex.substr(1, 2), 16);
+        const g = parseInt(hex.substr(3, 2), 16);
+        const b = parseInt(hex.substr(5, 2), 16);
+        const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+        return yiq >= 128 ? '#000' : '#fff';
+    }
+
+    document.querySelectorAll('select.temps').forEach(select => {
+        const applyColor = () => {
+            const color = qualityColorMap[select.value];
+            if (color) {
+                select.style.backgroundColor = color;
+                select.style.color = getContrastColor(color);
+            } else {
+                select.style.removeProperty('background-color');
+                select.style.removeProperty('color');
+            }
+        };
+
+        select.addEventListener('change', applyColor);
+        applyColor();
+    });
 });
 
 function formatPlaceholderWithCommas(number) {
