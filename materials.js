@@ -302,9 +302,9 @@ const materials = {
 				"img": "materials/season8/dark-steel-plate.png",
 				"Original-name": "Dark Steel Plate"
 			},
-                        "dragon-tempered-fabrics": {
-                                "img": "materials/season8/dragon-tempered.png",
-                                "Original-name": "Dragon Tempered Fabrics"
+			"dragon-tempered-fabrics": {
+				"img": "materials/season8/dragon-tempered.png",
+				"Original-name": "Dragon Tempered Fabrics"
 			},
 			"gilded-mail": {
 				"img": "materials/season8/gilded-mail.png",
@@ -434,9 +434,21 @@ const materials = {
 				"img": "materials/season12/burning-stag-hide.png",
 				"Original-name": "Burning Stag Hide"
 			},
+			"combusted-leather": {
+				"img": "materials/season12/combusted-leather.png",
+				"Original-name": "Combusted Leather"
+			},
 			"frost-crusted-abalone": {
 				"img": "materials/season12/frost-crusted-abalone.png",
 				"Original-name": "Frost Crusted Abalone"
+			},
+			"myrish-lace": {
+				"img": "materials/season12/myrish-lace.png",
+				"Original-name": "Myrish Lace"
+			},
+			"scorched-horsehair-tassel": {
+				"img": "materials/season12/scorched-horsehair-tassel.png",
+				"Original-name": "Scorched Horsehair Tassel"
 			}
 		}
 	}
