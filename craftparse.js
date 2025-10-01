@@ -1218,6 +1218,29 @@ function filterProductsByAvailableGear(products, availableMaterials, multiplier 
     });
 }
 
+const SEASONAL_ODDS_LEVELS = new Set([15, 20, 25, 35]);
+const EXTENDED_ODDS_LEVELS = new Set([20]);
+
+function shouldApplyOddsForProduct(product) {
+    if (!product?.odds || product.odds === 'normal') {
+        return false;
+    }
+
+    const level = product.level;
+    const season = product.season;
+    const isCeremonialTargaryenWarlord = product.setName === 'Ceremonial Targaryen Warlord';
+
+    if ((season === 0 || isCeremonialTargaryenWarlord) && SEASONAL_ODDS_LEVELS.has(level)) {
+        return true;
+    }
+
+    if ((season === 1 || season === 2) && EXTENDED_ODDS_LEVELS.has(level)) {
+        return true;
+    }
+
+    return false;
+}
+
 function calculateProductionPlan(availableMaterials, templatesByLevel) {
     let productionPlan = { "1": [], "5": [], "10": [], "15": [], "20": [], "25": [], "30": [], "35": [], "40": [], "45": [] };
     const failed = new Set();
@@ -1245,12 +1268,21 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
         ) {
             let remaining = templatesByLevel[level];
             const multiplier = qualityMultipliers[level] || 1;
+            const isLegendary = multiplier >= 1024;
 
             while (remaining > 0) {
                 const prefs = getUserPreferences(availableMaterials);
                 let levelProducts = craftItem.products.filter(p => p.level === level && !p.warlord);
-                levelProducts = levelProducts.filter(p => p.season == 0);
-                levelProducts = levelProducts.filter(p => !p.odds || p.odds === 'normal');
+                if (!allowedGearLevels.includes(level)) {
+                    levelProducts = levelProducts.filter(p => p.season == 0);
+                }
+                levelProducts = levelProducts.filter(p => {
+                    const applyOdds = !isLegendary && shouldApplyOddsForProduct(p);
+                    if (!applyOdds) return true;
+                    if (p.odds === 'low') return includeLowOdds;
+                    if (p.odds === 'medium') return includeMediumOdds;
+                    return true;
+                });
                 levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
                 const selected = selectBestAvailableProduct(
                     levelProducts,
@@ -1275,9 +1307,8 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
         }
     };
 
-    // Prioritize level 30 before 15 when both meet the normal odds criteria.
-    processNormalOddsLevel(30);
-    processNormalOddsLevel(15);
+    const normalOddsPriorityLevels = [35, 30, 15];
+    normalOddsPriorityLevels.forEach(level => processNormalOddsLevel(level));
 
     LEVELS.forEach(level => {
         if (templatesByLevel[level] <= 0) return;
@@ -1300,8 +1331,8 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
             if (requireCtwOnly && p.setName === 'Ceremonial Targaryen Warlord') {
                 return true;
             }
-            const applyOdds = !isLegendary && (p.season === 0 || (p.level === 20 && (p.season === 1 || p.season === 2)));
-            if (!applyOdds || !p.odds) return true;
+            const applyOdds = !isLegendary && shouldApplyOddsForProduct(p);
+            if (!applyOdds) return true;
             if (p.odds === 'low') return includeLowOdds || (lowOddsNotice && p.level === 20);
             if (p.odds === 'medium') return includeMediumOdds || (ctwMediumNotice && p.warlord && p.level === 20);
             return true;
@@ -1340,8 +1371,8 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                 if (requireCtwOnly && p.setName === 'Ceremonial Targaryen Warlord') {
                     return true;
                 }
-                const applyOdds = !isLegendary && (p.season === 0 || (p.level === 20 && (p.season === 1 || p.season === 2)));
-                if (!applyOdds || !p.odds) return true;
+                const applyOdds = !isLegendary && shouldApplyOddsForProduct(p);
+                if (!applyOdds) return true;
                 if (p.odds === 'low') return includeLowOdds || (lowOddsNotice && p.level === 20);
                 if (p.odds === 'medium') return includeMediumOdds || (ctwMediumNotice && p.warlord && p.level === 20);
                 return true;
