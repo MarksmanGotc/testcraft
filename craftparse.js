@@ -342,6 +342,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    const materialsInfoBtn = document.getElementById('yourMaterialsInfoBtn');
+    const materialsInfoPopup = document.getElementById('yourMaterialsInfoPopup');
+    materialsInfoBtn?.addEventListener('click', () => {
+        if (materialsInfoPopup) {
+            materialsInfoPopup.style.display = 'flex';
+        }
+    });
+    materialsInfoPopup?.addEventListener('click', (e) => {
+        if (e.target === materialsInfoPopup || e.target.closest('.close-popup')) {
+            materialsInfoPopup.style.display = 'none';
+        }
+    });
+
     const scaleBtn = document.getElementById('scaleInfoBtn');
     const scalePopup = document.getElementById('scaleInfoPopup');
     scaleBtn?.addEventListener('click', () => {
@@ -1769,11 +1782,12 @@ function initAdvMaterialSection() {
     select.multiple = true;
     select.style.display = 'none';
 
+    const defaultGearLevels = [25, 40, 45];
     [5,10,15,20,25,30,35,40,45].forEach(l => {
         const optionDiv = document.createElement('div');
         optionDiv.dataset.value = l;
         optionDiv.textContent = l;
-        if (![5,10,15].includes(l)) {
+        if (defaultGearLevels.includes(l)) {
             optionDiv.classList.add('selected');
         }
         dropdown.appendChild(optionDiv);
@@ -1781,7 +1795,7 @@ function initAdvMaterialSection() {
         const opt = document.createElement('option');
         opt.value = l;
         opt.textContent = l;
-        if (![5,10,15].includes(l)) {
+        if (defaultGearLevels.includes(l)) {
             opt.selected = true;
         }
         select.appendChild(opt);
