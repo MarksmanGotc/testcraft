@@ -1218,7 +1218,7 @@ function filterProductsByAvailableGear(products, availableMaterials, multiplier 
     });
 }
 
-const SEASONAL_ODDS_LEVELS = new Set([15, 20, 25]);
+const SEASONAL_ODDS_LEVELS = new Set([15, 20, 25, 35]);
 const EXTENDED_ODDS_LEVELS = new Set([20]);
 
 function shouldApplyOddsForProduct(product) {
@@ -1307,9 +1307,8 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
         }
     };
 
-    // Prioritize level 30 before 15 when both meet the normal odds criteria.
-    processNormalOddsLevel(30);
-    processNormalOddsLevel(15);
+    const normalOddsPriorityLevels = [35, 30, 15];
+    normalOddsPriorityLevels.forEach(level => processNormalOddsLevel(level));
 
     LEVELS.forEach(level => {
         if (templatesByLevel[level] <= 0) return;
