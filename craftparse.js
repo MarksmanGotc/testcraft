@@ -721,6 +721,14 @@ function renderResults(templateCounts, materialCounts) {
     const materialsDiv = document.createElement('div');
     materialsDiv.className = 'materials';
 
+    const materialsShortage = failedLevels.length > 0 && failedLevels.some(level => (requestedTemplates[level] || 0) > 0);
+    if (materialsShortage) {
+        const warningBanner = document.createElement('div');
+        warningBanner.className = 'materials-warning';
+        warningBanner.innerHTML = '<strong>Materials depleted.</strong> Not every requested template could be generated with the available stock.';
+        resultsDiv.appendChild(warningBanner);
+    }
+
     Object.entries(materialCounts)
         .sort(([aName], [bName]) => {
             const seasonA = materialToSeason[aName] || 0;
