@@ -26,7 +26,7 @@ let requestedTemplates = {};
 let remainingUse = {};
 let ctwMediumNotice = false;
 let lowOddsNotice = false;
-let mediumOddsNotice25 = false;
+let level20OnlyWarlordsActive = false;
 
 function slug(str) {
     return (str || '')
@@ -683,7 +683,7 @@ function renderResults(templateCounts, materialCounts) {
                 itemsDiv.appendChild(levelHeader);
             }
 
-            if (lvl === 20 && ctwMediumNotice) {
+            if (lvl === 20 && ctwMediumNotice && !level20OnlyWarlordsActive) {
                 const extraInfo = document.createElement('p');
                 extraInfo.className = 'craft-extra-info';
                 extraInfo.textContent = "Medium odds items were used because otherwise no items would be generated. At level 20, Ceremonial Targaryen Warlord items are categorized as 'medium odds'.";
@@ -695,12 +695,7 @@ function renderResults(templateCounts, materialCounts) {
                 extraInfo.textContent = "Low odds items were used because otherwise no items would be generated.";
                 itemsDiv.appendChild(extraInfo);
             }
-            if (lvl === 25 && mediumOddsNotice25) {
-                const extraInfo = document.createElement('p');
-                extraInfo.className = 'craft-extra-info';
-                extraInfo.textContent = "Medium odds items were used because otherwise no items would be generated.";
-                itemsDiv.appendChild(extraInfo);
-            }
+            
 
             const levelGroup = document.createElement('div');
             levelGroup.className = 'level-group';
@@ -1046,9 +1041,9 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
         key => (materialToSeason[key] || 0) !== 0
     );
     const level20Allowed = hasGearMaterials && allowedGearLevels.includes(20);
+    level20OnlyWarlordsActive = level20OnlyWarlords;
     ctwMediumNotice = includeWarlords && !includeMediumOdds && !level20Allowed && !level20OnlyWarlords;
     lowOddsNotice = !includeWarlords && !includeMediumOdds && !includeLowOdds;
-    mediumOddsNotice25 = !includeWarlords && !includeMediumOdds;
 
     // Craft level 15 items first when only normal odds are allowed and
     // no CTW or gear materials are in use at that level.
@@ -1114,7 +1109,7 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
             const applyOdds = !isLegendary && (p.season === 0 || (p.level === 20 && (p.season === 1 || p.season === 2)));
             if (!applyOdds || !p.odds) return true;
             if (p.odds === 'low') return includeLowOdds || (lowOddsNotice && p.level === 20);
-            if (p.odds === 'medium') return includeMediumOdds || (ctwMediumNotice && p.warlord && p.level === 20) || (mediumOddsNotice25 && p.level === 25);
+            if (p.odds === 'medium') return includeMediumOdds || (ctwMediumNotice && p.warlord && p.level === 20);
             return true;
         });
         levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
@@ -1154,7 +1149,7 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                 const applyOdds = !isLegendary && (p.season === 0 || (p.level === 20 && (p.season === 1 || p.season === 2)));
                 if (!applyOdds || !p.odds) return true;
                 if (p.odds === 'low') return includeLowOdds || (lowOddsNotice && p.level === 20);
-                if (p.odds === 'medium') return includeMediumOdds || (ctwMediumNotice && p.warlord && p.level === 20) || (mediumOddsNotice25 && p.level === 25);
+                if (p.odds === 'medium') return includeMediumOdds || (ctwMediumNotice && p.warlord && p.level === 20);
                 return true;
             });
             levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
