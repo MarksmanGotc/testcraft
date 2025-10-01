@@ -689,7 +689,7 @@ function renderResults(templateCounts, materialCounts) {
                 extraInfo.textContent = "Medium odds items were used because otherwise no items would be generated. At level 20, Ceremonial Targaryen Warlord items are categorized as 'medium odds'.";
                 itemsDiv.appendChild(extraInfo);
             }
-            if (lvl === 20 && lowOddsNotice) {
+            if (lvl === 20 && lowOddsNotice && !level20OnlyWarlordsActive) {
                 const extraInfo = document.createElement('p');
                 extraInfo.className = 'craft-extra-info';
                 extraInfo.textContent = "Low odds items were used because otherwise no items would be generated.";
