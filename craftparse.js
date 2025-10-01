@@ -1245,12 +1245,21 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
         ) {
             let remaining = templatesByLevel[level];
             const multiplier = qualityMultipliers[level] || 1;
+            const isLegendary = multiplier >= 1024;
 
             while (remaining > 0) {
                 const prefs = getUserPreferences(availableMaterials);
                 let levelProducts = craftItem.products.filter(p => p.level === level && !p.warlord);
-                levelProducts = levelProducts.filter(p => p.season == 0);
-                levelProducts = levelProducts.filter(p => !p.odds || p.odds === 'normal');
+                if (!allowedGearLevels.includes(level)) {
+                    levelProducts = levelProducts.filter(p => p.season == 0);
+                }
+                levelProducts = levelProducts.filter(p => {
+                    const applyOdds = !isLegendary && !!p.odds;
+                    if (!applyOdds) return true;
+                    if (p.odds === 'low') return includeLowOdds;
+                    if (p.odds === 'medium') return includeMediumOdds;
+                    return true;
+                });
                 levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
                 const selected = selectBestAvailableProduct(
                     levelProducts,
@@ -1300,8 +1309,8 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
             if (requireCtwOnly && p.setName === 'Ceremonial Targaryen Warlord') {
                 return true;
             }
-            const applyOdds = !isLegendary && (p.season === 0 || (p.level === 20 && (p.season === 1 || p.season === 2)));
-            if (!applyOdds || !p.odds) return true;
+            const applyOdds = !isLegendary && !!p.odds;
+            if (!applyOdds) return true;
             if (p.odds === 'low') return includeLowOdds || (lowOddsNotice && p.level === 20);
             if (p.odds === 'medium') return includeMediumOdds || (ctwMediumNotice && p.warlord && p.level === 20);
             return true;
@@ -1340,8 +1349,8 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                 if (requireCtwOnly && p.setName === 'Ceremonial Targaryen Warlord') {
                     return true;
                 }
-                const applyOdds = !isLegendary && (p.season === 0 || (p.level === 20 && (p.season === 1 || p.season === 2)));
-                if (!applyOdds || !p.odds) return true;
+                const applyOdds = !isLegendary && !!p.odds;
+                if (!applyOdds) return true;
                 if (p.odds === 'low') return includeLowOdds || (lowOddsNotice && p.level === 20);
                 if (p.odds === 'medium') return includeMediumOdds || (ctwMediumNotice && p.warlord && p.level === 20);
                 return true;
