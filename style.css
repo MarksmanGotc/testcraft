@@ -668,6 +668,11 @@ button.multiplier-btn {
     background: #d5d5d5;
 }
 
+.level-dropdown div:hover {
+    background: #ececec;
+    border-color: #c7c7c7;
+}
+
 .level-dropdown div.selected {
     background: var(--primary-color);
     color: #fff;
