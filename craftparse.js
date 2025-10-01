@@ -21,6 +21,15 @@ const GEAR_SECOND_WEIGHT = 3;
 const LEFTOVER_WEIGHT_BASE = 7;
 const LEFTOVER_WEIGHT_GEAR = 3;
 const BALANCE_WEIGHT = 0.1;
+const qualityColorMap = {
+    poor: '#A9A9A9',
+    common: '#32CD32',
+    fine: '#0070DD',
+    exquisite: '#A335EE',
+    epic: '#FF8000',
+    legendary: '#E5CC80'
+};
+let qualitySelectHandlersAttached = false;
 let failedLevels = [];
 let requestedTemplates = {};
 let remainingUse = {};
@@ -48,12 +57,209 @@ function formatTimestamp(date = new Date()) {
     );
 }
 
+function closeAllQualitySelects() {
+    document.querySelectorAll('.quality-select.open').forEach(wrapper => {
+        wrapper.classList.remove('open');
+        const trigger = wrapper.querySelector('.quality-select__display');
+        if (trigger) {
+            trigger.setAttribute('aria-expanded', 'false');
+        }
+    });
+}
+
+function updateQualitySelectUI(select, trigger, optionsContainer) {
+    if (!select || !trigger || !optionsContainer) return;
+
+    const labelEl = trigger.querySelector('.quality-select__label');
+    const swatchEl = trigger.querySelector('.quality-select__swatch');
+    const selectedOption = Array.from(select.options).find(opt => opt.value === select.value) || select.options[0];
+
+    if (labelEl && selectedOption) {
+        labelEl.textContent = selectedOption.textContent;
+    }
+
+    trigger.dataset.qualityValue = select.value || '';
+
+    if (swatchEl) {
+        const color = qualityColorMap[select.value];
+        if (color) {
+            swatchEl.style.backgroundColor = color;
+            swatchEl.classList.remove('quality-select__swatch--empty');
+        } else {
+            swatchEl.style.removeProperty('background-color');
+            swatchEl.classList.add('quality-select__swatch--empty');
+        }
+    }
+
+    optionsContainer.querySelectorAll('.quality-select__option').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.value === select.value);
+    });
+}
+
+function initializeQualitySelects() {
+    const selects = Array.from(document.querySelectorAll('select.temps'))
+        .filter(select => /^temp\d+$/.test(select.id || ''));
+
+    selects.forEach(select => {
+        if (select.dataset.customSelect === 'true') return;
+
+        select.dataset.customSelect = 'true';
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'quality-select';
+        wrapper.dataset.selectId = select.id || '';
+
+        const trigger = document.createElement('button');
+        trigger.type = 'button';
+        trigger.className = 'quality-select__display';
+        trigger.setAttribute('aria-haspopup', 'listbox');
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.setAttribute('aria-label', 'Select template quality');
+        trigger.dataset.qualityTrigger = select.id || '';
+
+        const swatch = document.createElement('span');
+        swatch.className = 'quality-select__swatch quality-select__swatch--empty';
+        const label = document.createElement('span');
+        label.className = 'quality-select__label';
+        const chevron = document.createElement('span');
+        chevron.className = 'quality-select__chevron';
+        trigger.append(swatch, label, chevron);
+
+        const optionsContainer = document.createElement('div');
+        optionsContainer.className = 'quality-select__options';
+        optionsContainer.setAttribute('role', 'listbox');
+
+        Array.from(select.options).forEach(option => {
+            const optionButton = document.createElement('button');
+            optionButton.type = 'button';
+            optionButton.className = 'quality-select__option';
+            optionButton.dataset.value = option.value;
+            optionButton.setAttribute('role', 'option');
+            optionButton.setAttribute('data-quality', option.value);
+
+            const optionSwatch = document.createElement('span');
+            optionSwatch.className = 'quality-select__swatch';
+            if (qualityColorMap[option.value]) {
+                optionSwatch.style.backgroundColor = qualityColorMap[option.value];
+            } else {
+                optionSwatch.classList.add('quality-select__swatch--empty');
+            }
+
+            const optionLabel = document.createElement('span');
+            optionLabel.className = 'quality-select__option-label';
+            optionLabel.textContent = option.textContent;
+
+            optionButton.append(optionSwatch, optionLabel);
+            if (option.selected) {
+                optionButton.classList.add('selected');
+            }
+
+            optionsContainer.appendChild(optionButton);
+        });
+
+        const parent = select.parentNode;
+        parent.insertBefore(wrapper, select);
+        wrapper.append(trigger, optionsContainer, select);
+
+        select.classList.add('quality-select__native');
+        updateQualitySelectUI(select, trigger, optionsContainer);
+
+        trigger.addEventListener('click', event => {
+            event.preventDefault();
+            const isOpen = wrapper.classList.contains('open');
+            closeAllQualitySelects();
+            wrapper.classList.toggle('open', !isOpen);
+            trigger.setAttribute('aria-expanded', (!isOpen).toString());
+            if (!isOpen) {
+                const selectedBtn = optionsContainer.querySelector('.quality-select__option.selected');
+                (selectedBtn || optionsContainer.querySelector('.quality-select__option'))?.focus();
+            }
+        });
+
+        trigger.addEventListener('keydown', event => {
+            if (['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(event.key)) {
+                event.preventDefault();
+                const isOpen = wrapper.classList.contains('open');
+                if (!isOpen) {
+                    closeAllQualitySelects();
+                    wrapper.classList.add('open');
+                    trigger.setAttribute('aria-expanded', 'true');
+                }
+                const options = Array.from(optionsContainer.querySelectorAll('.quality-select__option'));
+                if (!options.length) return;
+                if (event.key === 'ArrowUp') {
+                    (optionsContainer.querySelector('.quality-select__option.selected') || options[options.length - 1])?.focus();
+                } else {
+                    (optionsContainer.querySelector('.quality-select__option.selected') || options[0])?.focus();
+                }
+            }
+        });
+
+        optionsContainer.addEventListener('click', event => {
+            const optionButton = event.target.closest('.quality-select__option');
+            if (!optionButton) return;
+            event.preventDefault();
+            const { value } = optionButton.dataset;
+            if (value && select.value !== value) {
+                select.value = value;
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+            } else {
+                updateQualitySelectUI(select, trigger, optionsContainer);
+            }
+            wrapper.classList.remove('open');
+            trigger.setAttribute('aria-expanded', 'false');
+            trigger.focus();
+        });
+
+        optionsContainer.addEventListener('keydown', event => {
+            const optionButton = event.target.closest('.quality-select__option');
+            if (!optionButton) return;
+
+            const options = Array.from(optionsContainer.querySelectorAll('.quality-select__option'));
+            const currentIndex = options.indexOf(optionButton);
+
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                const next = options[currentIndex + 1] || options[0];
+                next.focus();
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                const prev = options[currentIndex - 1] || options[options.length - 1];
+                prev.focus();
+            } else if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                optionButton.click();
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                wrapper.classList.remove('open');
+                trigger.setAttribute('aria-expanded', 'false');
+                trigger.focus();
+            }
+        });
+
+        select.addEventListener('change', () => {
+            updateQualitySelectUI(select, trigger, optionsContainer);
+        });
+    });
+
+    if (!qualitySelectHandlersAttached) {
+        document.addEventListener('click', event => {
+            if (!event.target.closest('.quality-select')) {
+                closeAllQualitySelects();
+            }
+        });
+
+        qualitySelectHandlersAttached = true;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     createLevelStructure();
     addCalculateButton();
         formatedInputNumber();
         inputActive();
         initAdvMaterialSection();
+        initializeQualitySelects();
 
     const shareParam = urlParams.get('share');
     if (shareParam) {
@@ -164,8 +370,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Trigger calculation when pressing Enter on any input
     document.addEventListener('keydown', e => {
-        const tag = document.activeElement.tagName;
-        if (e.key === 'Enter' && ['INPUT', 'SELECT'].includes(tag) &&
+        const activeEl = document.activeElement;
+        const tag = activeEl ? activeEl.tagName : '';
+        const isQualityTrigger = activeEl?.classList?.contains('quality-select__display');
+        if (e.key === 'Enter' && (['INPUT', 'SELECT'].includes(tag) || isQualityTrigger) &&
             document.getElementById('results').style.display === 'none') {
             const manualVisible = document.getElementById('manualInput').style.display !== 'none';
             const choiceVisible = document.getElementById('generatebychoice').style.display !== 'none';
@@ -185,12 +393,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     overlay.style.display = 'none';
                 }
             });
+            closeAllQualitySelects();
         }
     });
 
     // Custom tab order for template amount inputs and quality selects
     const templateInputs = LEVELS.map(l => document.getElementById(`templateAmount${l}`)).filter(Boolean);
     const templateSelects = LEVELS.map(l => document.getElementById(`temp${l}`)).filter(Boolean);
+    const qualityTriggers = templateSelects
+        .map(select => select.closest('.quality-select')?.querySelector('.quality-select__display'))
+        .filter(Boolean);
 
     templateInputs.forEach((input, idx) => {
         input.addEventListener('keydown', e => {
@@ -199,18 +411,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 const next = templateInputs[idx + 1];
                 if (next) {
                     next.focus();
-                } else if (templateSelects[0]) {
-                    templateSelects[0].focus();
+                } else if (qualityTriggers[0]) {
+                    qualityTriggers[0].focus();
                 }
             }
         });
     });
 
-    templateSelects.forEach((select, idx) => {
-        select.addEventListener('keydown', e => {
+    qualityTriggers.forEach((trigger, idx) => {
+        trigger.addEventListener('keydown', e => {
             if (e.key === 'Tab' && !e.shiftKey) {
                 e.preventDefault();
-                const next = templateSelects[idx + 1];
+                const next = qualityTriggers[idx + 1];
                 if (next) {
                     next.focus();
                 } else {
@@ -221,38 +433,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    const qualityColorMap = {
-        poor: '#A9A9A9',
-        common: '#32CD32',
-        fine: '#0070DD',
-        exquisite: '#A335EE',
-        epic: '#FF8000',
-        legendary: '#E5CC80'
-    };
-
-    function getContrastColor(hex) {
-        const r = parseInt(hex.substr(1, 2), 16);
-        const g = parseInt(hex.substr(3, 2), 16);
-        const b = parseInt(hex.substr(5, 2), 16);
-        const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-        return yiq >= 128 ? '#000' : '#fff';
-    }
-
-    document.querySelectorAll('select.temps').forEach(select => {
-        const applyColor = () => {
-            const color = qualityColorMap[select.value];
-            if (color) {
-                select.style.backgroundColor = color;
-                select.style.color = getContrastColor(color);
-            } else {
-                select.style.removeProperty('background-color');
-                select.style.removeProperty('color');
-            }
-        };
-
-        select.addEventListener('change', applyColor);
-        applyColor();
-    });
 });
 
 function formatPlaceholderWithCommas(number) {
@@ -350,7 +530,10 @@ function populateInputsFromShare(data) {
             }
             if (quality) {
                 const sel = document.getElementById(`temp${level}`);
-                if (sel) sel.value = quality;
+                if (sel) {
+                    sel.value = quality;
+                    sel.dispatchEvent(new Event('change', { bubbles: true }));
+                }
             }
         });
 
@@ -1050,8 +1233,7 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
             templatesByLevel[level] > 0 &&
             !includeWarlords &&
             !includeLowOdds &&
-            !includeMediumOdds &&
-            !allowedGearLevels.includes(level)
+            !includeMediumOdds
         ) {
             let remaining = templatesByLevel[level];
             const multiplier = qualityMultipliers[level] || 1;
