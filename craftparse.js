@@ -1045,45 +1045,49 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
     ctwMediumNotice = includeWarlords && !includeMediumOdds && !level20Allowed && !level20OnlyWarlords;
     lowOddsNotice = !includeWarlords && !includeMediumOdds && !includeLowOdds;
 
-    // Craft level 15 items first when only normal odds are allowed and
-    // no CTW or gear materials are in use at that level.
-    if (
-        templatesByLevel[15] > 0 &&
-        !includeWarlords &&
-        !includeLowOdds &&
-        !includeMediumOdds &&
-        !allowedGearLevels.includes(15)
-    ) {
-        let remaining15 = templatesByLevel[15];
-        const multiplier15 = qualityMultipliers[15] || 1;
+    const processNormalOddsLevel = (level) => {
+        if (
+            templatesByLevel[level] > 0 &&
+            !includeWarlords &&
+            !includeLowOdds &&
+            !includeMediumOdds &&
+            !allowedGearLevels.includes(level)
+        ) {
+            let remaining = templatesByLevel[level];
+            const multiplier = qualityMultipliers[level] || 1;
 
-        while (remaining15 > 0) {
-            const prefs = getUserPreferences(availableMaterials);
-            let levelProducts = craftItem.products.filter(p => p.level === 15 && !p.warlord);
-            levelProducts = levelProducts.filter(p => p.season == 0);
-            levelProducts = levelProducts.filter(p => !p.odds || p.odds === 'normal');
-            levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier15);
-            const selected = selectBestAvailableProduct(
-                levelProducts,
-                prefs.mostAvailableMaterials,
-                prefs.secondMostAvailableMaterials,
-                prefs.leastAvailableMaterials,
-                availableMaterials,
-                multiplier15
-            );
+            while (remaining > 0) {
+                const prefs = getUserPreferences(availableMaterials);
+                let levelProducts = craftItem.products.filter(p => p.level === level && !p.warlord);
+                levelProducts = levelProducts.filter(p => p.season == 0);
+                levelProducts = levelProducts.filter(p => !p.odds || p.odds === 'normal');
+                levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
+                const selected = selectBestAvailableProduct(
+                    levelProducts,
+                    prefs.mostAvailableMaterials,
+                    prefs.secondMostAvailableMaterials,
+                    prefs.leastAvailableMaterials,
+                    availableMaterials,
+                    multiplier
+                );
 
-            if (selected && canProductBeProduced(selected, availableMaterials, multiplier15)) {
-                productionPlan[15].push({ name: selected.name, season: selected.season, setName: selected.setName, warlord: selected.warlord });
-                updateAvailableMaterials(availableMaterials, selected, multiplier15);
-                remaining15--;
-            } else {
-                failed.add(15);
-                break;
+                if (selected && canProductBeProduced(selected, availableMaterials, multiplier)) {
+                    productionPlan[level].push({ name: selected.name, season: selected.season, setName: selected.setName, warlord: selected.warlord });
+                    updateAvailableMaterials(availableMaterials, selected, multiplier);
+                    remaining--;
+                } else {
+                    failed.add(level);
+                    break;
+                }
             }
-        }
 
-        templatesByLevel[15] = 0; // Prevent further processing for level 15
-    }
+            templatesByLevel[level] = 0; // Prevent further processing for the level
+        }
+    };
+
+    // Prioritize level 30 before 15 when both meet the normal odds criteria.
+    processNormalOddsLevel(30);
+    processNormalOddsLevel(15);
 
     LEVELS.forEach(level => {
         if (templatesByLevel[level] <= 0) return;
