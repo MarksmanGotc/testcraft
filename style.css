@@ -108,12 +108,15 @@ h1.calc-header {
     border-radius: 4px;
     background: #fff;
     padding: 0 12px;
+    margin-top: 0;
     cursor: pointer;
     font-size: 14px;
     color: var(--text-color);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-
+button.quality-select__display:hover {
+    background: initial;
+}
 .quality-select__display:focus {
     outline: none;
     border-color: var(--button-bg);
