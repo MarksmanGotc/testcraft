@@ -41,47 +41,44 @@ h1.calc-header {
 .leveltmp1 {
     margin-top: 15px;
 }
+
+#generatebychoice {
+    max-width: 306px;
+}
 .temps {
     padding: 0;
     height: 34px;
-    background: transparent;
+    background: #fff;
     padding: 7px 10px;
     border: 1px solid var(--primary-color);
     box-sizing: border-box;
     border-radius: 4px;
 }
 
-/* Color-coded options for template quality */
-.temps option[value="poor"] {
-    background-color: #A9A9A9;
-    color: #000;
-}
-.temps option[value="common"] {
-    background-color: #32CD32;
-    color: #000;
-}
-.temps option[value="fine"] {
-    background-color: #0070DD;
-    color: #fff;
-}
-.temps option[value="exquisite"] {
-    background-color: #A335EE;
-    color: #fff;
-}
-.temps option[value="epic"] {
-    background-color: #FF8000;
-    color: #000;
-}
-.temps option[value="legendary"] {
-    background-color: #E5CC80;
-    color: #000;
+.temps:focus,
+.temps:focus-visible {
+    background: #fff !important;
+    color: var(--text-color) !important;
 }
 
-/* Custom hover styling for options */
-.temps option:hover {
-    background-color: inherit;
-    text-decoration: underline;
-    text-transform: uppercase;
+/* Color-coded options for template quality */
+.temps option[value="poor"] {
+    color: #A9A9A9;
+}
+.temps option[value="common"] {
+    color: #32CD32;
+}
+.temps option[value="fine"] {
+    color: #0070DD;
+}
+.temps option[value="exquisite"] {
+    color: #A335EE;
+}
+.temps option[value="epic"] {
+    color: #FF8000;
+}
+.temps option[value="legendary"] {
+    color: #E5CC80;
 }
 select#scaleSelect {
 	width: 100%;
@@ -656,13 +653,14 @@ button.multiplier-btn {
 
 .level-dropdown {
     display: flex;
-    gap: 5px;
+    gap: 8px;
     flex-wrap: wrap;
     margin-bottom: 5px;
+    justify-content: center;
 }
 
 .level-dropdown div {
-    padding: 5px 10px;
+    padding: 10px 15px;
     border: 1px solid #d5d5d5;
     border-radius: 4px;
     cursor: pointer;

@@ -21,9 +21,6 @@ const GEAR_SECOND_WEIGHT = 3;
 const LEFTOVER_WEIGHT_BASE = 7;
 const LEFTOVER_WEIGHT_GEAR = 3;
 const BALANCE_WEIGHT = 0.1;
-// Extra penalty multiplier applied when preferSameItems is enabled
-const BALANCE_SAME_ITEM_MULT = 2;
-const REUSE_ITEM_BONUS = 8;
 let failedLevels = [];
 let requestedTemplates = {};
 let remainingUse = {};
@@ -972,8 +969,7 @@ function calculateWithPreferences() {
 			});
 		}
 
-                const preferSameItems = document.getElementById('preferSameItems')?.checked ?? false;
-                const resultPlan = calculateProductionPlan(availableMaterials, templatesByLevel, preferSameItems);
+                const resultPlan = calculateProductionPlan(availableMaterials, templatesByLevel);
                 failedLevels = resultPlan.failedLevels;
 
                 document.querySelectorAll('#manualInput input[type="number"]').forEach(input => {
@@ -1036,11 +1032,12 @@ function filterProductsByAvailableGear(products, availableMaterials, multiplier 
     });
 }
 
-function calculateProductionPlan(availableMaterials, templatesByLevel, preferSameItems = false) {
+function calculateProductionPlan(availableMaterials, templatesByLevel) {
     let productionPlan = { "1": [], "5": [], "10": [], "15": [], "20": [], "25": [], "30": [], "35": [], "40": [], "45": [] };
     const failed = new Set();
     const includeWarlords = document.getElementById('includeWarlords')?.checked ?? true;
     const level1OnlyWarlords = document.getElementById('level1OnlyWarlords')?.checked ?? false;
+    const level20OnlyWarlords = document.getElementById('level20OnlyWarlords')?.checked ?? false;
     const includeLowOdds = document.getElementById('includeLowOdds')?.checked ?? true;
     const includeMediumOdds = document.getElementById('includeMediumOdds')?.checked ?? true;
     const gearLevelSelect = document.getElementById('gearMaterialLevels');
@@ -1049,12 +1046,9 @@ function calculateProductionPlan(availableMaterials, templatesByLevel, preferSam
         key => (materialToSeason[key] || 0) !== 0
     );
     const level20Allowed = hasGearMaterials && allowedGearLevels.includes(20);
-    ctwMediumNotice = includeWarlords && !includeMediumOdds && !level20Allowed;
+    ctwMediumNotice = includeWarlords && !includeMediumOdds && !level20Allowed && !level20OnlyWarlords;
     lowOddsNotice = !includeWarlords && !includeMediumOdds && !includeLowOdds;
     mediumOddsNotice25 = !includeWarlords && !includeMediumOdds;
-
-    const selectedCounts = {};
-    LEVELS.forEach(l => { selectedCounts[l] = {}; });
 
     // Craft level 15 items first when only normal odds are allowed and
     // no CTW or gear materials are in use at that level.
@@ -1080,16 +1074,12 @@ function calculateProductionPlan(availableMaterials, templatesByLevel, preferSam
                 prefs.secondMostAvailableMaterials,
                 prefs.leastAvailableMaterials,
                 availableMaterials,
-                multiplier15,
-                selectedCounts[15],
-                preferSameItems
+                multiplier15
             );
 
             if (selected && canProductBeProduced(selected, availableMaterials, multiplier15)) {
                 productionPlan[15].push({ name: selected.name, season: selected.season, setName: selected.setName, warlord: selected.warlord });
                 updateAvailableMaterials(availableMaterials, selected, multiplier15);
-                const key = `${selected.name}|${selected.season}|${selected.setName || ''}`;
-                selectedCounts[15][key] = (selectedCounts[15][key] || 0) + 1;
                 remaining15--;
             } else {
                 failed.add(15);
@@ -1102,7 +1092,13 @@ function calculateProductionPlan(availableMaterials, templatesByLevel, preferSam
 
     LEVELS.forEach(level => {
         if (templatesByLevel[level] <= 0) return;
-        let levelProducts = craftItem.products.filter(p => p.level === level && (includeWarlords || !p.warlord));
+        const requireCtwOnly = level === 20 && level20OnlyWarlords;
+        let levelProducts = craftItem.products.filter(p => {
+            if (requireCtwOnly) {
+                return p.level === level && p.warlord && p.setName === 'Ceremonial Targaryen Warlord';
+            }
+            return p.level === level && (includeWarlords || !p.warlord);
+        });
         if (level === 1 && level1OnlyWarlords) {
             levelProducts = craftItem.products.filter(p => p.level === 1 && p.warlord);
         }
@@ -1112,6 +1108,9 @@ function calculateProductionPlan(availableMaterials, templatesByLevel, preferSam
         const multiplier = qualityMultipliers[level] || 1;
         const isLegendary = multiplier >= 1024;
         levelProducts = levelProducts.filter(p => {
+            if (requireCtwOnly && p.setName === 'Ceremonial Targaryen Warlord') {
+                return true;
+            }
             const applyOdds = !isLegendary && (p.season === 0 || (p.level === 20 && (p.season === 1 || p.season === 2)));
             if (!applyOdds || !p.odds) return true;
             if (p.odds === 'low') return includeLowOdds || (lowOddsNotice && p.level === 20);
@@ -1133,7 +1132,13 @@ function calculateProductionPlan(availableMaterials, templatesByLevel, preferSam
 
         for (let level of LEVELS) {
             if (remaining[level] <= 0) continue;
-            let levelProducts = craftItem.products.filter(p => p.level === level && (includeWarlords || !p.warlord));
+            const requireCtwOnly = level === 20 && level20OnlyWarlords;
+            let levelProducts = craftItem.products.filter(p => {
+                if (requireCtwOnly) {
+                    return p.level === level && p.warlord && p.setName === 'Ceremonial Targaryen Warlord';
+                }
+                return p.level === level && (includeWarlords || !p.warlord);
+            });
             if (level === 1 && level1OnlyWarlords) {
                 levelProducts = craftItem.products.filter(p => p.level === 1 && p.warlord);
             }
@@ -1143,6 +1148,9 @@ function calculateProductionPlan(availableMaterials, templatesByLevel, preferSam
             const multiplier = qualityMultipliers[level] || 1;
             const isLegendary = multiplier >= 1024;
             levelProducts = levelProducts.filter(p => {
+                if (requireCtwOnly && p.setName === 'Ceremonial Targaryen Warlord') {
+                    return true;
+                }
                 const applyOdds = !isLegendary && (p.season === 0 || (p.level === 20 && (p.season === 1 || p.season === 2)));
                 if (!applyOdds || !p.odds) return true;
                 if (p.odds === 'low') return includeLowOdds || (lowOddsNotice && p.level === 20);
@@ -1156,16 +1164,12 @@ function calculateProductionPlan(availableMaterials, templatesByLevel, preferSam
                 preferences.secondMostAvailableMaterials,
                 preferences.leastAvailableMaterials,
                 availableMaterials,
-                multiplier,
-                selectedCounts[level],
-                preferSameItems
+                multiplier
             );
 
             if (selectedProduct && canProductBeProduced(selectedProduct, availableMaterials, multiplier)) {
                 productionPlan[level].push({ name: selectedProduct.name, season: selectedProduct.season, setName: selectedProduct.setName, warlord: selectedProduct.warlord });
                 updateAvailableMaterials(availableMaterials, selectedProduct, multiplier);
-                const key = `${selectedProduct.name}|${selectedProduct.season}|${selectedProduct.setName || ''}`;
-                selectedCounts[level][key] = (selectedCounts[level][key] || 0) + 1;
                 remaining[level]--;
                 anySelected = true;
             } else {
@@ -1251,12 +1255,12 @@ function getUserPreferences(availableMaterials) {
     return { mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials };
 }
 
-function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1, existingCounts = {}, preferSameItems = false) {
+function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1) {
     // Järjestä tuotteet pisteiden mukaan
     const candidates = levelProducts
         .map(product => ({
             product,
-            score: getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier, existingCounts, preferSameItems)
+            score: getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier)
         }))
         .sort((a, b) => b.score - a.score); // suurimmasta pienimpään
 
@@ -1317,7 +1321,7 @@ function computeBalancePenalty(product, availableMaterials, multiplier = 1) {
     return computeBaseUsageStd(predicted);
 }
 
-function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1, existingCounts = {}, preferSameItems = false) {
+function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1) {
     let score = 0;
     Object.entries(product.materials).forEach(([material, _]) => {
         const season = materialToSeason[material] || 0;
@@ -1334,14 +1338,6 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
     });
     if (product.warlord) {
         score -= WARLORD_PENALTY;
-    }
-
-    if (preferSameItems) {
-        const key = `${product.name}|${product.season}|${product.setName || ''}`;
-        const count = existingCounts[key] || 0;
-        if (count > 0) {
-            score += REUSE_ITEM_BONUS * count;
-        }
     }
 
     Object.entries(product.materials).forEach(([material, amount]) => {
@@ -1361,8 +1357,7 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
     });
 	
     const balancePenalty = computeBalancePenalty(product, availableMaterials, multiplier);
-    const penaltyWeight = preferSameItems ? BALANCE_WEIGHT * BALANCE_SAME_ITEM_MULT : BALANCE_WEIGHT;
-    score -= balancePenalty * penaltyWeight;
+    score -= balancePenalty * BALANCE_WEIGHT;
 	
     return score;
 }
