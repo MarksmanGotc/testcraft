@@ -1370,6 +1370,186 @@ const season0 = {
 					"warlord": true,
 					"setName": "Ceremonial Targaryen Warlord"
 				},
+				{
+					"name": "Jewl Encrusted Tiara",
+					"level": 45,
+					"materials": {"dragonglass": 120000, "wildfire": 120000, "kingswood-oak": 120000, "silk": 120000},
+					"img": "item/30-45/icon_eq_standard_helmet_jewelencrustedtiara.png",
+					"odds": "normal"
+				},
+				{
+					"name": "Assassin's Cowl",
+					"level": 45,
+					"materials": {"silk": 120000, "leather-straps": 120000, "hide": 120000, "kingswood-oak": 120000},
+					"img": "item/30-45/icon_eq_standard_helmet_assassinscowl.png",
+					"odds": "normal"
+				},
+				{
+					"name": "Sapphire Forehead Pendant",
+					"level": 45,
+					"materials": {"dragonglass": 120000, "ironwood": 120000, "kingswood-oak": 120000, "hide": 120000},
+					"img": "item/30-45/icon_eq_standard_helmet_sapphireforeheadpendant.png",
+					"odds": "normal"
+				},
+				{
+					"name": "Golden Raiment",
+					"level": 45,
+					"materials": {"goldenheart-wood": 120000, "copper-bar": 120000, "weirwood": 120000, "ironwood": 120000},
+					"img": "item/30-45/icon_eq_standard_chest_goldenraiment.png",
+					"odds": "normal"
+				},
+				{
+					"name": "Bronze Cuirass",
+					"level": 45,
+					"materials": {"ironwood": 120000, "kingswood-oak": 120000, "hide": 120000, "dragonglass": 120000},
+					"img": "item/30-45/icon_eq_standard_chest_bronzecuirass.png",
+					"odds": "normal"
+				},
+				{
+					"name": "Lead Cuirass",
+					"level": 45,
+					"materials": {"black-iron": 120000, "weirwood": 120000, "silk": 120000, "goldenheart-wood": 120000},
+					"img": "item/30-45/icon_eq_standard_chest_leadcuirass.png",
+					"odds": "normal"
+				},
+				{
+					"name": "Steel Greaves",
+					"level": 45,
+					"materials": {"black-iron": 120000, "ironwood": 120000, "weirwood": 120000, "goldenheart-wood": 120000},
+					"img": "item/30-45/icon_eq_standard_pants_steelgreaves.png",
+					"odds": "normal"
+				},
+				{
+					"name": "Wolf Pelt Trousers",
+					"level": 45,
+					"materials": {"hide": 120000, "kingswood-oak": 120000, "silk": 120000, "milk-of-the-poppy": 120000},
+					"img": "item/30-45/icon_eq_standard_pants_wolfpelttrousers.png",
+					"odds": "normal"
+				},
+				{
+					"name": "Satin Skirt",
+					"level": 45,
+					"materials": {"silk": 120000, "milk-of-the-poppy": 120000, "kingswood-oak": 120000, "copper-bar": 120000},
+					"img": "item/30-45/icon_eq_standard_pants_satinskirt.png",
+					"odds": "normal"
+				},
+				{
+					"name": "Lead Soled Shoes",
+					"level": 45,
+					"materials": {"kingswood-oak": 120000, "black-iron": 120000, "weirwood": 120000, "copper-bar": 120000},
+					"img": "item/30-45/icon_eq_standard_boots_leadsoledshoes.png",
+					"odds": "normal"
+				},
+				{
+					"name": "Copper Sabatons",
+					"level": 45,
+					"materials": {"copper-bar": 120000, "ironwood": 120000, "kingswood-oak": 120000, "milk-of-the-poppy": 120000},
+					"img": "item/30-45/icon_eq_standard_boots_coppersabatons.png",
+					"odds": "normal"
+				},
+				{
+					"name": "Spurred Treads",
+					"level": 45,
+					"materials": {"ironwood": 120000, "dragonglass": 120000, "goldenheart-wood": 120000, "hide": 120000},
+					"img": "item/30-45/icon_eq_standard_boots_spurredtreads.png",
+					"odds": "normal"
+				},
+				{
+					"name": "Pearl Ring",
+					"level": 45,
+					"materials": {"dragonglass": 120000, "hide": 120000, "ironwood": 120000, "goldenheart-wood": 120000},
+					"img": "item/30-45/icon_eq_standard_ring_pearl.png",
+					"odds": "normal"
+				},
+				{
+					"name": "Emerald Ring",
+					"level": 45,
+					"materials": {"dragonglass": 120000, "weirwood": 120000, "milk-of-the-poppy": 120000, "goldenheart-wood": 120000},
+					"img": "item/30-45/icon_eq_standard_ring_emerald.png",
+					"odds": "normal"
+				},
+				{
+					"name": "Gold Loop",
+					"level": 45,
+					"materials": {"copper-bar": 120000, "weirwood": 120000, "silk": 120000, "milk-of-the-poppy": 120000},
+					"img": "item/30-45/icon_eq_standard_ring_goldloop.png",
+					"odds": "normal"
+				},
+				{
+					"name": "Triple Crossbow",
+					"level": 45,
+					"materials": {"goldenheart-wood": 120000, "kingswood-oak": 120000, "weirwood": 120000, "ironwood": 120000},
+					"img": "item/30-45/icon_eq_standard_weapon_triplecrossbow.png",
+					"odds": "normal"
+				},
+				{
+					"name": "Morningstar",
+					"level": 45,
+					"materials": {"ironwood": 120000, "kingswood-oak": 120000, "hide": 120000, "wildfire": 120000},
+					"img": "item/30-45/icon_eq_standard_weapon_morningstar.png",
+					"odds": "normal"
+				},
+				{
+					"name": "Battle Axe",
+					"level": 45,
+					"materials": {"weirwood": 120000, "copper-bar": 120000, "silk": 120000, "goldenheart-wood": 120000},
+					"img": "item/30-45/icon_eq_standard_weapon_battleaxe.png",
+					"odds": "normal"
+				},
+				{
+					"name": "Helm",
+					"level": 45,
+					"materials": {"kingswood-oak": 120000, "wildfire": 120000, "hide": 120000, "milk-of-the-poppy": 120000},
+					"img": "item/ctw-head.png",
+					"odds": "normal",
+					"warlord": true,
+					"setName": "Ceremonial Targaryen Warlord"
+				},
+				{
+					"name": "Chestplate",
+					"level": 45,
+					"materials": {"silk": 120000, "black-iron": 120000, "copper-bar": 120000, "dragonglass": 120000},
+					"img": "item/ctw-chest.png",
+					"odds": "normal",
+					"warlord": true,
+					"setName": "Ceremonial Targaryen Warlord"
+				},
+				{
+					"name": "Pants",
+					"level": 45,
+					"materials": {"weirwood": 120000, "leather-straps": 120000, "black-iron": 120000, "silk": 120000},
+					"img": "item/ctw-pants.png",
+					"odds": "normal",
+					"warlord": true,
+					"setName": "Ceremonial Targaryen Warlord"
+				},
+				{
+					"name": "Sword",
+					"level": 45,
+					"materials": {"copper-bar": 120000, "dragonglass": 120000, "leather-straps": 120000, "weirwood": 120000},
+					"img": "item/ctw-weapon.png",
+					"odds": "normal",
+					"warlord": true,
+					"setName": "Ceremonial Targaryen Warlord"
+				},
+				{
+					"name": "Ring",
+					"level": 45,
+					"materials": {"ironwood": 120000, "goldenheart-wood": 120000, "wildfire": 120000, "kingswood-oak": 120000},
+					"img": "item/ctw-ring.png",
+					"odds": "normal",
+					"warlord": true,
+					"setName": "Ceremonial Targaryen Warlord"
+				},
+				{
+					"name": "Boots",
+					"level": 45,
+					"materials": {"milk-of-the-poppy": 120000, "hide": 120000, "ironwood": 120000, "goldenheart-wood": 120000},
+					"img": "item/ctw-boots.png",
+					"odds": "normal",
+					"warlord": true,
+					"setName": "Ceremonial Targaryen Warlord"
+				},
 			]
 		}
 	]
