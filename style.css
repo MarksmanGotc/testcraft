@@ -103,7 +103,7 @@ h1.calc-header {
     align-items: center;
     justify-content: flex-start;
     gap: 8px;
-    height: 34px;
+    height: 32px;
     border: 1px solid var(--primary-color);
     border-radius: 4px;
     background: #fff;
@@ -1156,3 +1156,4 @@ button.multiplier-btn {
   user-select: none;
   font-size: 14px;
 }
+
