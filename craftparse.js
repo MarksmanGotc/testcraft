@@ -21,6 +21,22 @@ const GEAR_SECOND_WEIGHT = 3;
 const LEFTOVER_WEIGHT_BASE = 7;
 const LEFTOVER_WEIGHT_GEAR = 3;
 const BALANCE_WEIGHT = 0.1;
+const SeasonZeroPreference = Object.freeze({
+    OFF: 0,
+    LOW: 1,
+    NORMAL: 2,
+    HIGH: 3
+});
+const seasonZeroValueText = {
+    [SeasonZeroPreference.OFF]: 'Off - exclude Season 0 items',
+    [SeasonZeroPreference.LOW]: 'Low weighting',
+    [SeasonZeroPreference.NORMAL]: 'Normal weighting',
+    [SeasonZeroPreference.HIGH]: 'High weighting'
+};
+const SEASON_ZERO_LOW_PENALTY = 3;
+const SEASON_ZERO_HIGH_BONUS = 5;
+const SEASON_ZERO_HIGH_NON_SEASON_PENALTY = 2;
+let currentSeasonZeroPreference = SeasonZeroPreference.NORMAL;
 const qualityColorMap = {
     poor: '#A9A9A9',
     common: '#32CD32',
@@ -253,6 +269,48 @@ function initializeQualitySelects() {
     }
 }
 
+function getSeasonZeroPreference() {
+    return currentSeasonZeroPreference;
+}
+
+function updateSeasonZeroSliderLabel(value) {
+    const labelEl = document.getElementById('seasonZeroPriorityValue');
+    if (!labelEl) return;
+    const normalized = Number.isInteger(value) ? value : SeasonZeroPreference.NORMAL;
+    labelEl.textContent = seasonZeroValueText[normalized] || seasonZeroValueText[SeasonZeroPreference.NORMAL];
+}
+
+function initializeSeasonZeroSlider() {
+    const slider = document.getElementById('seasonZeroPriority');
+    if (!slider) return;
+
+    const initialValue = parseInt(slider.value, 10);
+    const safeValue = Number.isNaN(initialValue) ? SeasonZeroPreference.NORMAL : initialValue;
+    currentSeasonZeroPreference = safeValue;
+    slider.value = safeValue;
+    updateSeasonZeroSliderLabel(safeValue);
+
+    const handleChange = (event) => {
+        const value = parseInt(event.target.value, 10);
+        if (Number.isNaN(value)) {
+            return;
+        }
+        currentSeasonZeroPreference = value;
+        updateSeasonZeroSliderLabel(value);
+    };
+
+    slider.addEventListener('input', handleChange);
+    slider.addEventListener('change', handleChange);
+}
+
+function applySeasonZeroPreference(products, preference) {
+    if (!Array.isArray(products)) return [];
+    if (preference === SeasonZeroPreference.OFF) {
+        return products.filter(product => product.season !== 0);
+    }
+    return products;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     createLevelStructure();
     addCalculateButton();
@@ -260,6 +318,7 @@ document.addEventListener('DOMContentLoaded', function() {
         inputActive();
         initAdvMaterialSection();
         initializeQualitySelects();
+        initializeSeasonZeroSlider();
 
     const shareParam = urlParams.get('share');
     if (shareParam) {
@@ -1262,6 +1321,7 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
     const level20OnlyWarlords = document.getElementById('level20OnlyWarlords')?.checked ?? false;
     const includeLowOdds = document.getElementById('includeLowOdds')?.checked ?? true;
     const includeMediumOdds = document.getElementById('includeMediumOdds')?.checked ?? true;
+    const seasonZeroPreference = getSeasonZeroPreference();
     const gearLevelSelect = document.getElementById('gearMaterialLevels');
     const allowedGearLevels = gearLevelSelect ? Array.from(gearLevelSelect.selectedOptions).map(o => parseInt(o.value, 10)) : [];
     const hasGearMaterials = Object.keys(availableMaterials).some(
@@ -1297,6 +1357,7 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                     return true;
                 });
                 levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
+                levelProducts = applySeasonZeroPreference(levelProducts, seasonZeroPreference);
                 const selected = selectBestAvailableProduct(
                     levelProducts,
                     prefs.mostAvailableMaterials,
@@ -1351,6 +1412,7 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
             return true;
         });
         levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
+        levelProducts = applySeasonZeroPreference(levelProducts, seasonZeroPreference);
         if (levelProducts.length === 0) {
             failed.add(level);
             templatesByLevel[level] = 0;
@@ -1391,6 +1453,7 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                 return true;
             });
             levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
+            levelProducts = applySeasonZeroPreference(levelProducts, seasonZeroPreference);
             const selectedProduct = selectBestAvailableProduct(
                 levelProducts,
                 preferences.mostAvailableMaterials,
@@ -1556,6 +1619,7 @@ function computeBalancePenalty(product, availableMaterials, multiplier = 1) {
 
 function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1) {
     let score = 0;
+    const seasonZeroPreference = getSeasonZeroPreference();
     Object.entries(product.materials).forEach(([material, _]) => {
         const season = materialToSeason[material] || 0;
         const isGear = season !== 0;
@@ -1591,7 +1655,17 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
 	
     const balancePenalty = computeBalancePenalty(product, availableMaterials, multiplier);
     score -= balancePenalty * BALANCE_WEIGHT;
-	
+
+    if (product.season === 0) {
+        if (seasonZeroPreference === SeasonZeroPreference.LOW) {
+            score -= SEASON_ZERO_LOW_PENALTY;
+        } else if (seasonZeroPreference === SeasonZeroPreference.HIGH) {
+            score += SEASON_ZERO_HIGH_BONUS;
+        }
+    } else if (seasonZeroPreference === SeasonZeroPreference.HIGH) {
+        score -= SEASON_ZERO_HIGH_NON_SEASON_PENALTY;
+    }
+
     return score;
 }
 
