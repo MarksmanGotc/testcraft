@@ -60,7 +60,7 @@ const seasonZeroValueText = {
     [SeasonZeroPreference.HIGH]: 'High weighting'
 };
 const SEASON_ZERO_LOW_PENALTY = 3;
-const SEASON_ZERO_HIGH_BONUS = 40;
+const SEASON_ZERO_HIGH_BONUS = 100;
 const SEASON_ZERO_HIGH_NON_SEASON_PENALTY = 3;
 let currentSeasonZeroPreference = SeasonZeroPreference.NORMAL;
 const qualityColorMap = {
