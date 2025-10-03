@@ -1758,23 +1758,57 @@ function rollbackMaterials(availableMaterials, product, multiplier = 1) {
     });
 }
 
+function parseNumericAmount(value) {
+    if (typeof value === 'number') {
+        return value;
+    }
+    if (typeof value === 'string') {
+        const cleaned = value.replace(/,/g, '');
+        const parsed = parseFloat(cleaned);
+        if (!isNaN(parsed)) {
+            return parsed;
+        }
+    }
+    return 0;
+}
+
 function computeBaseUsageStd(materialsState) {
-    const remaining = [];
-    Object.entries(initialMaterials).forEach(([material, _]) => {
+    const ratios = [];
+    const initialTotals = [];
+
+    Object.entries(initialMaterials).forEach(([material, initialAmount]) => {
         const normalized = material.toLowerCase().replace(/\s/g, '-');
+        const season = materialToSeason[material] ?? materialToSeason[normalized] ?? 0;
+        if (season !== 0) {
+            return;
+        }
+
         const matchedKey = Object.keys(materialsState).find(key =>
             key.toLowerCase().replace(/\s/g, '-') === normalized
         );
-        if (matchedKey && materialToSeason[normalized] === 0) {
-            remaining.push(materialsState[matchedKey]);
+
+        const initial = parseNumericAmount(initialAmount);
+        if (initial <= 0) {
+            return;
         }
+
+        const remaining = matchedKey ? parseNumericAmount(materialsState[matchedKey]) : 0;
+        const ratio = Math.max(0, Math.min(1, remaining / initial));
+        ratios.push(ratio);
+        initialTotals.push(initial);
     });
-    if (remaining.length === 0) {
+
+    if (ratios.length === 0) {
         return 0;
     }
-    const mean = remaining.reduce((a, b) => a + b, 0) / remaining.length;
-    const variance = remaining.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / remaining.length;
-    return Math.sqrt(variance);
+
+    const meanRatio = ratios.reduce((sum, value) => sum + value, 0) / ratios.length;
+    const variance = ratios.reduce((sum, value) => sum + Math.pow(value - meanRatio, 2), 0) / ratios.length;
+    const ratioStd = Math.sqrt(variance);
+
+    const averageInitial = initialTotals.reduce((sum, value) => sum + value, 0) / initialTotals.length;
+
+    return ratioStd * averageInitial;
 }
 
 function computeBalancePenalty(product, availableMaterials, multiplier = 1) {
@@ -1785,7 +1819,8 @@ function computeBalancePenalty(product, availableMaterials, multiplier = 1) {
             key.toLowerCase().replace(/\s/g, '-') === normalized
         );
         if (matchedKey) {
-            predicted[matchedKey] -= amt * multiplier;
+            const currentAmount = parseNumericAmount(predicted[matchedKey]);
+            predicted[matchedKey] = currentAmount - amt * multiplier;
         }
     });
     return computeBaseUsageStd(predicted);
