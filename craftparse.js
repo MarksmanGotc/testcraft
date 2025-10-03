@@ -92,41 +92,47 @@ function isCtwProduct(product) {
 }
 
 function getSeasonZeroBiasSettings(preference) {
-    switch (preference) {
-        case 3:
-            return {
-                availabilityWeightMultiplier: 1.2,
-                scarcityPenaltyMultiplier: 0.85,
-                leftoverWeight: Math.max(1, LEFTOVER_WEIGHT_BASE - 2),
-                baseScoreBonus: 15,
-                gearScoreBonus: -3
-            };
-        case 2:
-            return {
-                availabilityWeightMultiplier: 1,
-                scarcityPenaltyMultiplier: 1,
-                leftoverWeight: LEFTOVER_WEIGHT_BASE,
-                baseScoreBonus: 0,
-                gearScoreBonus: 0
-            };
-        case 1:
-        case 0:
-            return {
-                availabilityWeightMultiplier: 0.85,
-                scarcityPenaltyMultiplier: 1.25,
-                leftoverWeight: LEFTOVER_WEIGHT_BASE + 2,
-                baseScoreBonus: -6,
-                gearScoreBonus: 4
-            };
-        default:
-            return {
-                availabilityWeightMultiplier: 1,
-                scarcityPenaltyMultiplier: 1,
-                leftoverWeight: LEFTOVER_WEIGHT_BASE,
-                baseScoreBonus: 0,
-                gearScoreBonus: 0
-            };
+    const normalized = clampSeasonZeroPreference(preference);
+    if (normalized === 2) {
+        return {
+            availabilityWeightMultiplier: 1,
+            scarcityPenaltyMultiplier: 1,
+            leftoverWeight: LEFTOVER_WEIGHT_BASE,
+            baseScoreBonus: 0,
+            gearScoreBonus: 0
+        };
     }
+
+    if (normalized === 3) {
+        return {
+            availabilityWeightMultiplier: 1.4,
+            scarcityPenaltyMultiplier: 0.6,
+            leftoverWeight: Math.max(1, LEFTOVER_WEIGHT_BASE - 3),
+            baseScoreBonus: 30,
+            gearScoreBonus: -12
+        };
+    }
+
+    if (normalized === 1) {
+        return {
+            availabilityWeightMultiplier: 0.7,
+            scarcityPenaltyMultiplier: 1.5,
+            leftoverWeight: LEFTOVER_WEIGHT_BASE + 4,
+            baseScoreBonus: -25,
+            gearScoreBonus: 10
+        };
+    }
+
+    // Preference 0 removes Season 0 items earlier in the flow, but keep
+    // a strong deprioritisation profile for any edge cases that reach the
+    // scoring stage.
+    return {
+        availabilityWeightMultiplier: 0.6,
+        scarcityPenaltyMultiplier: 1.75,
+        leftoverWeight: LEFTOVER_WEIGHT_BASE + 5,
+        baseScoreBonus: -35,
+        gearScoreBonus: 12
+    };
 }
 
 function applySeasonZeroFilter(products, preference) {
