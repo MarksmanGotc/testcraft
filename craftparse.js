@@ -38,8 +38,8 @@ let qualitySelectHandlersAttached = false;
 let failedLevels = [];
 let requestedTemplates = {};
 let remainingUse = {};
-let ctwMediumNotice = false;
-let lowOddsNotice = false;
+let ctwMediumFallbackLevels = new Set();
+let lowOddsFallbackLevels = new Set();
 let level20OnlyWarlordsActive = false;
 let seasonZeroPreferenceValue = SEASON_ZERO_PREFERENCE_DEFAULT;
 
@@ -994,13 +994,13 @@ function renderResults(templateCounts, materialCounts) {
                 itemsDiv.appendChild(levelHeader);
             }
 
-            if (lvl === 20 && ctwMediumNotice && !level20OnlyWarlordsActive) {
+            if (lvl === 20 && ctwMediumFallbackLevels.has(lvl) && !level20OnlyWarlordsActive) {
                 const extraInfo = document.createElement('p');
                 extraInfo.className = 'craft-extra-info';
                 extraInfo.textContent = "Medium odds items were used because otherwise no items would be generated. At level 20, Ceremonial Targaryen Warlord items are categorized as 'medium odds'.";
                 itemsDiv.appendChild(extraInfo);
             }
-            if (lvl === 20 && lowOddsNotice && !level20OnlyWarlordsActive) {
+            if (lvl === 20 && lowOddsFallbackLevels.has(lvl) && !level20OnlyWarlordsActive) {
                 const extraInfo = document.createElement('p');
                 extraInfo.className = 'craft-extra-info';
                 extraInfo.textContent = "Low odds items were used because otherwise no items would be generated.";
@@ -1361,6 +1361,64 @@ function shouldApplyOddsForProduct(product) {
     return false;
 }
 
+function applyOddsPreferences(levelProducts, options = {}) {
+    const {
+        includeLowOdds = true,
+        includeMediumOdds = true,
+        includeWarlords = true,
+        requireCtwOnly = false,
+        isLegendary = false,
+        level
+    } = options;
+
+    const filtered = levelProducts.filter(product => {
+        if (requireCtwOnly && product.setName === 'Ceremonial Targaryen Warlord') {
+            return true;
+        }
+
+        const applyOdds = !isLegendary && shouldApplyOddsForProduct(product);
+        if (!applyOdds) {
+            return true;
+        }
+
+        if (product.odds === 'low') {
+            return includeLowOdds;
+        }
+
+        if (product.odds === 'medium') {
+            return includeMediumOdds;
+        }
+
+        return true;
+    });
+
+    if (filtered.length > 0 || level !== 20 || isLegendary) {
+        return { products: filtered, usedLowFallback: false, usedMediumFallback: false };
+    }
+
+    let fallbackProducts = filtered;
+    let usedLowFallback = false;
+    let usedMediumFallback = false;
+
+    if (!includeMediumOdds && includeWarlords && !requireCtwOnly) {
+        const mediumFallback = levelProducts.filter(product => product.warlord && product.odds === 'medium');
+        if (mediumFallback.length > 0) {
+            fallbackProducts = mediumFallback;
+            usedMediumFallback = true;
+        }
+    }
+
+    if (!usedMediumFallback && !includeLowOdds && !includeWarlords) {
+        const lowFallback = levelProducts.filter(product => product.odds === 'low');
+        if (lowFallback.length > 0) {
+            fallbackProducts = lowFallback;
+            usedLowFallback = true;
+        }
+    }
+
+    return { products: fallbackProducts, usedLowFallback, usedMediumFallback };
+}
+
 function calculateProductionPlan(availableMaterials, templatesByLevel) {
     let productionPlan = { "1": [], "5": [], "10": [], "15": [], "20": [], "25": [], "30": [], "35": [], "40": [], "45": [] };
     const failed = new Set();
@@ -1375,11 +1433,10 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
     const hasGearMaterials = Object.keys(availableMaterials).some(
         key => (materialToSeason[key] || 0) !== 0
     );
-    const level20Allowed = hasGearMaterials && allowedGearLevelsSet.has(20);
     const seasonZeroPreference = getSeasonZeroPreferenceValue();
     level20OnlyWarlordsActive = level20OnlyWarlords;
-    ctwMediumNotice = includeWarlords && !includeMediumOdds && !level20Allowed && !level20OnlyWarlords;
-    lowOddsNotice = !includeWarlords && !includeMediumOdds && !includeLowOdds;
+    ctwMediumFallbackLevels = new Set();
+    lowOddsFallbackLevels = new Set();
 
     const processNormalOddsLevel = (level) => {
         if (
@@ -1399,13 +1456,22 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                 if (!allowedGearLevelsSet.has(level)) {
                     levelProducts = levelProducts.filter(p => p.season == 0);
                 }
-                levelProducts = levelProducts.filter(p => {
-                    const applyOdds = !isLegendary && shouldApplyOddsForProduct(p);
-                    if (!applyOdds) return true;
-                    if (p.odds === 'low') return includeLowOdds;
-                    if (p.odds === 'medium') return includeMediumOdds;
-                    return true;
+                const oddsResult = applyOddsPreferences(levelProducts, {
+                    includeLowOdds,
+                    includeMediumOdds,
+                    includeWarlords,
+                    isLegendary,
+                    level
                 });
+                levelProducts = oddsResult.products;
+                if (levelProducts.length > 0) {
+                    if (oddsResult.usedMediumFallback) {
+                        ctwMediumFallbackLevels.add(level);
+                    }
+                    if (oddsResult.usedLowFallback) {
+                        lowOddsFallbackLevels.add(level);
+                    }
+                }
                 levelProducts = applySeasonZeroFilter(levelProducts, seasonZeroPreference);
                 levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
                 const selected = selectBestAvailableProduct(
@@ -1459,16 +1525,23 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
         }
         const multiplier = qualityMultipliers[level] || 1;
         const isLegendary = multiplier >= 1024;
-        levelProducts = levelProducts.filter(p => {
-            if (requireCtwOnly && p.setName === 'Ceremonial Targaryen Warlord') {
-                return true;
-            }
-            const applyOdds = !isLegendary && shouldApplyOddsForProduct(p);
-            if (!applyOdds) return true;
-            if (p.odds === 'low') return includeLowOdds || (lowOddsNotice && p.level === 20);
-            if (p.odds === 'medium') return includeMediumOdds || (ctwMediumNotice && p.warlord && p.level === 20);
-            return true;
+        const oddsResult = applyOddsPreferences(levelProducts, {
+            includeLowOdds,
+            includeMediumOdds,
+            includeWarlords,
+            requireCtwOnly,
+            isLegendary,
+            level
         });
+        levelProducts = oddsResult.products;
+        if (levelProducts.length > 0) {
+            if (oddsResult.usedMediumFallback) {
+                ctwMediumFallbackLevels.add(level);
+            }
+            if (oddsResult.usedLowFallback) {
+                lowOddsFallbackLevels.add(level);
+            }
+        }
         levelProducts = applySeasonZeroFilter(levelProducts, seasonZeroPreference);
         levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
         if (levelProducts.length === 0) {
@@ -1501,16 +1574,23 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
             }
             const multiplier = qualityMultipliers[level] || 1;
             const isLegendary = multiplier >= 1024;
-            levelProducts = levelProducts.filter(p => {
-                if (requireCtwOnly && p.setName === 'Ceremonial Targaryen Warlord') {
-                    return true;
-                }
-                const applyOdds = !isLegendary && shouldApplyOddsForProduct(p);
-                if (!applyOdds) return true;
-                if (p.odds === 'low') return includeLowOdds || (lowOddsNotice && p.level === 20);
-                if (p.odds === 'medium') return includeMediumOdds || (ctwMediumNotice && p.warlord && p.level === 20);
-                return true;
+            const oddsResult = applyOddsPreferences(levelProducts, {
+                includeLowOdds,
+                includeMediumOdds,
+                includeWarlords,
+                requireCtwOnly,
+                isLegendary,
+                level
             });
+            levelProducts = oddsResult.products;
+            if (levelProducts.length > 0) {
+                if (oddsResult.usedMediumFallback) {
+                    ctwMediumFallbackLevels.add(level);
+                }
+                if (oddsResult.usedLowFallback) {
+                    lowOddsFallbackLevels.add(level);
+                }
+            }
             levelProducts = applySeasonZeroFilter(levelProducts, seasonZeroPreference);
             levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
             const selectedProduct = selectBestAvailableProduct(
@@ -1661,9 +1741,8 @@ function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secon
         applySeasonZeroBias
     };
 
-    const candidateScores = levelProducts.map(product => ({
-        product,
-        score: getMaterialScore(
+    const candidateScores = levelProducts.map(product => {
+        const rawScore = getMaterialScore(
             product,
             mostAvailableMaterials,
             secondMostAvailableMaterials,
@@ -1672,8 +1751,13 @@ function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secon
             availableMaterials,
             multiplier,
             scoreOptions
-        )
-    }));
+        );
+
+        const score = Number.isFinite(rawScore) ? rawScore : Number.NEGATIVE_INFINITY;
+        const producible = canProductBeProduced(product, availableMaterials, multiplier);
+
+        return { product, score, producible };
+    });
 
     const seasonZeroMaterialSummaries = Object.entries(availableMaterials)
         .map(([material, amount]) => {
@@ -1722,22 +1806,45 @@ function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secon
     const seasonZeroCandidates = candidateScores.filter(({ product }) => product.season === 0);
     if (seasonZeroCandidates.length > 0) {
         console.log(`${logPrefix} Season 0 candidate scores:`);
-        seasonZeroCandidates.forEach(({ product, score }) => {
-            console.log(`${logPrefix}  - ${product.name}: ${score.toFixed(2)}`);
+        seasonZeroCandidates.forEach(({ product, score, producible }) => {
+            const scoreLabel = Number.isFinite(score) ? score.toFixed(2) : 'N/A';
+            console.log(`${logPrefix}  - ${product.name}: ${scoreLabel}${producible ? '' : ' (insufficient materials)'}`);
         });
     } else {
         console.log(`${logPrefix} No Season 0 candidate products available`);
     }
 
-    const candidates = [...candidateScores].sort((a, b) => b.score - a.score);
+    const sortedCandidates = [...candidateScores].sort((a, b) => b.score - a.score);
 
-    // Etsi ensimmäinen tuote, jonka materiaalit riittävät
-    for (const { product } of candidates) {
-        if (canProductBeProduced(product, availableMaterials, multiplier)) {
-            const selectedScore = candidateScores.find(entry => entry.product === product)?.score;
-            console.log(`${logPrefix} Selected product: ${product.name} (Season ${product.season}) score ${selectedScore !== undefined ? selectedScore.toFixed(2) : 'N/A'}`);
-            return product;
-        }
+    console.log(`${logPrefix} Candidate scoreboard:`);
+    if (sortedCandidates.length === 0) {
+        console.log(`${logPrefix}  - No candidates available`);
+    } else {
+        sortedCandidates.forEach(({ product, score, producible }, index) => {
+            const scoreLabel = Number.isFinite(score) ? score.toFixed(2) : 'N/A';
+            const availability = producible ? '✅ producible' : '❌ insufficient materials';
+            console.log(`${logPrefix}  ${index + 1}. ${product.name} (Season ${product.season}) -> ${scoreLabel} | ${availability}`);
+        });
+    }
+
+    const bestCandidate = sortedCandidates.find(candidate => candidate.producible && Number.isFinite(candidate.score));
+    if (bestCandidate) {
+        const scoreLabel = bestCandidate.score.toFixed(2);
+        console.log(`${logPrefix} Selected product: ${bestCandidate.product.name} (Season ${bestCandidate.product.season}) score ${scoreLabel}`);
+        return bestCandidate.product;
+    }
+
+    const fallbackCandidate = sortedCandidates.find(candidate => candidate.producible);
+    if (fallbackCandidate) {
+        const scoreLabel = Number.isFinite(fallbackCandidate.score) ? fallbackCandidate.score.toFixed(2) : 'N/A';
+        console.log(`${logPrefix} Selected fallback product due to invalid scores: ${fallbackCandidate.product.name} (Season ${fallbackCandidate.product.season}) score ${scoreLabel}`);
+        return fallbackCandidate.product;
+    }
+
+    const highestScoring = sortedCandidates[0];
+    if (highestScoring && !highestScoring.producible) {
+        const scoreLabel = Number.isFinite(highestScoring.score) ? highestScoring.score.toFixed(2) : 'N/A';
+        console.log(`${logPrefix} Highest scoring product (${highestScoring.product.name}) not selected: ${scoreLabel} but materials missing.`);
     }
 
     console.log(`${logPrefix} No producible product found`);
@@ -1758,23 +1865,57 @@ function rollbackMaterials(availableMaterials, product, multiplier = 1) {
     });
 }
 
+function parseNumericAmount(value) {
+    if (typeof value === 'number') {
+        return value;
+    }
+    if (typeof value === 'string') {
+        const cleaned = value.replace(/,/g, '');
+        const parsed = parseFloat(cleaned);
+        if (!isNaN(parsed)) {
+            return parsed;
+        }
+    }
+    return 0;
+}
+
 function computeBaseUsageStd(materialsState) {
-    const remaining = [];
-    Object.entries(initialMaterials).forEach(([material, _]) => {
+    const ratios = [];
+    const initialTotals = [];
+
+    Object.entries(initialMaterials).forEach(([material, initialAmount]) => {
         const normalized = material.toLowerCase().replace(/\s/g, '-');
+        const season = materialToSeason[material] ?? materialToSeason[normalized] ?? 0;
+        if (season !== 0) {
+            return;
+        }
+
         const matchedKey = Object.keys(materialsState).find(key =>
             key.toLowerCase().replace(/\s/g, '-') === normalized
         );
-        if (matchedKey && materialToSeason[normalized] === 0) {
-            remaining.push(materialsState[matchedKey]);
+
+        const initial = parseNumericAmount(initialAmount);
+        if (initial <= 0) {
+            return;
         }
+
+        const remaining = matchedKey ? parseNumericAmount(materialsState[matchedKey]) : 0;
+        const ratio = Math.max(0, Math.min(1, remaining / initial));
+        ratios.push(ratio);
+        initialTotals.push(initial);
     });
-    if (remaining.length === 0) {
+
+    if (ratios.length === 0) {
         return 0;
     }
-    const mean = remaining.reduce((a, b) => a + b, 0) / remaining.length;
-    const variance = remaining.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / remaining.length;
-    return Math.sqrt(variance);
+
+    const meanRatio = ratios.reduce((sum, value) => sum + value, 0) / ratios.length;
+    const variance = ratios.reduce((sum, value) => sum + Math.pow(value - meanRatio, 2), 0) / ratios.length;
+    const ratioStd = Math.sqrt(variance);
+
+    const averageInitial = initialTotals.reduce((sum, value) => sum + value, 0) / initialTotals.length;
+
+    return ratioStd * averageInitial;
 }
 
 function computeBalancePenalty(product, availableMaterials, multiplier = 1) {
@@ -1785,7 +1926,8 @@ function computeBalancePenalty(product, availableMaterials, multiplier = 1) {
             key.toLowerCase().replace(/\s/g, '-') === normalized
         );
         if (matchedKey) {
-            predicted[matchedKey] -= amt * multiplier;
+            const currentAmount = parseNumericAmount(predicted[matchedKey]);
+            predicted[matchedKey] = currentAmount - amt * multiplier;
         }
     });
     return computeBaseUsageStd(predicted);
