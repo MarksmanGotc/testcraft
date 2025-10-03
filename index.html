@@ -293,7 +293,6 @@
                                 </div>
                             </div>
                             <div class="season-zero-slider">
-                                <div id="seasonZeroPriorityValue" class="season-zero-slider__value">Normal weighting</div>
                                 <input
                                     type="range"
                                     min="0"
@@ -302,9 +301,10 @@
                                     value="2"
                                     id="seasonZeroPriority"
                                     class="season-zero-slider__input"
-                                    aria-labelledby="seasonZeroPriorityValue"
+                                    aria-label="Season 0 weighting"
+                                    aria-describedby="seasonZeroPriorityLabels"
                                 >
-                                <div class="season-zero-slider__labels">
+                                <div class="season-zero-slider__labels" id="seasonZeroPriorityLabels">
                                     <span>Off</span>
                                     <span>Low</span>
                                     <span>Normal</span>

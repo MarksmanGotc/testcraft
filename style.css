@@ -888,22 +888,22 @@ button.multiplier-btn {
     margin-bottom: 20px;
 }
 
-.season-zero-slider__value {
-    text-align: center;
-    font-weight: 600;
-    color: var(--primary-color);
-}
-
 .season-zero-slider__input {
     width: 100%;
     accent-color: var(--primary-color);
+    margin: 0;
+    display: block;
 }
 
 .season-zero-slider__labels {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
     font-size: 12px;
     color: #666;
+}
+
+.season-zero-slider__labels span {
+    text-align: center;
 }
 
 #generatebychoice h4 {
