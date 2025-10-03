@@ -988,6 +988,38 @@ button.multiplier-btn {
 .spinner p {
     text-align: center;
 }
+.spinner-progress {
+    width: 100%;
+    max-width: 320px;
+    margin: 12px auto 0;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+.spinner-progress.is-active {
+    opacity: 1;
+}
+.spinner-progress__track {
+    position: relative;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 999px;
+    overflow: hidden;
+}
+.spinner-progress__bar {
+    position: absolute;
+    inset: 0;
+    background: var(--primary-color);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.2s ease-in-out;
+}
+.spinner-progress__label {
+    display: block;
+    margin-top: 8px;
+    font-size: 14px;
+    text-align: center;
+    color: #08425a;
+}
 .spinner .circular {
     animation: rotate73451 2s linear infinite;
     height: 100%;
