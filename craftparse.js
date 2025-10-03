@@ -38,8 +38,8 @@ let qualitySelectHandlersAttached = false;
 let failedLevels = [];
 let requestedTemplates = {};
 let remainingUse = {};
-let ctwMediumNotice = false;
-let lowOddsNotice = false;
+let ctwMediumFallbackLevels = new Set();
+let lowOddsFallbackLevels = new Set();
 let level20OnlyWarlordsActive = false;
 let seasonZeroPreferenceValue = SEASON_ZERO_PREFERENCE_DEFAULT;
 
@@ -994,13 +994,13 @@ function renderResults(templateCounts, materialCounts) {
                 itemsDiv.appendChild(levelHeader);
             }
 
-            if (lvl === 20 && ctwMediumNotice && !level20OnlyWarlordsActive) {
+            if (lvl === 20 && ctwMediumFallbackLevels.has(lvl) && !level20OnlyWarlordsActive) {
                 const extraInfo = document.createElement('p');
                 extraInfo.className = 'craft-extra-info';
                 extraInfo.textContent = "Medium odds items were used because otherwise no items would be generated. At level 20, Ceremonial Targaryen Warlord items are categorized as 'medium odds'.";
                 itemsDiv.appendChild(extraInfo);
             }
-            if (lvl === 20 && lowOddsNotice && !level20OnlyWarlordsActive) {
+            if (lvl === 20 && lowOddsFallbackLevels.has(lvl) && !level20OnlyWarlordsActive) {
                 const extraInfo = document.createElement('p');
                 extraInfo.className = 'craft-extra-info';
                 extraInfo.textContent = "Low odds items were used because otherwise no items would be generated.";
@@ -1361,6 +1361,64 @@ function shouldApplyOddsForProduct(product) {
     return false;
 }
 
+function applyOddsPreferences(levelProducts, options = {}) {
+    const {
+        includeLowOdds = true,
+        includeMediumOdds = true,
+        includeWarlords = true,
+        requireCtwOnly = false,
+        isLegendary = false,
+        level
+    } = options;
+
+    const filtered = levelProducts.filter(product => {
+        if (requireCtwOnly && product.setName === 'Ceremonial Targaryen Warlord') {
+            return true;
+        }
+
+        const applyOdds = !isLegendary && shouldApplyOddsForProduct(product);
+        if (!applyOdds) {
+            return true;
+        }
+
+        if (product.odds === 'low') {
+            return includeLowOdds;
+        }
+
+        if (product.odds === 'medium') {
+            return includeMediumOdds;
+        }
+
+        return true;
+    });
+
+    if (filtered.length > 0 || level !== 20 || isLegendary) {
+        return { products: filtered, usedLowFallback: false, usedMediumFallback: false };
+    }
+
+    let fallbackProducts = filtered;
+    let usedLowFallback = false;
+    let usedMediumFallback = false;
+
+    if (!includeMediumOdds && includeWarlords && !requireCtwOnly) {
+        const mediumFallback = levelProducts.filter(product => product.warlord && product.odds === 'medium');
+        if (mediumFallback.length > 0) {
+            fallbackProducts = mediumFallback;
+            usedMediumFallback = true;
+        }
+    }
+
+    if (!usedMediumFallback && !includeLowOdds && !includeWarlords) {
+        const lowFallback = levelProducts.filter(product => product.odds === 'low');
+        if (lowFallback.length > 0) {
+            fallbackProducts = lowFallback;
+            usedLowFallback = true;
+        }
+    }
+
+    return { products: fallbackProducts, usedLowFallback, usedMediumFallback };
+}
+
 function calculateProductionPlan(availableMaterials, templatesByLevel) {
     let productionPlan = { "1": [], "5": [], "10": [], "15": [], "20": [], "25": [], "30": [], "35": [], "40": [], "45": [] };
     const failed = new Set();
@@ -1375,11 +1433,10 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
     const hasGearMaterials = Object.keys(availableMaterials).some(
         key => (materialToSeason[key] || 0) !== 0
     );
-    const level20Allowed = hasGearMaterials && allowedGearLevelsSet.has(20);
     const seasonZeroPreference = getSeasonZeroPreferenceValue();
     level20OnlyWarlordsActive = level20OnlyWarlords;
-    ctwMediumNotice = includeWarlords && !includeMediumOdds && !level20Allowed && !level20OnlyWarlords;
-    lowOddsNotice = !includeWarlords && !includeMediumOdds && !includeLowOdds;
+    ctwMediumFallbackLevels = new Set();
+    lowOddsFallbackLevels = new Set();
 
     const processNormalOddsLevel = (level) => {
         if (
@@ -1399,13 +1456,22 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                 if (!allowedGearLevelsSet.has(level)) {
                     levelProducts = levelProducts.filter(p => p.season == 0);
                 }
-                levelProducts = levelProducts.filter(p => {
-                    const applyOdds = !isLegendary && shouldApplyOddsForProduct(p);
-                    if (!applyOdds) return true;
-                    if (p.odds === 'low') return includeLowOdds;
-                    if (p.odds === 'medium') return includeMediumOdds;
-                    return true;
+                const oddsResult = applyOddsPreferences(levelProducts, {
+                    includeLowOdds,
+                    includeMediumOdds,
+                    includeWarlords,
+                    isLegendary,
+                    level
                 });
+                levelProducts = oddsResult.products;
+                if (levelProducts.length > 0) {
+                    if (oddsResult.usedMediumFallback) {
+                        ctwMediumFallbackLevels.add(level);
+                    }
+                    if (oddsResult.usedLowFallback) {
+                        lowOddsFallbackLevels.add(level);
+                    }
+                }
                 levelProducts = applySeasonZeroFilter(levelProducts, seasonZeroPreference);
                 levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
                 const selected = selectBestAvailableProduct(
@@ -1459,16 +1525,23 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
         }
         const multiplier = qualityMultipliers[level] || 1;
         const isLegendary = multiplier >= 1024;
-        levelProducts = levelProducts.filter(p => {
-            if (requireCtwOnly && p.setName === 'Ceremonial Targaryen Warlord') {
-                return true;
-            }
-            const applyOdds = !isLegendary && shouldApplyOddsForProduct(p);
-            if (!applyOdds) return true;
-            if (p.odds === 'low') return includeLowOdds || (lowOddsNotice && p.level === 20);
-            if (p.odds === 'medium') return includeMediumOdds || (ctwMediumNotice && p.warlord && p.level === 20);
-            return true;
+        const oddsResult = applyOddsPreferences(levelProducts, {
+            includeLowOdds,
+            includeMediumOdds,
+            includeWarlords,
+            requireCtwOnly,
+            isLegendary,
+            level
         });
+        levelProducts = oddsResult.products;
+        if (levelProducts.length > 0) {
+            if (oddsResult.usedMediumFallback) {
+                ctwMediumFallbackLevels.add(level);
+            }
+            if (oddsResult.usedLowFallback) {
+                lowOddsFallbackLevels.add(level);
+            }
+        }
         levelProducts = applySeasonZeroFilter(levelProducts, seasonZeroPreference);
         levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
         if (levelProducts.length === 0) {
@@ -1501,16 +1574,23 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
             }
             const multiplier = qualityMultipliers[level] || 1;
             const isLegendary = multiplier >= 1024;
-            levelProducts = levelProducts.filter(p => {
-                if (requireCtwOnly && p.setName === 'Ceremonial Targaryen Warlord') {
-                    return true;
-                }
-                const applyOdds = !isLegendary && shouldApplyOddsForProduct(p);
-                if (!applyOdds) return true;
-                if (p.odds === 'low') return includeLowOdds || (lowOddsNotice && p.level === 20);
-                if (p.odds === 'medium') return includeMediumOdds || (ctwMediumNotice && p.warlord && p.level === 20);
-                return true;
+            const oddsResult = applyOddsPreferences(levelProducts, {
+                includeLowOdds,
+                includeMediumOdds,
+                includeWarlords,
+                requireCtwOnly,
+                isLegendary,
+                level
             });
+            levelProducts = oddsResult.products;
+            if (levelProducts.length > 0) {
+                if (oddsResult.usedMediumFallback) {
+                    ctwMediumFallbackLevels.add(level);
+                }
+                if (oddsResult.usedLowFallback) {
+                    lowOddsFallbackLevels.add(level);
+                }
+            }
             levelProducts = applySeasonZeroFilter(levelProducts, seasonZeroPreference);
             levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
             const selectedProduct = selectBestAvailableProduct(
