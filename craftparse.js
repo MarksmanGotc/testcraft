@@ -1742,7 +1742,7 @@ function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secon
     };
 
     const candidateScores = levelProducts.map(product => {
-        const rawScore = getMaterialScore(
+        const rawScoreResult = getMaterialScore(
             product,
             mostAvailableMaterials,
             secondMostAvailableMaterials,
@@ -1750,13 +1750,16 @@ function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secon
             leastAvailableMaterials,
             availableMaterials,
             multiplier,
-            scoreOptions
+            { ...scoreOptions, returnBreakdown: isDebugMode }
         );
+        const hasBreakdown = rawScoreResult && typeof rawScoreResult === 'object' && 'score' in rawScoreResult;
+        const rawScore = hasBreakdown ? rawScoreResult.score : rawScoreResult;
+        const breakdown = hasBreakdown ? rawScoreResult.breakdown : null;
 
         const score = Number.isFinite(rawScore) ? rawScore : Number.NEGATIVE_INFINITY;
         const producible = canProductBeProduced(product, availableMaterials, multiplier);
 
-        return { product, score, producible };
+        return { product, score, producible, breakdown };
     });
 
     const seasonZeroMaterialSummaries = Object.entries(availableMaterials)
@@ -1816,14 +1819,30 @@ function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secon
 
     const sortedCandidates = [...candidateScores].sort((a, b) => b.score - a.score);
 
-    console.log(`${logPrefix} Candidate scoreboard:`);
+    const formatScoreComponent = (label, value) => {
+        const prefix = value >= 0 ? '+' : '';
+        return `${label} ${prefix}${value.toFixed(2)}`;
+    };
+
+    console.log(`${logPrefix} Candidate scoreboard (higher scores indicate better matches):`);
     if (sortedCandidates.length === 0) {
         console.log(`${logPrefix}  - No candidates available`);
     } else {
-        sortedCandidates.forEach(({ product, score, producible }, index) => {
+        sortedCandidates.forEach(({ product, score, producible, breakdown }, index) => {
             const scoreLabel = Number.isFinite(score) ? score.toFixed(2) : 'N/A';
             const availability = producible ? '✅ producible' : '❌ insufficient materials';
             console.log(`${logPrefix}  ${index + 1}. ${product.name} (Season ${product.season}) -> ${scoreLabel} | ${availability}`);
+            if (isDebugMode && breakdown) {
+                const parts = [
+                    formatScoreComponent('availability', breakdown.availabilityBonus),
+                    formatScoreComponent('scarcity', breakdown.scarcityPenalty),
+                    formatScoreComponent('leftover', breakdown.leftoverPenalty),
+                    formatScoreComponent('warlord', breakdown.warlordPenalty),
+                    formatScoreComponent('bias', breakdown.biasAdjustment),
+                    formatScoreComponent('balance', breakdown.balancePenalty)
+                ];
+                console.log(`${logPrefix}     Breakdown: ${parts.join(', ')} => total ${scoreLabel}`);
+            }
         });
     }
 
@@ -1939,8 +1958,17 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
     const biasSettings = applyBias ? getSeasonZeroBiasSettings(normalizedPreference) : null;
     const isCtw = isCtwProduct(product);
     const isSeasonZeroProduct = product.season === 0 && !isCtw;
+    const includeBreakdown = Boolean(options.returnBreakdown);
 
     let score = 0;
+    const breakdown = {
+        availabilityBonus: 0,
+        scarcityPenalty: 0,
+        leftoverPenalty: 0,
+        warlordPenalty: 0,
+        biasAdjustment: 0,
+        balancePenalty: 0
+    };
     Object.entries(product.materials).forEach(([material, _]) => {
         const season = materialToSeason[material] || 0;
         const isGear = season !== 0;
@@ -1951,6 +1979,7 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
                 weight *= biasSettings.availabilityWeightMultiplier;
             }
             score += weight;
+            breakdown.availabilityBonus += weight;
         }
         if (secondMostAvailableMaterials.includes(material)) {
             let weight = isGear ? GEAR_SECOND_WEIGHT : BASE_SECOND_WEIGHT;
@@ -1958,6 +1987,7 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
                 weight *= biasSettings.availabilityWeightMultiplier;
             }
             score += weight;
+            breakdown.availabilityBonus += weight;
         }
         if (thirdMostAvailableMaterials.includes(material)) {
             let weight = isGear ? GEAR_THIRD_WEIGHT : BASE_THIRD_WEIGHT;
@@ -1965,14 +1995,18 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
                 weight *= biasSettings.availabilityWeightMultiplier;
             }
             score += weight;
+            breakdown.availabilityBonus += weight;
         }
         if (leastAvailableMaterials.includes(material)) {
             const penaltyMultiplier = adjustSeasonZeroMaterial ? biasSettings.scarcityPenaltyMultiplier : 1;
-            score -= 10 * penaltyMultiplier;
+            const penalty = 10 * penaltyMultiplier;
+            score -= penalty;
+            breakdown.scarcityPenalty -= penalty;
         }
     });
     if (product.warlord) {
         score -= WARLORD_PENALTY;
+        breakdown.warlordPenalty -= WARLORD_PENALTY;
     }
 
     Object.entries(product.materials).forEach(([material, amount]) => {
@@ -1990,9 +2024,13 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
             const remaining = available - amount * multiplier;
             if (available > 0) {
                 const consumptionRatio = Math.max(0, 1 - (remaining / available));
-                score -= consumptionRatio * weight;
+                const penalty = consumptionRatio * weight;
+                score -= penalty;
+                breakdown.leftoverPenalty -= penalty;
             } else {
-                score -= weight * 2;
+                const penalty = weight * 2;
+                score -= penalty;
+                breakdown.leftoverPenalty -= penalty;
             }
         }
     });
@@ -2000,13 +2038,23 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
     if (biasSettings) {
         if (isSeasonZeroProduct) {
             score += biasSettings.baseScoreBonus;
+            breakdown.biasAdjustment += biasSettings.baseScoreBonus;
         } else if (product.season !== 0) {
             score += biasSettings.gearScoreBonus;
+            breakdown.biasAdjustment += biasSettings.gearScoreBonus;
         }
     }
 
     const balancePenalty = computeBalancePenalty(product, availableMaterials, multiplier);
-    score -= balancePenalty * BALANCE_WEIGHT;
+    const weightedBalancePenalty = balancePenalty * BALANCE_WEIGHT;
+    score -= weightedBalancePenalty;
+    breakdown.balancePenalty -= weightedBalancePenalty;
+    if (includeBreakdown) {
+        return {
+            score,
+            breakdown
+        };
+    }
 
     return score;
 }
