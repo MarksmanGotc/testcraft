@@ -59,9 +59,9 @@ const seasonZeroValueText = {
     [SeasonZeroPreference.NORMAL]: 'Normal weighting',
     [SeasonZeroPreference.HIGH]: 'High weighting'
 };
-const SEASON_ZERO_LOW_PENALTY = 3;
-const SEASON_ZERO_HIGH_BONUS = 100;
-const SEASON_ZERO_HIGH_NON_SEASON_PENALTY = 3;
+const SEASON_ZERO_LOW_PENALTY = 6;
+const SEASON_ZERO_HIGH_BONUS = 220;
+const SEASON_ZERO_HIGH_NON_SEASON_PENALTY = 9;
 let currentSeasonZeroPreference = SeasonZeroPreference.NORMAL;
 const qualityColorMap = {
     poor: '#A9A9A9',
@@ -1529,19 +1529,21 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
     const processNormalOddsLevel = async (level) => {
         if (
             templatesByLevel[level] > 0 &&
-            !includeWarlords &&
             !includeLowOdds &&
-            !includeMediumOdds
+            !includeMediumOdds &&
+            seasonZeroPreference !== SeasonZeroPreference.OFF
         ) {
             let remaining = templatesByLevel[level];
             const multiplier = qualityMultipliers[level] || 1;
             const isLegendary = multiplier >= 1024;
+            let produced = 0;
 
             while (remaining > 0) {
                 const prefs = getUserPreferences(availableMaterials);
                 let levelProducts = getLevelProducts(level);
-                if (!allowedGearLevels.includes(level)) {
-                    levelProducts = levelProducts.filter(p => p.season == 0);
+                levelProducts = levelProducts.filter(p => p.season === 0);
+                if (levelProducts.length === 0) {
+                    break;
                 }
                 levelProducts = levelProducts.filter(p => {
                     const applyOdds = !isLegendary && shouldApplyOddsForProduct(p);
@@ -1550,8 +1552,13 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
                     if (p.odds === 'medium') return includeMediumOdds;
                     return true;
                 });
+                if (levelProducts.length === 0) {
+                    break;
+                }
                 levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
-                levelProducts = applySeasonZeroPreference(levelProducts, seasonZeroPreference);
+                if (levelProducts.length === 0) {
+                    break;
+                }
                 const selected = selectBestAvailableProduct(
                     levelProducts,
                     prefs.mostAvailableMaterials,
@@ -1565,14 +1572,18 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
                     productionPlan[level].push({ name: selected.name, season: selected.season, setName: selected.setName, warlord: selected.warlord });
                     updateAvailableMaterials(availableMaterials, selected, multiplier);
                     remaining--;
+                    produced++;
                     await progress();
                 } else {
-                    failed.add(level);
                     break;
                 }
             }
 
-            templatesByLevel[level] = 0;
+            templatesByLevel[level] = remaining;
+
+            if (produced > 0) {
+                return;
+            }
         }
     };
 

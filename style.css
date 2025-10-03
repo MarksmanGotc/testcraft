@@ -890,9 +890,63 @@ button.multiplier-btn {
 
 .season-zero-slider__input {
     width: 100%;
-    accent-color: var(--primary-color);
     margin: 0;
     display: block;
+    cursor: pointer;
+    background: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.season-zero-slider__input:focus-visible {
+    outline: none;
+}
+
+.season-zero-slider__input::-webkit-slider-runnable-track {
+    height: 6px;
+    background: #d6dce1;
+    border-radius: 999px;
+}
+
+.season-zero-slider__input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 0 rgba(8, 66, 90, 0.35);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    margin-top: -6px;
+}
+
+.season-zero-slider__input:hover::-webkit-slider-thumb,
+.season-zero-slider__input:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 6px rgba(8, 66, 90, 0.2);
+    transform: scale(1.05);
+}
+
+.season-zero-slider__input::-moz-range-track {
+    height: 6px;
+    background: #d6dce1;
+    border-radius: 999px;
+}
+
+.season-zero-slider__input::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 0 rgba(8, 66, 90, 0.35);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.season-zero-slider__input:hover::-moz-range-thumb,
+.season-zero-slider__input:focus-visible::-moz-range-thumb {
+    box-shadow: 0 0 0 6px rgba(8, 66, 90, 0.2);
+    transform: scale(1.05);
 }
 
 .season-zero-slider__labels {
