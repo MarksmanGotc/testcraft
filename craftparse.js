@@ -105,12 +105,11 @@ function getSeasonZeroBiasSettings(preference) {
 
     if (normalized === 3) {
         return {
-            availabilityWeightMultiplier: 2,
-            scarcityPenaltyMultiplier: 0.6,
-          //  leftoverWeight: Math.max(1, LEFTOVER_WEIGHT_BASE - 3),
-			leftoverWeight: LEFTOVER_WEIGHT_BASE,
-            baseScoreBonus: 60,
-            gearScoreBonus: -12
+            availabilityWeightMultiplier: 2.35,
+            scarcityPenaltyMultiplier: 0.45,
+            leftoverWeight: Math.max(1, LEFTOVER_WEIGHT_BASE - 4),
+            baseScoreBonus: 70,
+            gearScoreBonus: -18
         };
     }
 
