@@ -34,7 +34,7 @@ const seasonZeroValueText = {
     [SeasonZeroPreference.HIGH]: 'High weighting'
 };
 const SEASON_ZERO_LOW_PENALTY = 3;
-const SEASON_ZERO_HIGH_BONUS = 5;
+const SEASON_ZERO_HIGH_BONUS = 7;
 const SEASON_ZERO_HIGH_NON_SEASON_PENALTY = 2;
 let currentSeasonZeroPreference = SeasonZeroPreference.NORMAL;
 const qualityColorMap = {
@@ -398,6 +398,19 @@ document.addEventListener('DOMContentLoaded', function() {
     gearPopup?.addEventListener('click', (e) => {
         if (e.target === gearPopup || e.target.closest('.close-popup')) {
             gearPopup.style.display = 'none';
+        }
+    });
+
+    const seasonZeroBtn = document.getElementById('seasonZeroInfoBtn');
+    const seasonZeroPopup = document.getElementById('seasonZeroInfoPopup');
+    seasonZeroBtn?.addEventListener('click', () => {
+        if (seasonZeroPopup) {
+            seasonZeroPopup.style.display = 'flex';
+        }
+    });
+    seasonZeroPopup?.addEventListener('click', (e) => {
+        if (e.target === seasonZeroPopup || e.target.closest('.close-popup')) {
+            seasonZeroPopup.style.display = 'none';
         }
     });
 
@@ -1856,7 +1869,7 @@ function initAdvMaterialSection() {
     select.multiple = true;
     select.style.display = 'none';
 
-    const defaultGearLevels = [25, 40, 45];
+    const defaultGearLevels = [20, 25, 30, 35, 40, 45];
     [5,10,15,20,25,30,35,40,45].forEach(l => {
         const optionDiv = document.createElement('div');
         optionDiv.dataset.value = l;
@@ -1889,4 +1902,9 @@ function initAdvMaterialSection() {
     levelWrap.appendChild(dropdown);
     levelWrap.appendChild(select);
     container.appendChild(levelWrap);
+
+    const seasonZeroSection = document.querySelector('.season-zero-section');
+    if (seasonZeroSection) {
+        container.appendChild(seasonZeroSection);
+    }
 }
