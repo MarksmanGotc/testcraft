@@ -15,9 +15,11 @@ Object.values(materials).forEach(season => {
 let qualityMultipliers = {};
 const WARLORD_PENALTY = 3;
 const BASE_MOST_WEIGHT = 12;
-const BASE_SECOND_WEIGHT = 6;
+const BASE_SECOND_WEIGHT = 9;
+const BASE_THIRD_WEIGHT = 6;
 const GEAR_MOST_WEIGHT = 6;
-const GEAR_SECOND_WEIGHT = 3;
+const GEAR_SECOND_WEIGHT = 4;
+const GEAR_THIRD_WEIGHT = 2;
 const LEFTOVER_WEIGHT_BASE = 7;
 const LEFTOVER_WEIGHT_GEAR = 3;
 const BALANCE_WEIGHT = 0.1;
@@ -127,10 +129,7 @@ function getSeasonZeroBiasSettings(preference) {
     }
 }
 
-function applySeasonZeroFilter(products, gearLevelActive, preference) {
-    if (!gearLevelActive) {
-        return products;
-    }
+function applySeasonZeroFilter(products, preference) {
     const normalizedPref = clampSeasonZeroPreference(preference);
     if (normalizedPref === 0) {
         return products.filter(product => product.season !== 0 || isCtwProduct(product));
@@ -1400,12 +1399,13 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                     if (p.odds === 'medium') return includeMediumOdds;
                     return true;
                 });
-                levelProducts = applySeasonZeroFilter(levelProducts, gearLevelActive, seasonZeroPreference);
+                levelProducts = applySeasonZeroFilter(levelProducts, seasonZeroPreference);
                 levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
                 const selected = selectBestAvailableProduct(
                     levelProducts,
                     prefs.mostAvailableMaterials,
                     prefs.secondMostAvailableMaterials,
+                    prefs.thirdMostAvailableMaterials,
                     prefs.leastAvailableMaterials,
                     availableMaterials,
                     multiplier,
@@ -1461,7 +1461,7 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
             if (p.odds === 'medium') return includeMediumOdds || (ctwMediumNotice && p.warlord && p.level === 20);
             return true;
         });
-        levelProducts = applySeasonZeroFilter(levelProducts, gearLevelActive, seasonZeroPreference);
+        levelProducts = applySeasonZeroFilter(levelProducts, seasonZeroPreference);
         levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
         if (levelProducts.length === 0) {
             failed.add(level);
@@ -1503,12 +1503,13 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                 if (p.odds === 'medium') return includeMediumOdds || (ctwMediumNotice && p.warlord && p.level === 20);
                 return true;
             });
-            levelProducts = applySeasonZeroFilter(levelProducts, gearLevelActive, seasonZeroPreference);
+            levelProducts = applySeasonZeroFilter(levelProducts, seasonZeroPreference);
             levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
             const selectedProduct = selectBestAvailableProduct(
                 levelProducts,
                 preferences.mostAvailableMaterials,
                 preferences.secondMostAvailableMaterials,
+                preferences.thirdMostAvailableMaterials,
                 preferences.leastAvailableMaterials,
                 availableMaterials,
                 multiplier,
@@ -1569,51 +1570,83 @@ function updateAvailableMaterials(availableMaterials, selectedProduct, multiplie
 
 
 function getUserPreferences(availableMaterials) {
-	let sortedMaterials = Object.entries(availableMaterials).sort((a, b) => b[1] - a[1]);
-    let uniqueAmounts = [...new Set(sortedMaterials.map(([_, amount]) => amount))];
-
-    let mostAvailableMaterials = [], secondMostAvailableMaterials = [], leastAvailableMaterials = [];
-
-    // Määritä materiaalit, joita on eniten
-    let maxAmount = uniqueAmounts[0];
-    mostAvailableMaterials = sortedMaterials.filter(([_, amount]) => amount === maxAmount).map(([material, _]) => material);
-
-    if (mostAvailableMaterials.length < 4) {
-        let nextAmountIndex = 1;
-        while (secondMostAvailableMaterials.length < 4 - mostAvailableMaterials.length && nextAmountIndex < uniqueAmounts.length) {
-            let currentAmount = uniqueAmounts[nextAmountIndex];
-            let currentMaterials = sortedMaterials.filter(([_, amount]) => amount === currentAmount).map(([material, _]) => material);
-            secondMostAvailableMaterials.push(...currentMaterials);
-            nextAmountIndex++;
+    const sortedMaterials = Object.entries(availableMaterials).sort((a, b) => b[1] - a[1]);
+    const amountGroups = new Map();
+    sortedMaterials.forEach(([material, amount]) => {
+        if (!amountGroups.has(amount)) {
+            amountGroups.set(amount, []);
         }
-        secondMostAvailableMaterials = secondMostAvailableMaterials.slice(0, 4 - mostAvailableMaterials.length);
-    }
+        amountGroups.get(amount).push(material);
+    });
 
-    // Määritä materiaalit, joita on vähiten, huomioiden most ja second
-    if (mostAvailableMaterials.length + secondMostAvailableMaterials.length < 12) {
-        let leastAmountsNeeded = 4;
-        if (mostAvailableMaterials.length + secondMostAvailableMaterials.length > 8) {
-            leastAmountsNeeded = 12 - (mostAvailableMaterials.length + secondMostAvailableMaterials.length);
+    const uniqueAmounts = [...amountGroups.keys()];
+    const mostAvailableMaterials = [];
+    const secondMostAvailableMaterials = [];
+    const thirdMostAvailableMaterials = [];
+    const leastAvailableMaterials = [];
+    const tierKeys = [mostAvailableMaterials, secondMostAvailableMaterials, thirdMostAvailableMaterials];
+    const tierTargets = [4, 4, 4];
+    let tierIndex = 0;
+    const assigned = new Set();
+
+    uniqueAmounts.forEach(amount => {
+        const group = amountGroups.get(amount).filter(material => !assigned.has(material));
+        if (group.length === 0 || tierIndex >= tierKeys.length) {
+            return;
         }
 
-        let leastIndexStart = uniqueAmounts.length - leastAmountsNeeded;
-        for (let i = leastIndexStart; i < uniqueAmounts.length; i++) {
-            let currentAmount = uniqueAmounts[i];
-            leastAvailableMaterials.push(...sortedMaterials.filter(([_, amount]) => amount === currentAmount).map(([material, _]) => material));
+        while (tierIndex < tierKeys.length && tierKeys[tierIndex].length >= tierTargets[tierIndex]) {
+            tierIndex++;
         }
-        leastAvailableMaterials = leastAvailableMaterials.slice(0, leastAmountsNeeded);
-    }
 
-    return { mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials };
+        if (tierIndex >= tierKeys.length) {
+            return;
+        }
+
+        const targetTier = tierKeys[tierIndex];
+        targetTier.push(...group);
+        group.forEach(material => assigned.add(material));
+        if (targetTier.length > tierTargets[tierIndex]) {
+            tierTargets[tierIndex] = targetTier.length;
+        }
+    });
+
+    let leastTarget = 4;
+    let leastThresholdReached = false;
+    const ascendingAmounts = [...uniqueAmounts].reverse();
+    ascendingAmounts.forEach(amount => {
+        if (leastThresholdReached) {
+            return;
+        }
+        const group = amountGroups
+            .get(amount)
+            .filter(material => !assigned.has(material));
+
+        if (group.length === 0) {
+            return;
+        }
+
+        leastAvailableMaterials.push(...group);
+        group.forEach(material => assigned.add(material));
+
+        if (leastAvailableMaterials.length >= leastTarget) {
+            leastTarget = leastAvailableMaterials.length;
+            leastThresholdReached = true;
+        }
+    });
+
+    return { mostAvailableMaterials, secondMostAvailableMaterials, thirdMostAvailableMaterials, leastAvailableMaterials };
 }
 
-function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1, options = {}) {
+function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secondMostAvailableMaterials, thirdMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1, options = {}) {
     const normalizedPreference = clampSeasonZeroPreference(options.seasonZeroPreference ?? SEASON_ZERO_PREFERENCE_DEFAULT);
     const gearLevelActive = Boolean(options.gearLevelActive);
     const hasGearMaterials = options.hasGearMaterials ?? gearLevelActive;
+    const applySeasonZeroBias = (gearLevelActive && hasGearMaterials) || normalizedPreference !== SEASON_ZERO_PREFERENCE_DEFAULT;
     const scoreOptions = {
         gearLevelActive: gearLevelActive && hasGearMaterials,
-        seasonZeroPreference: normalizedPreference
+        seasonZeroPreference: normalizedPreference,
+        applySeasonZeroBias
     };
 
     // Järjestä tuotteet pisteiden mukaan
@@ -1624,6 +1657,7 @@ function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secon
                 product,
                 mostAvailableMaterials,
                 secondMostAvailableMaterials,
+                thirdMostAvailableMaterials,
                 leastAvailableMaterials,
                 availableMaterials,
                 multiplier,
@@ -1689,10 +1723,9 @@ function computeBalancePenalty(product, availableMaterials, multiplier = 1) {
     return computeBaseUsageStd(predicted);
 }
 
-function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1, options = {}) {
-    const gearLevelActive = Boolean(options.gearLevelActive);
+function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, thirdMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1, options = {}) {
     const normalizedPreference = clampSeasonZeroPreference(options.seasonZeroPreference ?? SEASON_ZERO_PREFERENCE_DEFAULT);
-    const applyBias = gearLevelActive;
+    const applyBias = Boolean(options.applySeasonZeroBias);
     const biasSettings = applyBias ? getSeasonZeroBiasSettings(normalizedPreference) : null;
     const isCtw = isCtwProduct(product);
     const isSeasonZeroProduct = product.season === 0 && !isCtw;
@@ -1711,6 +1744,13 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
         }
         if (secondMostAvailableMaterials.includes(material)) {
             let weight = isGear ? GEAR_SECOND_WEIGHT : BASE_SECOND_WEIGHT;
+            if (!isGear && adjustSeasonZeroMaterial) {
+                weight *= biasSettings.availabilityWeightMultiplier;
+            }
+            score += weight;
+        }
+        if (thirdMostAvailableMaterials.includes(material)) {
+            let weight = isGear ? GEAR_THIRD_WEIGHT : BASE_THIRD_WEIGHT;
             if (!isGear && adjustSeasonZeroMaterial) {
                 weight *= biasSettings.availabilityWeightMultiplier;
             }
@@ -1739,7 +1779,10 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
             const available = availableMaterials[matchedKey];
             const remaining = available - amount * multiplier;
             if (available > 0) {
-                score -= (remaining / available) * weight;
+                const consumptionRatio = Math.max(0, 1 - (remaining / available));
+                score -= consumptionRatio * weight;
+            } else {
+                score -= weight * 2;
             }
         }
     });
