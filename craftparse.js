@@ -1661,9 +1661,8 @@ function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secon
         applySeasonZeroBias
     };
 
-    const candidateScores = levelProducts.map(product => ({
-        product,
-        score: getMaterialScore(
+    const candidateScores = levelProducts.map(product => {
+        const rawScore = getMaterialScore(
             product,
             mostAvailableMaterials,
             secondMostAvailableMaterials,
@@ -1672,8 +1671,13 @@ function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secon
             availableMaterials,
             multiplier,
             scoreOptions
-        )
-    }));
+        );
+
+        const score = Number.isFinite(rawScore) ? rawScore : Number.NEGATIVE_INFINITY;
+        const producible = canProductBeProduced(product, availableMaterials, multiplier);
+
+        return { product, score, producible };
+    });
 
     const seasonZeroMaterialSummaries = Object.entries(availableMaterials)
         .map(([material, amount]) => {
@@ -1722,22 +1726,45 @@ function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secon
     const seasonZeroCandidates = candidateScores.filter(({ product }) => product.season === 0);
     if (seasonZeroCandidates.length > 0) {
         console.log(`${logPrefix} Season 0 candidate scores:`);
-        seasonZeroCandidates.forEach(({ product, score }) => {
-            console.log(`${logPrefix}  - ${product.name}: ${score.toFixed(2)}`);
+        seasonZeroCandidates.forEach(({ product, score, producible }) => {
+            const scoreLabel = Number.isFinite(score) ? score.toFixed(2) : 'N/A';
+            console.log(`${logPrefix}  - ${product.name}: ${scoreLabel}${producible ? '' : ' (insufficient materials)'}`);
         });
     } else {
         console.log(`${logPrefix} No Season 0 candidate products available`);
     }
 
-    const candidates = [...candidateScores].sort((a, b) => b.score - a.score);
+    const sortedCandidates = [...candidateScores].sort((a, b) => b.score - a.score);
 
-    // Etsi ensimmäinen tuote, jonka materiaalit riittävät
-    for (const { product } of candidates) {
-        if (canProductBeProduced(product, availableMaterials, multiplier)) {
-            const selectedScore = candidateScores.find(entry => entry.product === product)?.score;
-            console.log(`${logPrefix} Selected product: ${product.name} (Season ${product.season}) score ${selectedScore !== undefined ? selectedScore.toFixed(2) : 'N/A'}`);
-            return product;
-        }
+    console.log(`${logPrefix} Candidate scoreboard:`);
+    if (sortedCandidates.length === 0) {
+        console.log(`${logPrefix}  - No candidates available`);
+    } else {
+        sortedCandidates.forEach(({ product, score, producible }, index) => {
+            const scoreLabel = Number.isFinite(score) ? score.toFixed(2) : 'N/A';
+            const availability = producible ? '✅ producible' : '❌ insufficient materials';
+            console.log(`${logPrefix}  ${index + 1}. ${product.name} (Season ${product.season}) -> ${scoreLabel} | ${availability}`);
+        });
+    }
+
+    const bestCandidate = sortedCandidates.find(candidate => candidate.producible && Number.isFinite(candidate.score));
+    if (bestCandidate) {
+        const scoreLabel = bestCandidate.score.toFixed(2);
+        console.log(`${logPrefix} Selected product: ${bestCandidate.product.name} (Season ${bestCandidate.product.season}) score ${scoreLabel}`);
+        return bestCandidate.product;
+    }
+
+    const fallbackCandidate = sortedCandidates.find(candidate => candidate.producible);
+    if (fallbackCandidate) {
+        const scoreLabel = Number.isFinite(fallbackCandidate.score) ? fallbackCandidate.score.toFixed(2) : 'N/A';
+        console.log(`${logPrefix} Selected fallback product due to invalid scores: ${fallbackCandidate.product.name} (Season ${fallbackCandidate.product.season}) score ${scoreLabel}`);
+        return fallbackCandidate.product;
+    }
+
+    const highestScoring = sortedCandidates[0];
+    if (highestScoring && !highestScoring.producible) {
+        const scoreLabel = Number.isFinite(highestScoring.score) ? highestScoring.score.toFixed(2) : 'N/A';
+        console.log(`${logPrefix} Highest scoring product (${highestScoring.product.name}) not selected: ${scoreLabel} but materials missing.`);
     }
 
     console.log(`${logPrefix} No producible product found`);
