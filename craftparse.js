@@ -27,8 +27,6 @@ const SEASON_ZERO_PREFERENCE_DEFAULT = 2;
 const SEASON_ZERO_MIN = 0;
 const SEASON_ZERO_MAX = 3;
 const SEASON_ZERO_STRONG_QUOTA_RATIO = 0.3;
-const SEASON_ZERO_STRONG_SCORE_BONUS = BASE_MOST_WEIGHT;
-const SEASON_ZERO_LOW_SCORE_PENALTY = 6;
 const qualityColorMap = {
     poor: '#A9A9A9',
     common: '#32CD32',
@@ -94,28 +92,55 @@ function isCtwProduct(product) {
     return product?.setName === 'Ceremonial Targaryen Warlord';
 }
 
-function getSeasonZeroScoringConfig(preference, { forceSeasonZeroStage } = {}) {
+function getSeasonZeroBiasSettings(preference) {
     const normalized = clampSeasonZeroPreference(preference);
-    if (normalized === 1) {
+    if (normalized === 2) {
         return {
-            mode: 'penalty',
-            bonus: 0,
-            penalty: SEASON_ZERO_LOW_SCORE_PENALTY
+            availabilityWeightMultiplier: 1,
+            scarcityPenaltyMultiplier: 1,
+            leftoverWeight: LEFTOVER_WEIGHT_BASE,
+            baseScoreBonus: 0,
+            gearScoreBonus: 0
         };
     }
 
     if (normalized === 3) {
-        if (forceSeasonZeroStage) {
-            return { mode: 'none', bonus: 0, penalty: 0 };
-        }
         return {
-            mode: 'bonus',
-            bonus: SEASON_ZERO_STRONG_SCORE_BONUS,
-            penalty: 0
+            availabilityWeightMultiplier: 2.8,
+            scarcityPenaltyMultiplier: 0.35,
+            leftoverWeight: Math.max(1, LEFTOVER_WEIGHT_BASE - 6),
+            baseScoreBonus: 120,
+            gearScoreBonus: -45
         };
     }
 
-    return { mode: 'none', bonus: 0, penalty: 0 };
+    if (normalized === 1) {
+        return {
+            availabilityWeightMultiplier: 0.7,
+            scarcityPenaltyMultiplier: 2,
+            leftoverWeight: LEFTOVER_WEIGHT_BASE + 4,
+            baseScoreBonus: -25,
+            gearScoreBonus: 10
+        };
+    }
+
+    // Preference 0 removes Season 0 items earlier in the flow, but keep
+    // a strong deprioritisation profile for any edge cases that reach the
+    // scoring stage.
+    return {
+        availabilityWeightMultiplier: 0.6,
+        scarcityPenaltyMultiplier: 1.75,
+        leftoverWeight: LEFTOVER_WEIGHT_BASE + 5,
+        baseScoreBonus: -35,
+        gearScoreBonus: 12
+    };
+}
+
+function getSeasonZeroScoringConfig(preference) {
+    const normalized = clampSeasonZeroPreference(preference);
+    return {
+        preference: normalized
+    };
 }
 
 function applySeasonZeroFilter(products, preference) {
@@ -1474,7 +1499,7 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                     }
                 }
                 levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
-                const scoringConfig = getSeasonZeroScoringConfig(seasonZeroPreference, { forceSeasonZeroStage: forceSeasonZeroOnly });
+                const scoringConfig = getSeasonZeroScoringConfig(seasonZeroPreference);
                 const selected = selectBestAvailableProduct(
                     levelProducts,
                     prefs.mostAvailableMaterials,
@@ -1487,9 +1512,7 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                         gearLevelActive,
                         hasGearMaterials,
                         level,
-                        seasonZeroScoringMode: scoringConfig.mode,
-                        seasonZeroBonusValue: scoringConfig.bonus,
-                        seasonZeroPenaltyValue: scoringConfig.penalty,
+                        seasonZeroPreference: scoringConfig.preference,
                         forceSeasonZeroOnly
                     }
                 );
@@ -1625,7 +1648,7 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                 }
             }
             levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
-            const scoringConfig = getSeasonZeroScoringConfig(seasonZeroPreference, { forceSeasonZeroStage: forceSeasonZeroOnly });
+            const scoringConfig = getSeasonZeroScoringConfig(seasonZeroPreference);
             const selectedProduct = selectBestAvailableProduct(
                 levelProducts,
                 preferences.mostAvailableMaterials,
@@ -1638,9 +1661,7 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                     gearLevelActive,
                     hasGearMaterials,
                     level,
-                    seasonZeroScoringMode: scoringConfig.mode,
-                    seasonZeroBonusValue: scoringConfig.bonus,
-                    seasonZeroPenaltyValue: scoringConfig.penalty,
+                    seasonZeroPreference: scoringConfig.preference,
                     forceSeasonZeroOnly
                 }
             );
@@ -1774,16 +1795,15 @@ function getUserPreferences(availableMaterials) {
 function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secondMostAvailableMaterials, thirdMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1, options = {}) {
     const gearLevelActive = Boolean(options.gearLevelActive);
     const hasGearMaterials = options.hasGearMaterials ?? gearLevelActive;
-    const seasonZeroScoringMode = options.seasonZeroScoringMode || 'none';
-    const seasonZeroBonusValue = options.seasonZeroBonusValue ?? 0;
-    const seasonZeroPenaltyValue = options.seasonZeroPenaltyValue ?? 0;
+    const normalizedPreference = clampSeasonZeroPreference(options.seasonZeroPreference ?? SEASON_ZERO_PREFERENCE_DEFAULT);
+    const applySeasonZeroBias = (gearLevelActive && hasGearMaterials) || normalizedPreference !== SEASON_ZERO_PREFERENCE_DEFAULT;
+    const biasSettings = applySeasonZeroBias ? getSeasonZeroBiasSettings(normalizedPreference) : null;
     const forceSeasonZeroOnly = Boolean(options.forceSeasonZeroOnly);
     const levelLabel = options.level ?? '?';
     const logPrefix = `[Season0 Debug][Level ${levelLabel}]`;
     const scoreOptions = {
-        seasonZeroScoringMode,
-        seasonZeroBonusValue,
-        seasonZeroPenaltyValue
+        seasonZeroPreference: normalizedPreference,
+        applySeasonZeroBias
     };
 
     const candidateScores = levelProducts.map(product => {
@@ -1850,10 +1870,8 @@ function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secon
     if (forceSeasonZeroOnly) {
         console.log(`${logPrefix} Force Season 0 quota active: selecting only Season 0 items until quota met.`);
     }
-    if (seasonZeroScoringMode === 'bonus' && seasonZeroBonusValue) {
-        console.log(`${logPrefix} Season 0 scoring bonus active: +${seasonZeroBonusValue} to Season 0 products.`);
-    } else if (seasonZeroScoringMode === 'penalty' && seasonZeroPenaltyValue) {
-        console.log(`${logPrefix} Season 0 scoring penalty active: -${seasonZeroPenaltyValue} to Season 0 products.`);
+    if (biasSettings) {
+        console.log(`${logPrefix} Bias settings -> availability x${biasSettings.availabilityWeightMultiplier}, scarcity x${biasSettings.scarcityPenaltyMultiplier}, leftover weight ${biasSettings.leftoverWeight}, base bonus ${biasSettings.baseScoreBonus}, gear bonus ${biasSettings.gearScoreBonus}`);
     }
 
     const seasonZeroCandidates = candidateScores.filter(({ product }) => product.season === 0);
@@ -2003,9 +2021,9 @@ function computeBalancePenalty(product, availableMaterials, multiplier = 1) {
 }
 
 function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, thirdMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1, options = {}) {
-    const seasonZeroScoringMode = options.seasonZeroScoringMode || 'none';
-    const seasonZeroBonusValue = options.seasonZeroBonusValue ?? 0;
-    const seasonZeroPenaltyValue = options.seasonZeroPenaltyValue ?? 0;
+    const normalizedPreference = clampSeasonZeroPreference(options.seasonZeroPreference ?? SEASON_ZERO_PREFERENCE_DEFAULT);
+    const applyBias = Boolean(options.applySeasonZeroBias);
+    const biasSettings = applyBias ? getSeasonZeroBiasSettings(normalizedPreference) : null;
     const isCtw = isCtwProduct(product);
     const isSeasonZeroProduct = product.season === 0 && !isCtw;
     const includeBreakdown = Boolean(options.returnBreakdown);
@@ -2022,23 +2040,34 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
     Object.entries(product.materials).forEach(([material, _]) => {
         const season = materialToSeason[material] || 0;
         const isGear = season !== 0;
+        const adjustSeasonZeroMaterial = biasSettings && isSeasonZeroProduct && season === 0;
         if (mostAvailableMaterials.includes(material)) {
-            const weight = isGear ? GEAR_MOST_WEIGHT : BASE_MOST_WEIGHT;
+            let weight = isGear ? GEAR_MOST_WEIGHT : BASE_MOST_WEIGHT;
+            if (!isGear && adjustSeasonZeroMaterial) {
+                weight *= biasSettings.availabilityWeightMultiplier;
+            }
             score += weight;
             breakdown.availabilityBonus += weight;
         }
         if (secondMostAvailableMaterials.includes(material)) {
-            const weight = isGear ? GEAR_SECOND_WEIGHT : BASE_SECOND_WEIGHT;
+            let weight = isGear ? GEAR_SECOND_WEIGHT : BASE_SECOND_WEIGHT;
+            if (!isGear && adjustSeasonZeroMaterial) {
+                weight *= biasSettings.availabilityWeightMultiplier;
+            }
             score += weight;
             breakdown.availabilityBonus += weight;
         }
         if (thirdMostAvailableMaterials.includes(material)) {
-            const weight = isGear ? GEAR_THIRD_WEIGHT : BASE_THIRD_WEIGHT;
+            let weight = isGear ? GEAR_THIRD_WEIGHT : BASE_THIRD_WEIGHT;
+            if (!isGear && adjustSeasonZeroMaterial) {
+                weight *= biasSettings.availabilityWeightMultiplier;
+            }
             score += weight;
             breakdown.availabilityBonus += weight;
         }
         if (leastAvailableMaterials.includes(material)) {
-            const penalty = 10;
+            const penaltyMultiplier = adjustSeasonZeroMaterial ? biasSettings.scarcityPenaltyMultiplier : 1;
+            const penalty = 10 * penaltyMultiplier;
             score -= penalty;
             breakdown.scarcityPenalty -= penalty;
         }
@@ -2055,7 +2084,10 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
         );
         if (matchedKey) {
             const season = materialToSeason[normalizedMaterial] || 0;
-            const weight = season === 0 ? LEFTOVER_WEIGHT_BASE : LEFTOVER_WEIGHT_GEAR;
+            const adjustSeasonZeroMaterial = biasSettings && isSeasonZeroProduct && season === 0;
+            const weight = season === 0
+                ? (adjustSeasonZeroMaterial ? biasSettings.leftoverWeight : LEFTOVER_WEIGHT_BASE)
+                : LEFTOVER_WEIGHT_GEAR;
             const available = availableMaterials[matchedKey];
             const remaining = available - amount * multiplier;
             if (available > 0) {
@@ -2071,13 +2103,13 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
         }
     });
 
-    if (isSeasonZeroProduct) {
-        if (seasonZeroScoringMode === 'bonus' && seasonZeroBonusValue) {
-            score += seasonZeroBonusValue;
-            breakdown.biasAdjustment += seasonZeroBonusValue;
-        } else if (seasonZeroScoringMode === 'penalty' && seasonZeroPenaltyValue) {
-            score -= seasonZeroPenaltyValue;
-            breakdown.biasAdjustment -= seasonZeroPenaltyValue;
+    if (biasSettings) {
+        if (isSeasonZeroProduct) {
+            score += biasSettings.baseScoreBonus;
+            breakdown.biasAdjustment += biasSettings.baseScoreBonus;
+        } else if (product.season !== 0) {
+            score += biasSettings.gearScoreBonus;
+            breakdown.biasAdjustment += biasSettings.gearScoreBonus;
         }
     }
 
