@@ -15,18 +15,12 @@ Object.values(materials).forEach(season => {
 let qualityMultipliers = {};
 const WARLORD_PENALTY = 3;
 const BASE_MOST_WEIGHT = 12;
-const BASE_SECOND_WEIGHT = 9;
-const BASE_THIRD_WEIGHT = 6;
+const BASE_SECOND_WEIGHT = 6;
 const GEAR_MOST_WEIGHT = 6;
-const GEAR_SECOND_WEIGHT = 4;
-const GEAR_THIRD_WEIGHT = 2;
+const GEAR_SECOND_WEIGHT = 3;
 const LEFTOVER_WEIGHT_BASE = 7;
 const LEFTOVER_WEIGHT_GEAR = 3;
 const BALANCE_WEIGHT = 0.1;
-const SEASON_ZERO_PREFERENCE_DEFAULT = 2;
-const SEASON_ZERO_MIN = 0;
-const SEASON_ZERO_MAX = 3;
-const SEASON_ZERO_STRONG_QUOTA_RATIO = 0.3;
 const qualityColorMap = {
     poor: '#A9A9A9',
     common: '#32CD32',
@@ -39,117 +33,9 @@ let qualitySelectHandlersAttached = false;
 let failedLevels = [];
 let requestedTemplates = {};
 let remainingUse = {};
-let ctwMediumFallbackLevels = new Set();
-let lowOddsFallbackLevels = new Set();
+let ctwMediumNotice = false;
+let lowOddsNotice = false;
 let level20OnlyWarlordsActive = false;
-let seasonZeroPreferenceValue = SEASON_ZERO_PREFERENCE_DEFAULT;
-
-function clampSeasonZeroPreference(value) {
-    const parsed = parseInt(value, 10);
-    if (isNaN(parsed)) {
-        return SEASON_ZERO_PREFERENCE_DEFAULT;
-    }
-    return Math.min(SEASON_ZERO_MAX, Math.max(SEASON_ZERO_MIN, parsed));
-}
-
-function describeSeasonZeroPreference(value) {
-    switch (value) {
-        case 0:
-            return 'Season 0 removed';
-        case 1:
-            return 'Deprioritize';
-        case 2:
-            return 'Neutral';
-        case 3:
-            return 'Prioritize';
-        default:
-            return 'Neutral weighting';
-    }
-}
-
-function setSeasonZeroPreferenceValue(value) {
-    seasonZeroPreferenceValue = clampSeasonZeroPreference(value);
-    const slider = document.getElementById('seasonZeroUsage');
-    const label = document.getElementById('seasonZeroUsageLabel');
-    const description = describeSeasonZeroPreference(seasonZeroPreferenceValue);
-    if (slider) {
-        if (slider.value !== seasonZeroPreferenceValue.toString()) {
-            slider.value = seasonZeroPreferenceValue.toString();
-        }
-        slider.setAttribute('aria-valuenow', seasonZeroPreferenceValue.toString());
-        slider.setAttribute('aria-valuetext', description);
-    }
-    if (label) {
-        label.textContent = description;
-    }
-}
-
-function getSeasonZeroPreferenceValue() {
-    return seasonZeroPreferenceValue;
-}
-
-function isCtwProduct(product) {
-    return product?.setName === 'Ceremonial Targaryen Warlord';
-}
-
-function getSeasonZeroBiasSettings(preference) {
-    const normalized = clampSeasonZeroPreference(preference);
-    if (normalized === 2) {
-        return {
-            availabilityWeightMultiplier: 1,
-            scarcityPenaltyMultiplier: 1,
-            leftoverWeight: LEFTOVER_WEIGHT_BASE,
-            baseScoreBonus: 0,
-            gearScoreBonus: 0
-        };
-    }
-
-    if (normalized === 3) {
-        return {
-            availabilityWeightMultiplier: 2.8,
-            scarcityPenaltyMultiplier: 0.35,
-            leftoverWeight: Math.max(1, LEFTOVER_WEIGHT_BASE - 6),
-            baseScoreBonus: 120,
-            gearScoreBonus: -45
-        };
-    }
-
-    if (normalized === 1) {
-        return {
-            availabilityWeightMultiplier: 0.7,
-            scarcityPenaltyMultiplier: 2,
-            leftoverWeight: LEFTOVER_WEIGHT_BASE + 4,
-            baseScoreBonus: -25,
-            gearScoreBonus: 10
-        };
-    }
-
-    // Preference 0 removes Season 0 items earlier in the flow, but keep
-    // a strong deprioritisation profile for any edge cases that reach the
-    // scoring stage.
-    return {
-        availabilityWeightMultiplier: 0.6,
-        scarcityPenaltyMultiplier: 1.75,
-        leftoverWeight: LEFTOVER_WEIGHT_BASE + 5,
-        baseScoreBonus: -35,
-        gearScoreBonus: 12
-    };
-}
-
-function getSeasonZeroScoringConfig(preference) {
-    const normalized = clampSeasonZeroPreference(preference);
-    return {
-        preference: normalized
-    };
-}
-
-function applySeasonZeroFilter(products, preference) {
-    const normalizedPref = clampSeasonZeroPreference(preference);
-    if (normalizedPref === 0) {
-        return products.filter(product => product.season !== 0 || isCtwProduct(product));
-    }
-    return products;
-}
 
 function slug(str) {
     return (str || '')
@@ -1001,13 +887,13 @@ function renderResults(templateCounts, materialCounts) {
                 itemsDiv.appendChild(levelHeader);
             }
 
-            if (lvl === 20 && ctwMediumFallbackLevels.has(lvl) && !level20OnlyWarlordsActive) {
+            if (lvl === 20 && ctwMediumNotice && !level20OnlyWarlordsActive) {
                 const extraInfo = document.createElement('p');
                 extraInfo.className = 'craft-extra-info';
                 extraInfo.textContent = "Medium odds items were used because otherwise no items would be generated. At level 20, Ceremonial Targaryen Warlord items are categorized as 'medium odds'.";
                 itemsDiv.appendChild(extraInfo);
             }
-            if (lvl === 20 && lowOddsFallbackLevels.has(lvl) && !level20OnlyWarlordsActive) {
+            if (lvl === 20 && lowOddsNotice && !level20OnlyWarlordsActive) {
                 const extraInfo = document.createElement('p');
                 extraInfo.className = 'craft-extra-info';
                 extraInfo.textContent = "Low odds items were used because otherwise no items would be generated.";
@@ -1368,64 +1254,6 @@ function shouldApplyOddsForProduct(product) {
     return false;
 }
 
-function applyOddsPreferences(levelProducts, options = {}) {
-    const {
-        includeLowOdds = true,
-        includeMediumOdds = true,
-        includeWarlords = true,
-        requireCtwOnly = false,
-        isLegendary = false,
-        level
-    } = options;
-
-    const filtered = levelProducts.filter(product => {
-        if (requireCtwOnly && product.setName === 'Ceremonial Targaryen Warlord') {
-            return true;
-        }
-
-        const applyOdds = !isLegendary && shouldApplyOddsForProduct(product);
-        if (!applyOdds) {
-            return true;
-        }
-
-        if (product.odds === 'low') {
-            return includeLowOdds;
-        }
-
-        if (product.odds === 'medium') {
-            return includeMediumOdds;
-        }
-
-        return true;
-    });
-
-    if (filtered.length > 0 || level !== 20 || isLegendary) {
-        return { products: filtered, usedLowFallback: false, usedMediumFallback: false };
-    }
-
-    let fallbackProducts = filtered;
-    let usedLowFallback = false;
-    let usedMediumFallback = false;
-
-    if (!includeMediumOdds && includeWarlords && !requireCtwOnly) {
-        const mediumFallback = levelProducts.filter(product => product.warlord && product.odds === 'medium');
-        if (mediumFallback.length > 0) {
-            fallbackProducts = mediumFallback;
-            usedMediumFallback = true;
-        }
-    }
-
-    if (!usedMediumFallback && !includeLowOdds && !includeWarlords) {
-        const lowFallback = levelProducts.filter(product => product.odds === 'low');
-        if (lowFallback.length > 0) {
-            fallbackProducts = lowFallback;
-            usedLowFallback = true;
-        }
-    }
-
-    return { products: fallbackProducts, usedLowFallback, usedMediumFallback };
-}
-
 function calculateProductionPlan(availableMaterials, templatesByLevel) {
     let productionPlan = { "1": [], "5": [], "10": [], "15": [], "20": [], "25": [], "30": [], "35": [], "40": [], "45": [] };
     const failed = new Set();
@@ -1436,22 +1264,13 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
     const includeMediumOdds = document.getElementById('includeMediumOdds')?.checked ?? true;
     const gearLevelSelect = document.getElementById('gearMaterialLevels');
     const allowedGearLevels = gearLevelSelect ? Array.from(gearLevelSelect.selectedOptions).map(o => parseInt(o.value, 10)) : [];
-    const allowedGearLevelsSet = new Set(allowedGearLevels);
     const hasGearMaterials = Object.keys(availableMaterials).some(
         key => (materialToSeason[key] || 0) !== 0
     );
-    const seasonZeroPreference = getSeasonZeroPreferenceValue();
-    const strongSeasonZeroPreference = seasonZeroPreference === 3;
-    const seasonZeroQuotaRemaining = {};
-    if (strongSeasonZeroPreference) {
-        LEVELS.forEach(level => {
-            const requested = templatesByLevel[level] || 0;
-            seasonZeroQuotaRemaining[level] = Math.ceil(requested * SEASON_ZERO_STRONG_QUOTA_RATIO);
-        });
-    }
+    const level20Allowed = hasGearMaterials && allowedGearLevels.includes(20);
     level20OnlyWarlordsActive = level20OnlyWarlords;
-    ctwMediumFallbackLevels = new Set();
-    lowOddsFallbackLevels = new Set();
+    ctwMediumNotice = includeWarlords && !includeMediumOdds && !level20Allowed && !level20OnlyWarlords;
+    lowOddsNotice = !includeWarlords && !includeMediumOdds && !includeLowOdds;
 
     const processNormalOddsLevel = (level) => {
         if (
@@ -1461,74 +1280,36 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
             !includeMediumOdds
         ) {
             let remaining = templatesByLevel[level];
-            const gearLevelActive = hasGearMaterials && allowedGearLevelsSet.has(level);
             const multiplier = qualityMultipliers[level] || 1;
             const isLegendary = multiplier >= 1024;
 
             while (remaining > 0) {
                 const prefs = getUserPreferences(availableMaterials);
                 let levelProducts = craftItem.products.filter(p => p.level === level && !p.warlord);
-                if (!allowedGearLevelsSet.has(level)) {
+                if (!allowedGearLevels.includes(level)) {
                     levelProducts = levelProducts.filter(p => p.season == 0);
                 }
-                const oddsResult = applyOddsPreferences(levelProducts, {
-                    includeLowOdds,
-                    includeMediumOdds,
-                    includeWarlords,
-                    isLegendary,
-                    level
+                levelProducts = levelProducts.filter(p => {
+                    const applyOdds = !isLegendary && shouldApplyOddsForProduct(p);
+                    if (!applyOdds) return true;
+                    if (p.odds === 'low') return includeLowOdds;
+                    if (p.odds === 'medium') return includeMediumOdds;
+                    return true;
                 });
-                levelProducts = oddsResult.products;
-                if (levelProducts.length > 0) {
-                    if (oddsResult.usedMediumFallback) {
-                        ctwMediumFallbackLevels.add(level);
-                    }
-                    if (oddsResult.usedLowFallback) {
-                        lowOddsFallbackLevels.add(level);
-                    }
-                }
-                levelProducts = applySeasonZeroFilter(levelProducts, seasonZeroPreference);
-                let forceSeasonZeroOnly = false;
-                if (strongSeasonZeroPreference && seasonZeroQuotaRemaining[level] > 0) {
-                    const seasonZeroOnly = levelProducts.filter(product => product.season === 0);
-                    if (seasonZeroOnly.length > 0) {
-                        levelProducts = seasonZeroOnly;
-                        forceSeasonZeroOnly = true;
-                    } else {
-                        seasonZeroQuotaRemaining[level] = 0;
-                    }
-                }
                 levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
-                const scoringConfig = getSeasonZeroScoringConfig(seasonZeroPreference);
                 const selected = selectBestAvailableProduct(
                     levelProducts,
                     prefs.mostAvailableMaterials,
                     prefs.secondMostAvailableMaterials,
-                    prefs.thirdMostAvailableMaterials,
                     prefs.leastAvailableMaterials,
                     availableMaterials,
-                    multiplier,
-                    {
-                        gearLevelActive,
-                        hasGearMaterials,
-                        level,
-                        seasonZeroPreference: scoringConfig.preference,
-                        forceSeasonZeroOnly
-                    }
+                    multiplier
                 );
-
-                if (!selected && forceSeasonZeroOnly) {
-                    seasonZeroQuotaRemaining[level] = 0;
-                    continue;
-                }
 
                 if (selected && canProductBeProduced(selected, availableMaterials, multiplier)) {
                     productionPlan[level].push({ name: selected.name, season: selected.season, setName: selected.setName, warlord: selected.warlord });
                     updateAvailableMaterials(availableMaterials, selected, multiplier);
                     remaining--;
-                    if (strongSeasonZeroPreference && selected.season === 0 && seasonZeroQuotaRemaining[level] > 0) {
-                        seasonZeroQuotaRemaining[level] = Math.max(0, seasonZeroQuotaRemaining[level] - 1);
-                    }
                 } else {
                     failed.add(level);
                     break;
@@ -1554,43 +1335,24 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
         if (level === 1 && level1OnlyWarlords) {
             levelProducts = craftItem.products.filter(p => p.level === 1 && p.warlord);
         }
-        const gearLevelActive = hasGearMaterials && allowedGearLevelsSet.has(level);
-        if (!allowedGearLevelsSet.has(level)) {
+        if (!allowedGearLevels.includes(level)) {
             levelProducts = levelProducts.filter(p => p.season == 0);
         }
         const multiplier = qualityMultipliers[level] || 1;
         const isLegendary = multiplier >= 1024;
-        const oddsResult = applyOddsPreferences(levelProducts, {
-            includeLowOdds,
-            includeMediumOdds,
-            includeWarlords,
-            requireCtwOnly,
-            isLegendary,
-            level
+        levelProducts = levelProducts.filter(p => {
+            if (requireCtwOnly && p.setName === 'Ceremonial Targaryen Warlord') {
+                return true;
+            }
+            const applyOdds = !isLegendary && shouldApplyOddsForProduct(p);
+            if (!applyOdds) return true;
+            if (p.odds === 'low') return includeLowOdds || (lowOddsNotice && p.level === 20);
+            if (p.odds === 'medium') return includeMediumOdds || (ctwMediumNotice && p.warlord && p.level === 20);
+            return true;
         });
-        levelProducts = oddsResult.products;
-        if (levelProducts.length > 0) {
-            if (oddsResult.usedMediumFallback) {
-                ctwMediumFallbackLevels.add(level);
-            }
-            if (oddsResult.usedLowFallback) {
-                lowOddsFallbackLevels.add(level);
-            }
-        }
-            levelProducts = applySeasonZeroFilter(levelProducts, seasonZeroPreference);
-            let forceSeasonZeroOnly = false;
-            if (strongSeasonZeroPreference && seasonZeroQuotaRemaining[level] > 0) {
-                const seasonZeroOnly = levelProducts.filter(product => product.season === 0);
-                if (seasonZeroOnly.length > 0) {
-                    levelProducts = seasonZeroOnly;
-                    forceSeasonZeroOnly = true;
-                } else {
-                    seasonZeroQuotaRemaining[level] = 0;
-                }
-            }
-            levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
-            if (levelProducts.length === 0) {
-                failed.add(level);
+        levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
+        if (levelProducts.length === 0) {
+            failed.add(level);
             templatesByLevel[level] = 0;
         }
     });
@@ -1613,72 +1375,36 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
             if (level === 1 && level1OnlyWarlords) {
                 levelProducts = craftItem.products.filter(p => p.level === 1 && p.warlord);
             }
-            const gearLevelActive = hasGearMaterials && allowedGearLevelsSet.has(level);
-            if (!allowedGearLevelsSet.has(level)) {
+            if (!allowedGearLevels.includes(level)) {
                 levelProducts = levelProducts.filter(p => p.season == 0);
             }
             const multiplier = qualityMultipliers[level] || 1;
             const isLegendary = multiplier >= 1024;
-            const oddsResult = applyOddsPreferences(levelProducts, {
-                includeLowOdds,
-                includeMediumOdds,
-                includeWarlords,
-                requireCtwOnly,
-                isLegendary,
-                level
+            levelProducts = levelProducts.filter(p => {
+                if (requireCtwOnly && p.setName === 'Ceremonial Targaryen Warlord') {
+                    return true;
+                }
+                const applyOdds = !isLegendary && shouldApplyOddsForProduct(p);
+                if (!applyOdds) return true;
+                if (p.odds === 'low') return includeLowOdds || (lowOddsNotice && p.level === 20);
+                if (p.odds === 'medium') return includeMediumOdds || (ctwMediumNotice && p.warlord && p.level === 20);
+                return true;
             });
-            levelProducts = oddsResult.products;
-            if (levelProducts.length > 0) {
-                if (oddsResult.usedMediumFallback) {
-                    ctwMediumFallbackLevels.add(level);
-                }
-                if (oddsResult.usedLowFallback) {
-                    lowOddsFallbackLevels.add(level);
-                }
-            }
-            levelProducts = applySeasonZeroFilter(levelProducts, seasonZeroPreference);
-            let forceSeasonZeroOnly = false;
-            if (strongSeasonZeroPreference && seasonZeroQuotaRemaining[level] > 0) {
-                const seasonZeroOnly = levelProducts.filter(product => product.season === 0);
-                if (seasonZeroOnly.length > 0) {
-                    levelProducts = seasonZeroOnly;
-                    forceSeasonZeroOnly = true;
-                } else {
-                    seasonZeroQuotaRemaining[level] = 0;
-                }
-            }
             levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
-            const scoringConfig = getSeasonZeroScoringConfig(seasonZeroPreference);
             const selectedProduct = selectBestAvailableProduct(
                 levelProducts,
                 preferences.mostAvailableMaterials,
                 preferences.secondMostAvailableMaterials,
-                preferences.thirdMostAvailableMaterials,
                 preferences.leastAvailableMaterials,
                 availableMaterials,
-                multiplier,
-                {
-                    gearLevelActive,
-                    hasGearMaterials,
-                    level,
-                    seasonZeroPreference: scoringConfig.preference,
-                    forceSeasonZeroOnly
-                }
+                multiplier
             );
-
-            if (!selectedProduct && forceSeasonZeroOnly) {
-                seasonZeroQuotaRemaining[level] = 0;
-                continue;
-            }
 
             if (selectedProduct && canProductBeProduced(selectedProduct, availableMaterials, multiplier)) {
                 productionPlan[level].push({ name: selectedProduct.name, season: selectedProduct.season, setName: selectedProduct.setName, warlord: selectedProduct.warlord });
                 updateAvailableMaterials(availableMaterials, selectedProduct, multiplier);
                 remaining[level]--;
                 anySelected = true;
-                if (strongSeasonZeroPreference && selectedProduct.season === 0 && seasonZeroQuotaRemaining[level] > 0) {
-                    seasonZeroQuotaRemaining[level] = Math.max(0, seasonZeroQuotaRemaining[level] - 1);
-                }
             } else {
                 failed.add(level);
                 remaining[level] = 0;
@@ -1724,217 +1450,60 @@ function updateAvailableMaterials(availableMaterials, selectedProduct, multiplie
 
 
 function getUserPreferences(availableMaterials) {
-    const sortedMaterials = Object.entries(availableMaterials).sort((a, b) => b[1] - a[1]);
-    const amountGroups = new Map();
-    sortedMaterials.forEach(([material, amount]) => {
-        if (!amountGroups.has(amount)) {
-            amountGroups.set(amount, []);
+	let sortedMaterials = Object.entries(availableMaterials).sort((a, b) => b[1] - a[1]);
+    let uniqueAmounts = [...new Set(sortedMaterials.map(([_, amount]) => amount))];
+
+    let mostAvailableMaterials = [], secondMostAvailableMaterials = [], leastAvailableMaterials = [];
+
+    // Määritä materiaalit, joita on eniten
+    let maxAmount = uniqueAmounts[0];
+    mostAvailableMaterials = sortedMaterials.filter(([_, amount]) => amount === maxAmount).map(([material, _]) => material);
+
+    if (mostAvailableMaterials.length < 4) {
+        let nextAmountIndex = 1;
+        while (secondMostAvailableMaterials.length < 4 - mostAvailableMaterials.length && nextAmountIndex < uniqueAmounts.length) {
+            let currentAmount = uniqueAmounts[nextAmountIndex];
+            let currentMaterials = sortedMaterials.filter(([_, amount]) => amount === currentAmount).map(([material, _]) => material);
+            secondMostAvailableMaterials.push(...currentMaterials);
+            nextAmountIndex++;
         }
-        amountGroups.get(amount).push(material);
-    });
+        secondMostAvailableMaterials = secondMostAvailableMaterials.slice(0, 4 - mostAvailableMaterials.length);
+    }
 
-    const uniqueAmounts = [...amountGroups.keys()];
-    const mostAvailableMaterials = [];
-    const secondMostAvailableMaterials = [];
-    const thirdMostAvailableMaterials = [];
-    const leastAvailableMaterials = [];
-    const tierKeys = [mostAvailableMaterials, secondMostAvailableMaterials, thirdMostAvailableMaterials];
-    const tierTargets = [4, 4, 4];
-    let tierIndex = 0;
-    const assigned = new Set();
-
-    uniqueAmounts.forEach(amount => {
-        const group = amountGroups.get(amount).filter(material => !assigned.has(material));
-        if (group.length === 0 || tierIndex >= tierKeys.length) {
-            return;
-        }
-
-        while (tierIndex < tierKeys.length && tierKeys[tierIndex].length >= tierTargets[tierIndex]) {
-            tierIndex++;
+    // Määritä materiaalit, joita on vähiten, huomioiden most ja second
+    if (mostAvailableMaterials.length + secondMostAvailableMaterials.length < 12) {
+        let leastAmountsNeeded = 4;
+        if (mostAvailableMaterials.length + secondMostAvailableMaterials.length > 8) {
+            leastAmountsNeeded = 12 - (mostAvailableMaterials.length + secondMostAvailableMaterials.length);
         }
 
-        if (tierIndex >= tierKeys.length) {
-            return;
+        let leastIndexStart = uniqueAmounts.length - leastAmountsNeeded;
+        for (let i = leastIndexStart; i < uniqueAmounts.length; i++) {
+            let currentAmount = uniqueAmounts[i];
+            leastAvailableMaterials.push(...sortedMaterials.filter(([_, amount]) => amount === currentAmount).map(([material, _]) => material));
         }
+        leastAvailableMaterials = leastAvailableMaterials.slice(0, leastAmountsNeeded);
+    }
 
-        const targetTier = tierKeys[tierIndex];
-        targetTier.push(...group);
-        group.forEach(material => assigned.add(material));
-        if (targetTier.length > tierTargets[tierIndex]) {
-            tierTargets[tierIndex] = targetTier.length;
-        }
-    });
-
-    let leastTarget = 4;
-    let leastThresholdReached = false;
-    const ascendingAmounts = [...uniqueAmounts].reverse();
-    ascendingAmounts.forEach(amount => {
-        if (leastThresholdReached) {
-            return;
-        }
-        const group = amountGroups
-            .get(amount)
-            .filter(material => !assigned.has(material));
-
-        if (group.length === 0) {
-            return;
-        }
-
-        leastAvailableMaterials.push(...group);
-        group.forEach(material => assigned.add(material));
-
-        if (leastAvailableMaterials.length >= leastTarget) {
-            leastTarget = leastAvailableMaterials.length;
-            leastThresholdReached = true;
-        }
-    });
-
-    return { mostAvailableMaterials, secondMostAvailableMaterials, thirdMostAvailableMaterials, leastAvailableMaterials };
+    return { mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials };
 }
 
-function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secondMostAvailableMaterials, thirdMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1, options = {}) {
-    const gearLevelActive = Boolean(options.gearLevelActive);
-    const hasGearMaterials = options.hasGearMaterials ?? gearLevelActive;
-    const normalizedPreference = clampSeasonZeroPreference(options.seasonZeroPreference ?? SEASON_ZERO_PREFERENCE_DEFAULT);
-    const applySeasonZeroBias = (gearLevelActive && hasGearMaterials) || normalizedPreference !== SEASON_ZERO_PREFERENCE_DEFAULT;
-    const biasSettings = applySeasonZeroBias ? getSeasonZeroBiasSettings(normalizedPreference) : null;
-    const forceSeasonZeroOnly = Boolean(options.forceSeasonZeroOnly);
-    const levelLabel = options.level ?? '?';
-    const logPrefix = `[Season0 Debug][Level ${levelLabel}]`;
-    const scoreOptions = {
-        seasonZeroPreference: normalizedPreference,
-        applySeasonZeroBias
-    };
-
-    const candidateScores = levelProducts.map(product => {
-        const rawScoreResult = getMaterialScore(
+function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1) {
+    // Järjestä tuotteet pisteiden mukaan
+    const candidates = levelProducts
+        .map(product => ({
             product,
-            mostAvailableMaterials,
-            secondMostAvailableMaterials,
-            thirdMostAvailableMaterials,
-            leastAvailableMaterials,
-            availableMaterials,
-            multiplier,
-            { ...scoreOptions, returnBreakdown: isDebugMode }
-        );
-        const hasBreakdown = rawScoreResult && typeof rawScoreResult === 'object' && 'score' in rawScoreResult;
-        const rawScore = hasBreakdown ? rawScoreResult.score : rawScoreResult;
-        const breakdown = hasBreakdown ? rawScoreResult.breakdown : null;
+            score: getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier)
+        }))
+        .sort((a, b) => b.score - a.score); // suurimmasta pienimpään
 
-        const score = Number.isFinite(rawScore) ? rawScore : Number.NEGATIVE_INFINITY;
-        const producible = canProductBeProduced(product, availableMaterials, multiplier);
-
-        return { product, score, producible, breakdown };
-    });
-
-    const seasonZeroMaterialSummaries = Object.entries(availableMaterials)
-        .map(([material, amount]) => {
-            const normalizedMaterial = material.toLowerCase().replace(/\s/g, '-');
-            const season = materialToSeason[material] ?? materialToSeason[normalizedMaterial] ?? 0;
-            if (season !== 0) {
-                return null;
-            }
-
-            const tierDetails = [];
-            if (mostAvailableMaterials.includes(material)) {
-                tierDetails.push(`most (+${BASE_MOST_WEIGHT})`);
-            }
-            if (secondMostAvailableMaterials.includes(material)) {
-                tierDetails.push(`second (+${BASE_SECOND_WEIGHT})`);
-            }
-            if (thirdMostAvailableMaterials.includes(material)) {
-                tierDetails.push(`third (+${BASE_THIRD_WEIGHT})`);
-            }
-            if (leastAvailableMaterials.includes(material)) {
-                tierDetails.push('least (-10)');
-            }
-
-            return {
-                material,
-                amount,
-                tierDetails
-            };
-        })
-        .filter(Boolean);
-
-    console.log(`${logPrefix} Basic material availability:`);
-    if (seasonZeroMaterialSummaries.length === 0) {
-        console.log(`${logPrefix}  - No Season 0 materials available`);
-    } else {
-        seasonZeroMaterialSummaries.forEach(({ material, amount, tierDetails }) => {
-            const tierText = tierDetails.length ? tierDetails.join(', ') : 'no availability bonus';
-            console.log(`${logPrefix}  - ${material}: ${amount} (tiers: ${tierText})`);
-        });
+    // Etsi ensimmäinen tuote, jonka materiaalit riittävät
+    for (const { product } of candidates) {
+        if (canProductBeProduced(product, availableMaterials, multiplier)) {
+            return product;
+        }
     }
 
-    if (forceSeasonZeroOnly) {
-        console.log(`${logPrefix} Force Season 0 quota active: selecting only Season 0 items until quota met.`);
-    }
-    if (biasSettings) {
-        console.log(`${logPrefix} Bias settings -> availability x${biasSettings.availabilityWeightMultiplier}, scarcity x${biasSettings.scarcityPenaltyMultiplier}, leftover weight ${biasSettings.leftoverWeight}, base bonus ${biasSettings.baseScoreBonus}, gear bonus ${biasSettings.gearScoreBonus}`);
-    }
-
-    const seasonZeroCandidates = candidateScores.filter(({ product }) => product.season === 0);
-    if (seasonZeroCandidates.length > 0) {
-        console.log(`${logPrefix} Season 0 candidate scores:`);
-        seasonZeroCandidates.forEach(({ product, score, producible }) => {
-            const scoreLabel = Number.isFinite(score) ? score.toFixed(2) : 'N/A';
-            console.log(`${logPrefix}  - ${product.name}: ${scoreLabel}${producible ? '' : ' (insufficient materials)'}`);
-        });
-    } else {
-        console.log(`${logPrefix} No Season 0 candidate products available`);
-    }
-
-    const sortedCandidates = [...candidateScores].sort((a, b) => b.score - a.score);
-
-    const formatScoreComponent = (label, value) => {
-        const prefix = value >= 0 ? '+' : '';
-        return `${label} ${prefix}${value.toFixed(2)}`;
-    };
-
-    console.log(`${logPrefix} Candidate scoreboard (higher scores indicate better matches):`);
-    if (sortedCandidates.length === 0) {
-        console.log(`${logPrefix}  - No candidates available`);
-    } else {
-        sortedCandidates.forEach(({ product, score, producible, breakdown }, index) => {
-            const scoreLabel = Number.isFinite(score) ? score.toFixed(2) : 'N/A';
-            const availability = producible ? '✅ producible' : '❌ insufficient materials';
-            console.log(`${logPrefix}  ${index + 1}. ${product.name} (Season ${product.season}) -> ${scoreLabel} | ${availability}`);
-            if (isDebugMode && breakdown) {
-                const parts = [
-                    formatScoreComponent('availability', breakdown.availabilityBonus),
-                    formatScoreComponent('scarcity', breakdown.scarcityPenalty),
-                    formatScoreComponent('leftover', breakdown.leftoverPenalty),
-                    formatScoreComponent('warlord', breakdown.warlordPenalty),
-                    formatScoreComponent('bias', breakdown.biasAdjustment),
-                    formatScoreComponent('balance', breakdown.balancePenalty)
-                ];
-                console.log(`${logPrefix}     Breakdown: ${parts.join(', ')} => total ${scoreLabel}`);
-            }
-        });
-    }
-
-    const bestCandidate = sortedCandidates.find(candidate => candidate.producible && Number.isFinite(candidate.score));
-    if (bestCandidate) {
-        const scoreLabel = bestCandidate.score.toFixed(2);
-        console.log(`${logPrefix} Selected product: ${bestCandidate.product.name} (Season ${bestCandidate.product.season}) score ${scoreLabel}`);
-        return bestCandidate.product;
-    }
-
-    const fallbackCandidate = sortedCandidates.find(candidate => candidate.producible);
-    if (fallbackCandidate) {
-        const scoreLabel = Number.isFinite(fallbackCandidate.score) ? fallbackCandidate.score.toFixed(2) : 'N/A';
-        console.log(`${logPrefix} Selected fallback product due to invalid scores: ${fallbackCandidate.product.name} (Season ${fallbackCandidate.product.season}) score ${scoreLabel}`);
-        return fallbackCandidate.product;
-    }
-
-    const highestScoring = sortedCandidates[0];
-    if (highestScoring && !highestScoring.producible) {
-        const scoreLabel = Number.isFinite(highestScoring.score) ? highestScoring.score.toFixed(2) : 'N/A';
-        console.log(`${logPrefix} Highest scoring product (${highestScoring.product.name}) not selected: ${scoreLabel} but materials missing.`);
-    }
-
-    console.log(`${logPrefix} No producible product found`);
     return null; // Mikään tuote ei kelpaa
 }
 
@@ -1952,57 +1521,23 @@ function rollbackMaterials(availableMaterials, product, multiplier = 1) {
     });
 }
 
-function parseNumericAmount(value) {
-    if (typeof value === 'number') {
-        return value;
-    }
-    if (typeof value === 'string') {
-        const cleaned = value.replace(/,/g, '');
-        const parsed = parseFloat(cleaned);
-        if (!isNaN(parsed)) {
-            return parsed;
-        }
-    }
-    return 0;
-}
-
 function computeBaseUsageStd(materialsState) {
-    const ratios = [];
-    const initialTotals = [];
-
-    Object.entries(initialMaterials).forEach(([material, initialAmount]) => {
+    const remaining = [];
+    Object.entries(initialMaterials).forEach(([material, _]) => {
         const normalized = material.toLowerCase().replace(/\s/g, '-');
-        const season = materialToSeason[material] ?? materialToSeason[normalized] ?? 0;
-        if (season !== 0) {
-            return;
-        }
-
         const matchedKey = Object.keys(materialsState).find(key =>
             key.toLowerCase().replace(/\s/g, '-') === normalized
         );
-
-        const initial = parseNumericAmount(initialAmount);
-        if (initial <= 0) {
-            return;
+        if (matchedKey && materialToSeason[normalized] === 0) {
+            remaining.push(materialsState[matchedKey]);
         }
-
-        const remaining = matchedKey ? parseNumericAmount(materialsState[matchedKey]) : 0;
-        const ratio = Math.max(0, Math.min(1, remaining / initial));
-        ratios.push(ratio);
-        initialTotals.push(initial);
     });
-
-    if (ratios.length === 0) {
+    if (remaining.length === 0) {
         return 0;
     }
-
-    const meanRatio = ratios.reduce((sum, value) => sum + value, 0) / ratios.length;
-    const variance = ratios.reduce((sum, value) => sum + Math.pow(value - meanRatio, 2), 0) / ratios.length;
-    const ratioStd = Math.sqrt(variance);
-
-    const averageInitial = initialTotals.reduce((sum, value) => sum + value, 0) / initialTotals.length;
-
-    return ratioStd * averageInitial;
+    const mean = remaining.reduce((a, b) => a + b, 0) / remaining.length;
+    const variance = remaining.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / remaining.length;
+    return Math.sqrt(variance);
 }
 
 function computeBalancePenalty(product, availableMaterials, multiplier = 1) {
@@ -2013,68 +1548,29 @@ function computeBalancePenalty(product, availableMaterials, multiplier = 1) {
             key.toLowerCase().replace(/\s/g, '-') === normalized
         );
         if (matchedKey) {
-            const currentAmount = parseNumericAmount(predicted[matchedKey]);
-            predicted[matchedKey] = currentAmount - amt * multiplier;
+            predicted[matchedKey] -= amt * multiplier;
         }
     });
     return computeBaseUsageStd(predicted);
 }
 
-function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, thirdMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1, options = {}) {
-    const normalizedPreference = clampSeasonZeroPreference(options.seasonZeroPreference ?? SEASON_ZERO_PREFERENCE_DEFAULT);
-    const applyBias = Boolean(options.applySeasonZeroBias);
-    const biasSettings = applyBias ? getSeasonZeroBiasSettings(normalizedPreference) : null;
-    const isCtw = isCtwProduct(product);
-    const isSeasonZeroProduct = product.season === 0 && !isCtw;
-    const includeBreakdown = Boolean(options.returnBreakdown);
-
+function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1) {
     let score = 0;
-    const breakdown = {
-        availabilityBonus: 0,
-        scarcityPenalty: 0,
-        leftoverPenalty: 0,
-        warlordPenalty: 0,
-        biasAdjustment: 0,
-        balancePenalty: 0
-    };
     Object.entries(product.materials).forEach(([material, _]) => {
         const season = materialToSeason[material] || 0;
         const isGear = season !== 0;
-        const adjustSeasonZeroMaterial = biasSettings && isSeasonZeroProduct && season === 0;
         if (mostAvailableMaterials.includes(material)) {
-            let weight = isGear ? GEAR_MOST_WEIGHT : BASE_MOST_WEIGHT;
-            if (!isGear && adjustSeasonZeroMaterial) {
-                weight *= biasSettings.availabilityWeightMultiplier;
-            }
-            score += weight;
-            breakdown.availabilityBonus += weight;
+            score += isGear ? GEAR_MOST_WEIGHT : BASE_MOST_WEIGHT;
         }
         if (secondMostAvailableMaterials.includes(material)) {
-            let weight = isGear ? GEAR_SECOND_WEIGHT : BASE_SECOND_WEIGHT;
-            if (!isGear && adjustSeasonZeroMaterial) {
-                weight *= biasSettings.availabilityWeightMultiplier;
-            }
-            score += weight;
-            breakdown.availabilityBonus += weight;
-        }
-        if (thirdMostAvailableMaterials.includes(material)) {
-            let weight = isGear ? GEAR_THIRD_WEIGHT : BASE_THIRD_WEIGHT;
-            if (!isGear && adjustSeasonZeroMaterial) {
-                weight *= biasSettings.availabilityWeightMultiplier;
-            }
-            score += weight;
-            breakdown.availabilityBonus += weight;
+            score += isGear ? GEAR_SECOND_WEIGHT : BASE_SECOND_WEIGHT;
         }
         if (leastAvailableMaterials.includes(material)) {
-            const penaltyMultiplier = adjustSeasonZeroMaterial ? biasSettings.scarcityPenaltyMultiplier : 1;
-            const penalty = 10 * penaltyMultiplier;
-            score -= penalty;
-            breakdown.scarcityPenalty -= penalty;
+            score -= 10;
         }
     });
     if (product.warlord) {
         score -= WARLORD_PENALTY;
-        breakdown.warlordPenalty -= WARLORD_PENALTY;
     }
 
     Object.entries(product.materials).forEach(([material, amount]) => {
@@ -2084,46 +1580,18 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
         );
         if (matchedKey) {
             const season = materialToSeason[normalizedMaterial] || 0;
-            const adjustSeasonZeroMaterial = biasSettings && isSeasonZeroProduct && season === 0;
-            const weight = season === 0
-                ? (adjustSeasonZeroMaterial ? biasSettings.leftoverWeight : LEFTOVER_WEIGHT_BASE)
-                : LEFTOVER_WEIGHT_GEAR;
+            const weight = season === 0 ? LEFTOVER_WEIGHT_BASE : LEFTOVER_WEIGHT_GEAR;
             const available = availableMaterials[matchedKey];
             const remaining = available - amount * multiplier;
             if (available > 0) {
-                const consumptionRatio = Math.max(0, 1 - (remaining / available));
-                const penalty = consumptionRatio * weight;
-                score -= penalty;
-                breakdown.leftoverPenalty -= penalty;
-            } else {
-                const penalty = weight * 2;
-                score -= penalty;
-                breakdown.leftoverPenalty -= penalty;
+                score -= (remaining / available) * weight;
             }
         }
     });
-
-    if (biasSettings) {
-        if (isSeasonZeroProduct) {
-            score += biasSettings.baseScoreBonus;
-            breakdown.biasAdjustment += biasSettings.baseScoreBonus;
-        } else if (product.season !== 0) {
-            score += biasSettings.gearScoreBonus;
-            breakdown.biasAdjustment += biasSettings.gearScoreBonus;
-        }
-    }
-
+	
     const balancePenalty = computeBalancePenalty(product, availableMaterials, multiplier);
-    const weightedBalancePenalty = balancePenalty * BALANCE_WEIGHT;
-    score -= weightedBalancePenalty;
-    breakdown.balancePenalty -= weightedBalancePenalty;
-    if (includeBreakdown) {
-        return {
-            score,
-            breakdown
-        };
-    }
-
+    score -= balancePenalty * BALANCE_WEIGHT;
+	
     return score;
 }
 
@@ -2314,7 +1782,7 @@ function initAdvMaterialSection() {
     select.multiple = true;
     select.style.display = 'none';
 
-    const defaultGearLevels = [20, 25, 30, 35, 40, 45];
+    const defaultGearLevels = [25, 40, 45];
     [5,10,15,20,25,30,35,40,45].forEach(l => {
         const optionDiv = document.createElement('div');
         optionDiv.dataset.value = l;
@@ -2347,77 +1815,4 @@ function initAdvMaterialSection() {
     levelWrap.appendChild(dropdown);
     levelWrap.appendChild(select);
     container.appendChild(levelWrap);
-
-    const seasonZeroSection = document.createElement('div');
-    seasonZeroSection.className = 'season-zero-section';
-
-    const seasonZeroHeader = document.createElement('div');
-    seasonZeroHeader.className = 'section-title';
-    const seasonZeroInner = document.createElement('div');
-    seasonZeroInner.className = 'checkbox-header';
-    const seasonZeroSpan = document.createElement('span');
-    seasonZeroSpan.textContent = 'Season 0 usage weighting';
-    const seasonZeroInfoBtn = document.createElement('button');
-    seasonZeroInfoBtn.id = 'seasonZeroUsageInfoBtn';
-    seasonZeroInfoBtn.className = 'info-btn';
-    seasonZeroInfoBtn.setAttribute('aria-label', 'Season 0 usage info');
-    seasonZeroInfoBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M256 48a208 208 0 1 1 0 416 208 208 0 1 1 0-416zm0 464A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336c-13.3 0-24 10.7-24 24s10.7 24 24 24l80 0c13.3 0 24-10.7 24-24s-10.7-24-24-24l-8 0 0-88c0-13.3-10.7-24-24-24l-48 0c-13.3 0-24 10.7-24 24s10.7 24 24 24l24 0 0 64-24 0zm40-144a32 32 0 1 0 0-64 32 32 0 1 0 0 64z"/></svg>';
-    seasonZeroInner.appendChild(seasonZeroSpan);
-    seasonZeroInner.appendChild(seasonZeroInfoBtn);
-    seasonZeroHeader.appendChild(seasonZeroInner);
-    seasonZeroSection.appendChild(seasonZeroHeader);
-
-    const seasonZeroInfoPopup = document.createElement('div');
-    seasonZeroInfoPopup.id = 'seasonZeroUsageInfoPopup';
-    seasonZeroInfoPopup.className = 'info-overlay';
-    seasonZeroInfoPopup.innerHTML = '<div class="info-content"><button class="close-popup" aria-label="Close"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M345 137c9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0l-119 119L73 103c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l119 119L39 375c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l119-119L311 409c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-119-119L345 137z"/></svg></button><p>Adjust how Season 0 items compete with seasonal gear on levels where gear materials are enabled. Off removes Season 0 items from those levels, 1 reduces their weighting, 2 keeps a neutral balance, and 3 prioritizes Season 0 items where possible. Ceremonial Targaryen Warlord items are unaffected.</p></div>';
-    seasonZeroSection.appendChild(seasonZeroInfoPopup);
-
-    const sliderWrap = document.createElement('div');
-    sliderWrap.className = 'season-zero-slider';
-
-    const sliderValue = document.createElement('div');
-    sliderValue.id = 'seasonZeroUsageLabel';
-    sliderValue.className = 'season-zero-slider__value';
-    sliderWrap.appendChild(sliderValue);
-
-    const slider = document.createElement('input');
-    slider.type = 'range';
-    slider.id = 'seasonZeroUsage';
-    slider.className = 'season-zero-slider__input';
-    slider.min = SEASON_ZERO_MIN.toString();
-    slider.max = SEASON_ZERO_MAX.toString();
-    slider.step = '1';
-    slider.value = getSeasonZeroPreferenceValue().toString();
-    slider.setAttribute('aria-label', 'Season 0 usage weighting');
-    slider.setAttribute('aria-valuemin', SEASON_ZERO_MIN.toString());
-    slider.setAttribute('aria-valuemax', SEASON_ZERO_MAX.toString());
-    sliderWrap.appendChild(slider);
-
-    const sliderLabels = document.createElement('div');
-    sliderLabels.className = 'season-zero-slider__labels';
-    ['Off', 'Less', 'Neutral', 'More'].forEach(labelText => {
-        const labelEl = document.createElement('span');
-        labelEl.textContent = labelText;
-        sliderLabels.appendChild(labelEl);
-    });
-    sliderWrap.appendChild(sliderLabels);
-
-    seasonZeroSection.appendChild(sliderWrap);
-    container.appendChild(seasonZeroSection);
-
-    seasonZeroInfoBtn.addEventListener('click', () => {
-        seasonZeroInfoPopup.style.display = 'flex';
-    });
-    seasonZeroInfoPopup.addEventListener('click', (e) => {
-        if (e.target === seasonZeroInfoPopup || e.target.closest('.close-popup')) {
-            seasonZeroInfoPopup.style.display = 'none';
-        }
-    });
-
-    slider.addEventListener('input', () => {
-        setSeasonZeroPreferenceValue(slider.value);
-    });
-
-    setSeasonZeroPreferenceValue(slider.value);
 }
