@@ -905,6 +905,22 @@ button.multiplier-btn {
 .season-zero-slider__labels span {
     text-align: center;
 }
+.season-zero-slider__labels span:nth-child(1) {
+    text-align: left;
+}
+
+.season-zero-slider__labels span:nth-child(2) {
+    padding-left: 16px;
+    text-align: left;
+}
+
+.season-zero-slider__labels span:nth-child(3) {
+    padding-left: 20px;
+}
+
+.season-zero-slider__labels span:nth-child(4) {
+    text-align: right;
+}
 
 #generatebychoice h4 {
     margin-bottom: 20px;
