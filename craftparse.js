@@ -414,10 +414,11 @@ function getSeasonZeroPreference() {
 }
 
 function updateSeasonZeroSliderLabel(value) {
-    const labelEl = document.getElementById('seasonZeroPriorityValue');
-    if (!labelEl) return;
+    const sliderEl = document.getElementById('seasonZeroPriority');
+    if (!sliderEl) return;
     const normalized = Number.isInteger(value) ? value : SeasonZeroPreference.NORMAL;
-    labelEl.textContent = seasonZeroValueText[normalized] || seasonZeroValueText[SeasonZeroPreference.NORMAL];
+    const valueText = seasonZeroValueText[normalized] || seasonZeroValueText[SeasonZeroPreference.NORMAL];
+    sliderEl.setAttribute('aria-valuetext', valueText);
 }
 
 function initializeSeasonZeroSlider() {
