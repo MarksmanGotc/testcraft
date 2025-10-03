@@ -105,12 +105,11 @@ function getSeasonZeroBiasSettings(preference) {
 
     if (normalized === 3) {
         return {
-            availabilityWeightMultiplier: 2,
-            scarcityPenaltyMultiplier: 0.6,
-          //  leftoverWeight: Math.max(1, LEFTOVER_WEIGHT_BASE - 3),
-			leftoverWeight: LEFTOVER_WEIGHT_BASE,
-            baseScoreBonus: 60,
-            gearScoreBonus: -12
+            availabilityWeightMultiplier: 2.8,
+            scarcityPenaltyMultiplier: 0.35,
+            leftoverWeight: Math.max(1, LEFTOVER_WEIGHT_BASE - 6),
+            baseScoreBonus: 120,
+            gearScoreBonus: -45
         };
     }
 
@@ -1419,7 +1418,8 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                     {
                         gearLevelActive,
                         seasonZeroPreference,
-                        hasGearMaterials
+                        hasGearMaterials,
+                        level
                     }
                 );
 
@@ -1523,7 +1523,8 @@ function calculateProductionPlan(availableMaterials, templatesByLevel) {
                 {
                     gearLevelActive,
                     seasonZeroPreference,
-                    hasGearMaterials
+                    hasGearMaterials,
+                    level
                 }
             );
 
@@ -1650,36 +1651,95 @@ function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secon
     const gearLevelActive = Boolean(options.gearLevelActive);
     const hasGearMaterials = options.hasGearMaterials ?? gearLevelActive;
     const applySeasonZeroBias = (gearLevelActive && hasGearMaterials) || normalizedPreference !== SEASON_ZERO_PREFERENCE_DEFAULT;
+    const biasSettings = applySeasonZeroBias ? getSeasonZeroBiasSettings(normalizedPreference) : null;
+    const levelLabel = options.level ?? '?';
+    const logPrefix = `[Season0 Debug][Level ${levelLabel}]`;
     const scoreOptions = {
         gearLevelActive: gearLevelActive && hasGearMaterials,
         seasonZeroPreference: normalizedPreference,
         applySeasonZeroBias
     };
 
-    // Järjestä tuotteet pisteiden mukaan
-    const candidates = levelProducts
-        .map(product => ({
+    const candidateScores = levelProducts.map(product => ({
+        product,
+        score: getMaterialScore(
             product,
-            score: getMaterialScore(
-                product,
-                mostAvailableMaterials,
-                secondMostAvailableMaterials,
-                thirdMostAvailableMaterials,
-                leastAvailableMaterials,
-                availableMaterials,
-                multiplier,
-                scoreOptions
-            )
-        }))
-        .sort((a, b) => b.score - a.score); // suurimmasta pienimpään
+            mostAvailableMaterials,
+            secondMostAvailableMaterials,
+            thirdMostAvailableMaterials,
+            leastAvailableMaterials,
+            availableMaterials,
+            multiplier,
+            scoreOptions
+        )
+    }));
+
+    const seasonZeroMaterialSummaries = Object.entries(availableMaterials)
+        .map(([material, amount]) => {
+            const normalizedMaterial = material.toLowerCase().replace(/\s/g, '-');
+            const season = materialToSeason[material] ?? materialToSeason[normalizedMaterial] ?? 0;
+            if (season !== 0) {
+                return null;
+            }
+
+            const tierDetails = [];
+            if (mostAvailableMaterials.includes(material)) {
+                tierDetails.push(`most (+${BASE_MOST_WEIGHT})`);
+            }
+            if (secondMostAvailableMaterials.includes(material)) {
+                tierDetails.push(`second (+${BASE_SECOND_WEIGHT})`);
+            }
+            if (thirdMostAvailableMaterials.includes(material)) {
+                tierDetails.push(`third (+${BASE_THIRD_WEIGHT})`);
+            }
+            if (leastAvailableMaterials.includes(material)) {
+                tierDetails.push('least (-10)');
+            }
+
+            return {
+                material,
+                amount,
+                tierDetails
+            };
+        })
+        .filter(Boolean);
+
+    console.log(`${logPrefix} Basic material availability:`);
+    if (seasonZeroMaterialSummaries.length === 0) {
+        console.log(`${logPrefix}  - No Season 0 materials available`);
+    } else {
+        seasonZeroMaterialSummaries.forEach(({ material, amount, tierDetails }) => {
+            const tierText = tierDetails.length ? tierDetails.join(', ') : 'no availability bonus';
+            console.log(`${logPrefix}  - ${material}: ${amount} (tiers: ${tierText})`);
+        });
+    }
+
+    if (biasSettings) {
+        console.log(`${logPrefix} Bias settings -> availability x${biasSettings.availabilityWeightMultiplier}, scarcity x${biasSettings.scarcityPenaltyMultiplier}, leftover weight ${biasSettings.leftoverWeight}, base bonus ${biasSettings.baseScoreBonus}, gear bonus ${biasSettings.gearScoreBonus}`);
+    }
+
+    const seasonZeroCandidates = candidateScores.filter(({ product }) => product.season === 0);
+    if (seasonZeroCandidates.length > 0) {
+        console.log(`${logPrefix} Season 0 candidate scores:`);
+        seasonZeroCandidates.forEach(({ product, score }) => {
+            console.log(`${logPrefix}  - ${product.name}: ${score.toFixed(2)}`);
+        });
+    } else {
+        console.log(`${logPrefix} No Season 0 candidate products available`);
+    }
+
+    const candidates = [...candidateScores].sort((a, b) => b.score - a.score);
 
     // Etsi ensimmäinen tuote, jonka materiaalit riittävät
     for (const { product } of candidates) {
         if (canProductBeProduced(product, availableMaterials, multiplier)) {
+            const selectedScore = candidateScores.find(entry => entry.product === product)?.score;
+            console.log(`${logPrefix} Selected product: ${product.name} (Season ${product.season}) score ${selectedScore !== undefined ? selectedScore.toFixed(2) : 'N/A'}`);
             return product;
         }
     }
 
+    console.log(`${logPrefix} No producible product found`);
     return null; // Mikään tuote ei kelpaa
 }
 
