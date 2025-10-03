@@ -54,11 +54,11 @@ function describeSeasonZeroPreference(value) {
         case 0:
             return 'Season 0 removed';
         case 1:
-            return 'Deprioritize Season 0';
+            return 'Deprioritize';
         case 2:
             return 'Neutral weighting';
         case 3:
-            return 'Prioritize Season 0';
+            return 'Prioritize';
         default:
             return 'Neutral weighting';
     }
