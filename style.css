@@ -876,6 +876,36 @@ button.multiplier-btn {
     border: 1px solid var(--primary-color);
 }
 
+.season-zero-section {
+    margin-top: 20px;
+}
+
+.season-zero-slider {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+    margin-bottom: 20px;
+}
+
+.season-zero-slider__value {
+    text-align: center;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.season-zero-slider__input {
+    width: 100%;
+    accent-color: var(--primary-color);
+}
+
+.season-zero-slider__labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #666;
+}
+
 #generatebychoice h4 {
     margin-bottom: 20px;
 }
