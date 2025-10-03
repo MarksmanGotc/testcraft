@@ -59,8 +59,10 @@ const seasonZeroValueText = {
     [SeasonZeroPreference.NORMAL]: 'Normal weighting',
     [SeasonZeroPreference.HIGH]: 'High weighting'
 };
-const SEASON_ZERO_LOW_PENALTY = 6;
-const SEASON_ZERO_LOW_NON_SEASON_BONUS = 4;
+const SEASON_ZERO_NORMAL_PENALTY = 12;
+const SEASON_ZERO_NORMAL_NON_SEASON_BONUS = 6;
+const SEASON_ZERO_LOW_PENALTY = 24;
+const SEASON_ZERO_LOW_NON_SEASON_BONUS = 12;
 const SEASON_ZERO_HIGH_BONUS = 220;
 const SEASON_ZERO_HIGH_NON_SEASON_PENALTY = 9;
 let currentSeasonZeroPreference = SeasonZeroPreference.NORMAL;
@@ -420,6 +422,11 @@ function getSeasonZeroScoreAdjustments(preference) {
             return {
                 seasonZero: -SEASON_ZERO_LOW_PENALTY,
                 nonSeason: SEASON_ZERO_LOW_NON_SEASON_BONUS
+            };
+        case SeasonZeroPreference.NORMAL:
+            return {
+                seasonZero: -SEASON_ZERO_NORMAL_PENALTY,
+                nonSeason: SEASON_ZERO_NORMAL_NON_SEASON_BONUS
             };
         case SeasonZeroPreference.HIGH:
             return {
