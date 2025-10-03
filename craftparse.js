@@ -60,6 +60,7 @@ const seasonZeroValueText = {
     [SeasonZeroPreference.HIGH]: 'High weighting'
 };
 const SEASON_ZERO_LOW_PENALTY = 6;
+const SEASON_ZERO_LOW_NON_SEASON_BONUS = 4;
 const SEASON_ZERO_HIGH_BONUS = 220;
 const SEASON_ZERO_HIGH_NON_SEASON_PENALTY = 9;
 let currentSeasonZeroPreference = SeasonZeroPreference.NORMAL;
@@ -411,6 +412,23 @@ function initializeQualitySelects() {
 
 function getSeasonZeroPreference() {
     return currentSeasonZeroPreference;
+}
+
+function getSeasonZeroScoreAdjustments(preference) {
+    switch (preference) {
+        case SeasonZeroPreference.LOW:
+            return {
+                seasonZero: -SEASON_ZERO_LOW_PENALTY,
+                nonSeason: SEASON_ZERO_LOW_NON_SEASON_BONUS
+            };
+        case SeasonZeroPreference.HIGH:
+            return {
+                seasonZero: SEASON_ZERO_HIGH_BONUS,
+                nonSeason: -SEASON_ZERO_HIGH_NON_SEASON_PENALTY
+            };
+        default:
+            return { seasonZero: 0, nonSeason: 0 };
+    }
 }
 
 function updateSeasonZeroSliderLabel(value) {
@@ -1813,14 +1831,12 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
     const balancePenalty = computeBalancePenalty(product, availableMaterials, multiplier);
     score -= balancePenalty * BALANCE_WEIGHT;
 
+    const { seasonZero: seasonZeroAdjustment, nonSeason: nonSeasonAdjustment } = getSeasonZeroScoreAdjustments(seasonZeroPreference);
+
     if (product.season === 0) {
-        if (seasonZeroPreference === SeasonZeroPreference.LOW) {
-            score -= SEASON_ZERO_LOW_PENALTY;
-        } else if (seasonZeroPreference === SeasonZeroPreference.HIGH) {
-            score += SEASON_ZERO_HIGH_BONUS;
-        }
-    } else if (seasonZeroPreference === SeasonZeroPreference.HIGH) {
-        score -= SEASON_ZERO_HIGH_NON_SEASON_PENALTY;
+        score += seasonZeroAdjustment;
+    } else {
+        score += nonSeasonAdjustment;
     }
 
     return score;
