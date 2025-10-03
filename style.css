@@ -523,11 +523,14 @@ footer div {
 
 #closeResults, #closeMaterials {
     position: absolute;
-    top: -50px;
+    top: -25px;
     right: -22px;
     cursor: pointer;
     background: none;
     width: max-content;
+}
+.materials-warning ~ button#closeResults {
+    top: -50px;
 }
 div#results h3 ~ #closeResults {
     margin: 0;
@@ -824,7 +827,6 @@ button.multiplier-btn {
     display: inline-flex;
     align-items: center;
     font-size: 18px;
-    user-select: none;
 }
 
 
@@ -885,8 +887,8 @@ button.multiplier-btn {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    margin-top: 18px;
-    margin-bottom: 18px;
+    margin-top: 12px;
+    margin-bottom: 20px;
 }
 
 .season-zero-slider__input {
@@ -955,7 +957,6 @@ button.multiplier-btn {
     grid-template-columns: repeat(4, 1fr);
     font-size: 12px;
     color: #666;
-    margin-top: 3px;
 }
 
 .season-zero-slider__labels span {
