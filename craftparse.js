@@ -52,15 +52,15 @@ function clampSeasonZeroPreference(value) {
 function describeSeasonZeroPreference(value) {
     switch (value) {
         case 0:
-            return 'Season 0 disabled';
+            return 'Season 0 removed';
         case 1:
-            return 'Exclude Season 0 items';
+            return 'Deprioritize Season 0';
         case 2:
-            return 'Prefer seasonal gear';
+            return 'Neutral weighting';
         case 3:
-            return 'Balanced';
+            return 'Prioritize Season 0';
         default:
-            return 'Balanced';
+            return 'Neutral weighting';
     }
 }
 
@@ -93,28 +93,28 @@ function getSeasonZeroBiasSettings(preference) {
     switch (preference) {
         case 3:
             return {
+                availabilityWeightMultiplier: 1.2,
+                scarcityPenaltyMultiplier: 0.85,
+                leftoverWeight: Math.max(1, LEFTOVER_WEIGHT_BASE - 2),
+                baseScoreBonus: 6,
+                gearScoreBonus: -3
+            };
+        case 2:
+            return {
                 availabilityWeightMultiplier: 1,
                 scarcityPenaltyMultiplier: 1,
                 leftoverWeight: LEFTOVER_WEIGHT_BASE,
                 baseScoreBonus: 0,
                 gearScoreBonus: 0
             };
-        case 2:
-            return {
-                availabilityWeightMultiplier: 0.88,
-                scarcityPenaltyMultiplier: 1.2,
-                leftoverWeight: LEFTOVER_WEIGHT_BASE + 2,
-                baseScoreBonus: -4,
-                gearScoreBonus: 4
-            };
         case 1:
         case 0:
             return {
                 availabilityWeightMultiplier: 0.85,
-                scarcityPenaltyMultiplier: 1.3,
-                leftoverWeight: LEFTOVER_WEIGHT_BASE + 3,
-                baseScoreBonus: -8,
-                gearScoreBonus: 5
+                scarcityPenaltyMultiplier: 1.25,
+                leftoverWeight: LEFTOVER_WEIGHT_BASE + 2,
+                baseScoreBonus: -6,
+                gearScoreBonus: 4
             };
         default:
             return {
@@ -132,7 +132,7 @@ function applySeasonZeroFilter(products, gearLevelActive, preference) {
         return products;
     }
     const normalizedPref = clampSeasonZeroPreference(preference);
-    if (normalizedPref <= 1) {
+    if (normalizedPref === 0) {
         return products.filter(product => product.season !== 0 || isCtwProduct(product));
     }
     return products;
@@ -2001,7 +2001,7 @@ function initAdvMaterialSection() {
     const seasonZeroInfoPopup = document.createElement('div');
     seasonZeroInfoPopup.id = 'seasonZeroUsageInfoPopup';
     seasonZeroInfoPopup.className = 'info-overlay';
-    seasonZeroInfoPopup.innerHTML = '<div class="info-content"><button class="close-popup" aria-label="Close"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M345 137c9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0l-119 119L73 103c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l119 119L39 375c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l119-119L311 409c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-119-119L345 137z"/></svg></button><p>Adjust how Season 0 items compete with seasonal gear on levels where gear materials are enabled. Off removes Season 0 items from those levels, 1 keeps them filtered out, 2 leans toward seasonal gear, and 3 keeps the default balance. Ceremonial Targaryen Warlord items are unaffected.</p></div>';
+    seasonZeroInfoPopup.innerHTML = '<div class="info-content"><button class="close-popup" aria-label="Close"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M345 137c9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0l-119 119L73 103c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l119 119L39 375c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l119-119L311 409c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-119-119L345 137z"/></svg></button><p>Adjust how Season 0 items compete with seasonal gear on levels where gear materials are enabled. Off removes Season 0 items from those levels, 1 reduces their weighting, 2 keeps a neutral balance, and 3 prioritizes Season 0 items where possible. Ceremonial Targaryen Warlord items are unaffected.</p></div>';
     seasonZeroSection.appendChild(seasonZeroInfoPopup);
 
     const sliderWrap = document.createElement('div');
@@ -2027,7 +2027,7 @@ function initAdvMaterialSection() {
 
     const sliderLabels = document.createElement('div');
     sliderLabels.className = 'season-zero-slider__labels';
-    ['Off', '1', '2', '3'].forEach(labelText => {
+    ['Off', 'Less', 'Neutral', 'More'].forEach(labelText => {
         const labelEl = document.createElement('span');
         labelEl.textContent = labelText;
         sliderLabels.appendChild(labelEl);
