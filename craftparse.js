@@ -58,7 +58,7 @@ function describeSeasonZeroPreference(value) {
         case 1:
             return 'Deprioritize';
         case 2:
-            return 'Neutral weighting';
+            return 'Neutral';
         case 3:
             return 'Prioritize';
         default:
@@ -105,10 +105,10 @@ function getSeasonZeroBiasSettings(preference) {
 
     if (normalized === 3) {
         return {
-            availabilityWeightMultiplier: 1.4,
+            availabilityWeightMultiplier: 2,
             scarcityPenaltyMultiplier: 0.6,
             leftoverWeight: Math.max(1, LEFTOVER_WEIGHT_BASE - 3),
-            baseScoreBonus: 30,
+            baseScoreBonus: 50,
             gearScoreBonus: -12
         };
     }
@@ -116,7 +116,7 @@ function getSeasonZeroBiasSettings(preference) {
     if (normalized === 1) {
         return {
             availabilityWeightMultiplier: 0.7,
-            scarcityPenaltyMultiplier: 1.5,
+            scarcityPenaltyMultiplier: 2,
             leftoverWeight: LEFTOVER_WEIGHT_BASE + 4,
             baseScoreBonus: -25,
             gearScoreBonus: 10
