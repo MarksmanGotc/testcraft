@@ -442,25 +442,26 @@ button.info-btn:hover {
 }
 
 .update-log-trigger {
-    position: absolute;
-    top: 24px;
-    left: 16px;
-    z-index: 2;
+    /* position: absolute; */
+    /* top: 24px; */
+    /* left: 16px; */
+    /* z-index: 2; */
+    float: left;
 }
 
 .update-log-trigger button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
     background: none;
     color: var(--primary-color);
     box-shadow: none;
     transition: transform 0.2s ease, color 0.2s ease;
     border: none;
     padding: 0;
+    margin: 0;
+    height: 30px;
+    width: 30px;
 }
 
 .update-log-trigger button svg {
@@ -1188,7 +1189,7 @@ button.multiplier-btn {
     color: #08425a;
     column-gap: 10px;
     margin: 0;
-    padding-top: 0;
+    padding-top: 5px;
     display: flex;
     justify-content: flex-end;
     flex-direction: row;
