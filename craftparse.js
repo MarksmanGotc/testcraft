@@ -82,7 +82,6 @@ let failedLevels = [];
 let requestedTemplates = {};
 let remainingUse = {};
 let ctwMediumNotice = false;
-let lowOddsNotice = false;
 let level20OnlyWarlordsActive = false;
 const productsByLevel = craftItem.products.reduce((acc, product) => {
     const levelKey = product.level.toString();
@@ -1203,14 +1202,6 @@ function renderResults(templateCounts, materialCounts) {
                 extraInfo.textContent = "Medium odds items were used because otherwise no items would be generated. At level 20, Ceremonial Targaryen Warlord items are categorized as 'medium odds'.";
                 itemsDiv.appendChild(extraInfo);
             }
-            if (lvl === 20 && lowOddsNotice && !level20OnlyWarlordsActive) {
-                const extraInfo = document.createElement('p');
-                extraInfo.className = 'craft-extra-info';
-                extraInfo.textContent = "Low odds items were used because otherwise no items would be generated.";
-                itemsDiv.appendChild(extraInfo);
-            }
-            
-
             const levelGroup = document.createElement('div');
             levelGroup.className = 'level-group';
             itemsDiv.appendChild(levelGroup);
@@ -1582,7 +1573,6 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
     const level20Allowed = hasGearMaterials && allowedGearLevels.includes(20);
     level20OnlyWarlordsActive = level20OnlyWarlords;
     ctwMediumNotice = includeWarlords && !includeMediumOdds && !level20Allowed && !level20OnlyWarlords;
-    lowOddsNotice = !includeWarlords && !includeMediumOdds && !includeLowOdds;
     const progress = typeof progressTick === 'function' ? progressTick : async () => {};
 
     const getLevelProducts = (level, { requireCtwOnly = false } = {}) => {
@@ -1611,7 +1601,7 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
             }
             const applyOdds = !isLegendary && shouldApplyOddsForProduct(p);
             if (!applyOdds) return true;
-            if (p.odds === 'low') return includeLowOdds || (lowOddsNotice && p.level === 20);
+            if (p.odds === 'low') return includeLowOdds;
             if (p.odds === 'medium') return includeMediumOdds || (ctwMediumNotice && p.warlord && p.level === 20);
             return true;
         });
