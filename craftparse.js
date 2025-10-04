@@ -1598,7 +1598,7 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
     const applyLevelFilters = (level, levelProducts, multiplier, { requireCtwOnly = false } = {}) => {
         let filtered = levelProducts;
         if (!allowedGearLevels.includes(level)) {
-            filtered = filtered.filter(p => p.season == 0);
+            filtered = filtered.filter(p => p.season == 0 || p.setName === ctwSetName);
         }
         const isLegendary = multiplier >= 1024;
         filtered = filtered.filter(p => {
