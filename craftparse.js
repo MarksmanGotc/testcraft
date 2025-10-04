@@ -68,11 +68,12 @@ const seasonZeroValueText = {
 };
 const SEASON_ZERO_SCORE_DEFAULT = Object.freeze({ seasonZero: 0, nonSeason: 0 });
 const SEASON_ZERO_SCORE_ADJUSTMENTS = Object.freeze({
-    [SeasonZeroPreference.LOW]: Object.freeze({ seasonZero: 100, nonSeason: -100 }),
+    // Non-season adjustments remain at zero so that the slider only influences Season 0 items.
+    [SeasonZeroPreference.LOW]: Object.freeze({ seasonZero: 100, nonSeason: 0 }),
     // Normal weighting sits roughly halfway between the low and high configurations
     // to provide a smoother progression without overwhelming the default results.
-    [SeasonZeroPreference.NORMAL]: Object.freeze({ seasonZero: 700, nonSeason: -500 }),
-    [SeasonZeroPreference.HIGH]: Object.freeze({ seasonZero: 1400, nonSeason: -1000 })
+    [SeasonZeroPreference.NORMAL]: Object.freeze({ seasonZero: 700, nonSeason: 0 }),
+    [SeasonZeroPreference.HIGH]: Object.freeze({ seasonZero: 1400, nonSeason: 0 })
 });
 let currentSeasonZeroPreference = SeasonZeroPreference.NORMAL;
 const qualityColorMap = {
@@ -1867,11 +1868,9 @@ function computeBalancePenalty(product, availableMaterials, multiplier = 1) {
 
 function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1) {
     let score = 0;
-    const seasonZeroPreference = getSeasonZeroPreference();
     const availableMap = getNormalizedKeyMap(availableMaterials);
-    const shouldApplyGearBaselineBonus =
-        seasonZeroPreference === SeasonZeroPreference.LOW ||
-        seasonZeroPreference === SeasonZeroPreference.NORMAL;
+    const seasonZeroPreference = getSeasonZeroPreference();
+    const shouldApplyGearBaselineBonus = true; // Season 0 slider should not modify non-season gear weighting
     Object.entries(product.materials).forEach(([material, _]) => {
         const season = materialToSeason[material] || 0;
         const isGear = season !== 0;
@@ -1909,12 +1908,10 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
     const balancePenalty = computeBalancePenalty(product, availableMaterials, multiplier);
     score -= balancePenalty * BALANCE_WEIGHT;
 
-    const { seasonZero: seasonZeroAdjustment, nonSeason: nonSeasonAdjustment } = getSeasonZeroScoreAdjustments(seasonZeroPreference);
+    const { seasonZero: seasonZeroAdjustment } = getSeasonZeroScoreAdjustments(seasonZeroPreference);
 
     if (product.season === 0) {
         score += seasonZeroAdjustment;
-    } else {
-        score += nonSeasonAdjustment;
     }
 
     return score;
