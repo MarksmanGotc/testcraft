@@ -48,6 +48,8 @@ const GEAR_BASELINE_BONUS = BASE_MOST_WEIGHT;
 const LEFTOVER_WEIGHT_BASE = 7;
 const LEFTOVER_WEIGHT_GEAR = 3;
 const BALANCE_WEIGHT = 0.1;
+const CTW_SET_NAME = 'Ceremonial Targaryen Warlord';
+
 const SeasonZeroPreference = Object.freeze({
     OFF: 0,
     LOW: 1,
@@ -1907,7 +1909,7 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
 
     if (product.season === 0) {
         score += seasonZeroAdjustment;
-    } else {
+    } else if (product.setName !== CTW_SET_NAME) {
         score += nonSeasonAdjustment;
     }
 
