@@ -21,18 +21,25 @@ let craftItem = {
 						season: season2.season
 				}))
 		),
-		...season3.sets.flatMap(set =>
-				set.products.map(product => ({
-						...product,
-						setName: product.setName || set.setName,
-						season: season3.season
-				}))
-		),
-		...season4.sets.flatMap(set =>
-				set.products.map(product => ({
-						...product,
-						setName: product.setName || set.setName,
-						season: season4.season
+                ...season3.sets.flatMap(set =>
+                                set.products.map(product => ({
+                                                ...product,
+                                                setName: product.setName || set.setName,
+                                                season: season3.season
+                                }))
+                ),
+                ...seasonctw.sets.flatMap(set =>
+                                set.products.map(product => ({
+                                                ...product,
+                                                setName: product.setName || set.setName,
+                                                season: seasonctw.season
+                                }))
+                ),
+                ...season4.sets.flatMap(set =>
+                                set.products.map(product => ({
+                                                ...product,
+                                                setName: product.setName || set.setName,
+                                                season: season4.season
 				}))
 		),
 		...season5.sets.flatMap(set =>
