@@ -1567,7 +1567,7 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
             while (remaining > 0) {
                 const prefs = getUserPreferences(availableMaterials);
                 let levelProducts = getLevelProducts(level);
-                levelProducts = levelProducts.filter(p => p.season === 0);
+                levelProducts = applySeasonZeroPreference(levelProducts, seasonZeroPreference);
                 if (levelProducts.length === 0) {
                     break;
                 }
