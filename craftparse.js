@@ -44,6 +44,7 @@ const BASE_MOST_WEIGHT = 12;
 const BASE_SECOND_WEIGHT = 6;
 const GEAR_MOST_WEIGHT = 6;
 const GEAR_SECOND_WEIGHT = 3;
+const GEAR_BASELINE_BONUS = BASE_MOST_WEIGHT;
 const LEFTOVER_WEIGHT_BASE = 7;
 const LEFTOVER_WEIGHT_GEAR = 3;
 const BALANCE_WEIGHT = 0.1;
@@ -1804,6 +1805,9 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
     let score = 0;
     const seasonZeroPreference = getSeasonZeroPreference();
     const availableMap = getNormalizedKeyMap(availableMaterials);
+    const shouldApplyGearBaselineBonus =
+        seasonZeroPreference === SeasonZeroPreference.LOW ||
+        seasonZeroPreference === SeasonZeroPreference.NORMAL;
     Object.entries(product.materials).forEach(([material, _]) => {
         const season = materialToSeason[material] || 0;
         const isGear = season !== 0;
@@ -1815,6 +1819,9 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
         }
         if (leastAvailableMaterials.includes(material)) {
             score -= 10;
+        }
+        if (shouldApplyGearBaselineBonus && isGear) {
+            score += GEAR_BASELINE_BONUS;
         }
     });
     if (product.warlord) {
