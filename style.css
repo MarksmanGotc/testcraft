@@ -442,7 +442,7 @@ button.info-btn:hover {
 
 .update-log-trigger {
     position: absolute;
-    top: 16px;
+    top: 24px;
     left: 16px;
     z-index: 2;
 }
@@ -454,24 +454,24 @@ button.info-btn:hover {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: var(--primary-color);
-    color: var(--secondary-color);
-    box-shadow: 0px 2px 6px 0px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background: none;
+    color: var(--primary-color);
+    box-shadow: none;
+    transition: transform 0.2s ease, color 0.2s ease;
     border: none;
     padding: 0;
 }
 
 .update-log-trigger button svg {
-    width: 18px;
-    height: 18px;
+    width: 22px;
+    height: 22px;
     fill: currentColor;
 }
 
 .update-log-trigger button:hover,
 .update-log-trigger button:focus-visible {
     transform: scale(1.05);
-    box-shadow: 0px 4px 10px 0px rgba(0, 0, 0, 0.25);
+    color: var(--button-bg-hover);
     outline: none;
 }
 
