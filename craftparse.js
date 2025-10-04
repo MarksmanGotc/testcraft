@@ -62,11 +62,11 @@ const seasonZeroValueText = {
 };
 const SEASON_ZERO_SCORE_DEFAULT = Object.freeze({ seasonZero: 0, nonSeason: 0 });
 const SEASON_ZERO_SCORE_ADJUSTMENTS = Object.freeze({
-    [SeasonZeroPreference.LOW]: Object.freeze({ seasonZero: -24, nonSeason: 12 }),
+    [SeasonZeroPreference.LOW]: Object.freeze({ seasonZero: 100, nonSeason: -100 }),
     // Normal weighting sits roughly halfway between the low and high configurations
     // to provide a smoother progression without overwhelming the default results.
-    [SeasonZeroPreference.NORMAL]: Object.freeze({ seasonZero: 628, nonSeason: -444 }),
-    [SeasonZeroPreference.HIGH]: Object.freeze({ seasonZero: 1280, nonSeason: -900 })
+    [SeasonZeroPreference.NORMAL]: Object.freeze({ seasonZero: 700, nonSeason: -500 }),
+    [SeasonZeroPreference.HIGH]: Object.freeze({ seasonZero: 1400, nonSeason: -1000 })
 });
 let currentSeasonZeroPreference = SeasonZeroPreference.NORMAL;
 const qualityColorMap = {
