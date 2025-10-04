@@ -36,6 +36,7 @@ h1.calc-header {
     color: var(--primary-color);
     text-align: center;
     font-size: 30px;
+    padding-top: 50px;
 }
 
 .leveltmp1 {
@@ -473,6 +474,7 @@ button.info-btn:hover {
     transform: scale(1.05);
     color: var(--button-bg-hover);
     outline: none;
+    background: initial;
 }
 
 .changelog-overlay .info-content {
@@ -1175,9 +1177,10 @@ button.multiplier-btn {
     color: #08425a;
 }
 .donate-header {
-    width: 100%;
-    display: flex;
-    justify-content: center;
+    /* width: 70%; */
+    /* display: flex; */
+    /* justify-content: center; */
+    float: right;
 }
 
 .donate-header button#openGiftFromHeader {
