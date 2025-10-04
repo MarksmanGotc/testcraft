@@ -115,6 +115,10 @@ const extraProducts = [];
 const CTW_SET_NAME = 'Ceremonial Targaryen Warlord';
 const CTW_SEASON = season3.season;
 
+if (typeof window !== 'undefined') {
+  window.CTW_SET_NAME = CTW_SET_NAME;
+}
+
 craftItem.products = craftItem.products.map(product => {
   if (product.setName === CTW_SET_NAME) {
     return { ...product, season: CTW_SEASON };
