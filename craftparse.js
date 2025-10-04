@@ -60,12 +60,14 @@ const seasonZeroValueText = {
     [SeasonZeroPreference.NORMAL]: 'Normal weighting',
     [SeasonZeroPreference.HIGH]: 'High weighting'
 };
-const SEASON_ZERO_NORMAL_PENALTY = 12;
-const SEASON_ZERO_NORMAL_NON_SEASON_BONUS = 6;
-const SEASON_ZERO_LOW_PENALTY = 24;
-const SEASON_ZERO_LOW_NON_SEASON_BONUS = 12;
-const SEASON_ZERO_HIGH_BONUS = 1280;
-const SEASON_ZERO_HIGH_NON_SEASON_PENALTY = 900;
+const SEASON_ZERO_SCORE_DEFAULT = Object.freeze({ seasonZero: 0, nonSeason: 0 });
+const SEASON_ZERO_SCORE_ADJUSTMENTS = Object.freeze({
+    [SeasonZeroPreference.LOW]: Object.freeze({ seasonZero: -24, nonSeason: 12 }),
+    // Normal weighting sits roughly halfway between the low and high configurations
+    // to provide a smoother progression without overwhelming the default results.
+    [SeasonZeroPreference.NORMAL]: Object.freeze({ seasonZero: 628, nonSeason: -444 }),
+    [SeasonZeroPreference.HIGH]: Object.freeze({ seasonZero: 1280, nonSeason: -900 })
+});
 let currentSeasonZeroPreference = SeasonZeroPreference.NORMAL;
 const qualityColorMap = {
     poor: '#A9A9A9',
@@ -418,25 +420,7 @@ function getSeasonZeroPreference() {
 }
 
 function getSeasonZeroScoreAdjustments(preference) {
-    switch (preference) {
-        case SeasonZeroPreference.LOW:
-            return {
-                seasonZero: -SEASON_ZERO_LOW_PENALTY,
-                nonSeason: SEASON_ZERO_LOW_NON_SEASON_BONUS
-            };
-        case SeasonZeroPreference.NORMAL:
-            return {
-                seasonZero: -SEASON_ZERO_NORMAL_PENALTY,
-                nonSeason: SEASON_ZERO_NORMAL_NON_SEASON_BONUS
-            };
-        case SeasonZeroPreference.HIGH:
-            return {
-                seasonZero: SEASON_ZERO_HIGH_BONUS,
-                nonSeason: -SEASON_ZERO_HIGH_NON_SEASON_PENALTY
-            };
-        default:
-            return { seasonZero: 0, nonSeason: 0 };
-    }
+    return SEASON_ZERO_SCORE_ADJUSTMENTS[preference] || SEASON_ZERO_SCORE_DEFAULT;
 }
 
 function updateSeasonZeroSliderLabel(value) {
