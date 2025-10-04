@@ -440,6 +440,78 @@ button.info-btn:hover {
     position: relative;
 }
 
+.update-log-trigger {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 2;
+}
+
+.update-log-trigger button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: var(--secondary-color);
+    box-shadow: 0px 2px 6px 0px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: none;
+    padding: 0;
+}
+
+.update-log-trigger button svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+}
+
+.update-log-trigger button:hover,
+.update-log-trigger button:focus-visible {
+    transform: scale(1.05);
+    box-shadow: 0px 4px 10px 0px rgba(0, 0, 0, 0.25);
+    outline: none;
+}
+
+.changelog-overlay .info-content {
+    max-width: 480px;
+    text-align: left;
+}
+
+.changelog-overlay .info-content h2 {
+    font-size: 20px;
+    margin: 0 0 12px 0;
+    color: var(--primary-color);
+}
+
+.changelog-overlay .info-content p {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #333;
+}
+
+.changelog-overlay .info-content ul {
+    margin: 12px 0 16px 0;
+    padding-left: 20px;
+}
+
+.changelog-overlay .info-content li {
+    margin-bottom: 10px;
+    line-height: 1.6;
+}
+
+.changelog-overlay .info-content li strong {
+    color: var(--primary-color);
+}
+
+.changelog-footer {
+    margin: 0;
+    font-size: 13px;
+    color: #555;
+}
+
 h3, h4 {
     color: var(--primary-color);
     cursor: pointer;

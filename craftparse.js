@@ -127,6 +127,89 @@ function waitForNextFrame() {
     });
 }
 
+function isLocalStorageAvailable() {
+    try {
+        if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
+            return false;
+        }
+        const testKey = '__noox_update_log__';
+        window.localStorage.setItem(testKey, testKey);
+        window.localStorage.removeItem(testKey);
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+function initializeUpdateLog() {
+    const overlay = document.getElementById('updateLogOverlay');
+    const trigger = document.getElementById('openUpdateLog');
+
+    if (!overlay || !trigger) {
+        return;
+    }
+
+    const closeButton = overlay.querySelector('.close-popup');
+    const storageKey = 'noox-update-log-2024-05-14';
+    const storageSupported = isLocalStorageAvailable();
+    const hasSeenUpdate = storageSupported ? window.localStorage.getItem(storageKey) === 'seen' : false;
+
+    const markSeen = () => {
+        if (storageSupported) {
+            try {
+                window.localStorage.setItem(storageKey, 'seen');
+            } catch (error) {
+                // Ignore storage failures silently
+            }
+        }
+    };
+
+    const setExpandedState = (expanded) => {
+        trigger.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    };
+
+    const openOverlay = () => {
+        overlay.style.display = 'flex';
+        overlay.setAttribute('aria-hidden', 'false');
+        setExpandedState(true);
+    };
+
+    const closeOverlay = (shouldMarkSeen = false) => {
+        overlay.style.display = 'none';
+        overlay.setAttribute('aria-hidden', 'true');
+        setExpandedState(false);
+        if (shouldMarkSeen) {
+            markSeen();
+        }
+    };
+
+    if (!hasSeenUpdate) {
+        openOverlay();
+    }
+
+    trigger.addEventListener('click', () => {
+        if (overlay.style.display === 'flex') {
+            closeOverlay(true);
+        } else {
+            openOverlay();
+        }
+    });
+
+    closeButton?.addEventListener('click', () => closeOverlay(true));
+
+    overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) {
+            closeOverlay(true);
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && overlay.style.display === 'flex') {
+            closeOverlay(true);
+        }
+    });
+}
+
 const calculationProgressState = {
     total: 0,
     processed: 0
@@ -463,6 +546,7 @@ function applySeasonZeroPreference(products, preference) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    initializeUpdateLog();
     createLevelStructure();
     addCalculateButton();
         formatedInputNumber();
