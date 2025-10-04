@@ -1913,7 +1913,7 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
 
     if (product.season === 0) {
         score += seasonZeroAdjustment;
-    } else if (product.setName !== ctwSetName) {
+    } else {
         score += nonSeasonAdjustment;
     }
 
