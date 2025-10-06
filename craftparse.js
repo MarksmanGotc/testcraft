@@ -1540,7 +1540,7 @@ function filterProductsByAvailableGear(products, availableMaterials, multiplier 
     });
 }
 
-const SEASONAL_ODDS_LEVELS = new Set([15, 20, 25, 30, 35]);
+const SEASONAL_ODDS_LEVELS = new Set([15, 20, 25, 30, 35, 40]);
 const EXTENDED_ODDS_LEVELS = new Set([20]);
 
 function shouldApplyOddsForProduct(product) {
