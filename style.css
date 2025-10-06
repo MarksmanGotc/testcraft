@@ -521,6 +521,9 @@ button.info-btn:hover {
     align-items: center;
     gap: 8px;
 }
+button.changelog-toggle:hover {
+    background: initial;
+}
 
 .changelog-arrow {
     width: 14px;
