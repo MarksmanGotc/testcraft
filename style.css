@@ -462,12 +462,25 @@ button.info-btn:hover {
     margin: 0;
     height: 30px;
     width: 30px;
+    position: relative;
 }
 
 .update-log-trigger button svg {
     width: 22px;
     height: 22px;
     fill: currentColor;
+}
+
+.update-log-trigger button[data-has-update="true"]::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--button-bg);
+    box-shadow: 0 0 0 2px #fff;
 }
 
 .update-log-trigger button:hover,
