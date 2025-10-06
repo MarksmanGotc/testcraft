@@ -160,6 +160,14 @@ function initializeUpdateLog() {
     const storageSupported = isLocalStorageAvailable();
     const hasSeenUpdate = storageSupported ? window.localStorage.getItem(storageKey) === 'seen' : false;
 
+    const setUpdateIndicator = (hasUpdate) => {
+        if (hasUpdate) {
+            trigger.setAttribute('data-has-update', 'true');
+        } else {
+            trigger.removeAttribute('data-has-update');
+        }
+    };
+
     const markSeen = () => {
         if (storageSupported) {
             try {
@@ -168,6 +176,7 @@ function initializeUpdateLog() {
                 // Ignore storage failures silently
             }
         }
+        setUpdateIndicator(false);
     };
 
     const setExpandedState = (expanded) => {
@@ -178,6 +187,7 @@ function initializeUpdateLog() {
         overlay.style.display = 'flex';
         overlay.setAttribute('aria-hidden', 'false');
         setExpandedState(true);
+        setUpdateIndicator(false);
     };
 
     const closeOverlay = (shouldMarkSeen = false) => {
@@ -189,9 +199,7 @@ function initializeUpdateLog() {
         }
     };
 
-    if (!hasSeenUpdate) {
-        openOverlay();
-    }
+    setUpdateIndicator(!hasSeenUpdate);
 
     const setPanelState = (button, expanded) => {
         const panelId = button.getAttribute('aria-controls');
