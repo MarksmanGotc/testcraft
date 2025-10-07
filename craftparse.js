@@ -1166,9 +1166,16 @@ function renderResults(templateCounts, materialCounts) {
 
     resultsDiv.appendChild(materialsDiv);
 
+    const scoringExplanation = document.createElement('div');
+    scoringExplanation.className = 'score-explanation';
+    scoringExplanation.innerHTML = `
+        <h3>Pisteytyksen tiivistelmä</h3>
+        <p>Jokaisen tuotteen pistemäärä muodostuu materiaalien saatavuudesta: runsaimmat perusmateriaalit antavat +12 pistettä ja gear-materiaalit +6 pistettä, kun taas harvinaisimpia materiaaleja vältetään -10 miinuksella. Gear-tuotteille lisätään vielä oma perusbonus, jotta ne kilpailevat tasaisesti muiden kanssa.</p>
+        <p>Pisteitä pienennetään, jos varasto hupenisi liikaa tai jos materiaalien käyttö painottuu epätasaisesti, ja Warlord-statuksella on oma vähennyksensä. Season 0 -liukusäädin lisää bonuksen vain Season 0 -tuotteille, mutta kokonaispisteet ratkaisevat yhä materiaalien tasapainon ja saatavuuden perusteella, joten myös muiden kausien tuotteet voivat nousta esiin.</p>
+    `;
+
     const generateDiv = document.createElement('div');
     generateDiv.className = 'generate';
-    materialsDiv.after(generateDiv);
 
     const levelItemCounts = calculateTotalItemsByLevel(templateCounts);
     const allSameCount = areAllCountsSame(levelItemCounts);
@@ -1194,9 +1201,11 @@ function renderResults(templateCounts, materialCounts) {
             });
         }
         materialsDiv.after(totalTemplatesHeader);
-        totalTemplatesHeader.after(generateDiv);
+        totalTemplatesHeader.after(scoringExplanation);
+        scoringExplanation.after(generateDiv);
     } else {
-        materialsDiv.after(generateDiv);
+        materialsDiv.after(scoringExplanation);
+        scoringExplanation.after(generateDiv);
     }
 
     const itemsDiv = document.createElement('div');
@@ -1606,6 +1615,30 @@ function shouldApplyOddsForProduct(product) {
 async function calculateProductionPlan(availableMaterials, templatesByLevel, progressTick = async () => {}) {
     const productionPlan = { "1": [], "5": [], "10": [], "15": [], "20": [], "25": [], "30": [], "35": [], "40": [], "45": [] };
     const failed = new Set();
+    const levelScoreLog = {};
+    const loggedLevelSummary = new Set();
+    const formatScore = (value) => (Number.isInteger(value) ? `${value}` : value.toFixed(2));
+    const recordSelection = (level, product, score) => {
+        if (!levelScoreLog[level]) {
+            levelScoreLog[level] = [];
+        }
+        levelScoreLog[level].push(score);
+        console.log(`Level ${level} - ${product.name} - ${formatScore(score)}`);
+    };
+    const logLevelSummary = (level) => {
+        if (loggedLevelSummary.has(level)) {
+            return;
+        }
+        const scores = levelScoreLog[level];
+        if (!scores || scores.length === 0) {
+            return;
+        }
+        const maxScore = Math.max(...scores);
+        const minScore = Math.min(...scores);
+        console.log(`Korkein valittu pistemäärä: ${formatScore(maxScore)} (Level ${level})`);
+        console.log(`Alin valittu pistemäärä: ${formatScore(minScore)} (Level ${level})`);
+        loggedLevelSummary.add(level);
+    };
     const includeWarlords = document.getElementById('includeWarlords')?.checked ?? true;
     const level1OnlyWarlords = document.getElementById('level1OnlyWarlords')?.checked ?? false;
     const level20OnlyWarlords = document.getElementById('level20OnlyWarlords')?.checked ?? false;
@@ -1697,10 +1730,19 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
                 );
 
                 if (selected && canProductBeProduced(selected, availableMaterials, multiplier)) {
+                    const score = getMaterialScore(
+                        selected,
+                        prefs.mostAvailableMaterials,
+                        prefs.secondMostAvailableMaterials,
+                        prefs.leastAvailableMaterials,
+                        availableMaterials,
+                        multiplier
+                    );
+                    recordSelection(level, selected, score);
                     productionPlan[level].push({ name: selected.name, season: selected.season, setName: selected.setName, warlord: selected.warlord });
                     updateAvailableMaterials(availableMaterials, selected, multiplier);
                     remaining--;
-					produced++;
+                    produced++;
                     await progress();
                 } else {
                     break;
@@ -1710,6 +1752,9 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
             templatesByLevel[level] = remaining;
 
             if (produced > 0) {
+                if (remaining === 0) {
+                    logLevelSummary(level);
+                }
                 return;
             }
         }
@@ -1755,9 +1800,21 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
             );
 
             if (selectedProduct && canProductBeProduced(selectedProduct, availableMaterials, multiplier)) {
+                const score = getMaterialScore(
+                    selectedProduct,
+                    preferences.mostAvailableMaterials,
+                    preferences.secondMostAvailableMaterials,
+                    preferences.leastAvailableMaterials,
+                    availableMaterials,
+                    multiplier
+                );
+                recordSelection(level, selectedProduct, score);
                 productionPlan[level].push({ name: selectedProduct.name, season: selectedProduct.season, setName: selectedProduct.setName, warlord: selectedProduct.warlord });
                 updateAvailableMaterials(availableMaterials, selectedProduct, multiplier);
                 remaining[level]--;
+                if (remaining[level] === 0) {
+                    logLevelSummary(level);
+                }
                 anySelected = true;
                 await progress();
             } else {
@@ -1770,6 +1827,12 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
             break;
         }
     }
+
+    LEVELS.forEach(level => {
+        if (remaining[level] === 0) {
+            logLevelSummary(level);
+        }
+    });
 
     return { plan: productionPlan, failedLevels: Array.from(failed) };
 }
@@ -1876,21 +1939,52 @@ function rollbackMaterials(availableMaterials, product, multiplier = 1) {
 }
 
 function computeBaseUsageStd(materialsState) {
-    const remaining = [];
+    const remainingRatios = [];
     const stateMap = getNormalizedKeyMap(materialsState);
-    Object.entries(initialMaterials).forEach(([material, _]) => {
+    Object.entries(initialMaterials).forEach(([material, initialAmount]) => {
         const normalized = normalizeKey(material);
-        const matchedKey = stateMap[normalized];
-        if (matchedKey && materialToSeason[normalized] === 0) {
-            remaining.push(materialsState[matchedKey]);
+        const belongsToSeasonZero = materialToSeason[normalized] === 0;
+        if (!belongsToSeasonZero || typeof initialAmount !== 'number' || initialAmount <= 0) {
+            return;
         }
+
+        const matchedKey = stateMap[normalized];
+        if (!matchedKey) {
+            return;
+        }
+
+        const remainingValue = materialsState[matchedKey];
+        if (typeof remainingValue !== 'number' || remainingValue < 0) {
+            return;
+        }
+
+        const remainingRatio = remainingValue / initialAmount;
+        remainingRatios.push(Math.max(0, Math.min(1, remainingRatio)));
     });
-    if (remaining.length === 0) {
+
+    if (remainingRatios.length === 0) {
         return 0;
     }
-    const mean = remaining.reduce((a, b) => a + b, 0) / remaining.length;
-    const variance = remaining.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / remaining.length;
-    return Math.sqrt(variance);
+
+    const mean = remainingRatios.reduce((a, b) => a + b, 0) / remainingRatios.length;
+    const variance = remainingRatios.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / remainingRatios.length;
+    const stdDeviation = Math.sqrt(variance);
+    const minRatio = Math.min(...remainingRatios);
+    const maxRatio = Math.max(...remainingRatios);
+    const spread = maxRatio - minRatio;
+
+    // Combine multiple signals so that the balance penalty reacts strongly to
+    // lopsided Season 0 usage without exploding for large inventories.
+    const STD_WEIGHT = 1400;
+    const SPREAD_WEIGHT = 900;
+    const DEPLETION_START = 0.65;
+    const DEPLETION_WEIGHT = 500;
+
+    const stdPenalty = stdDeviation * STD_WEIGHT;
+    const spreadPenalty = spread * SPREAD_WEIGHT;
+    const depletionPenalty = Math.max(0, DEPLETION_START - minRatio) * DEPLETION_WEIGHT;
+
+    return stdPenalty + spreadPenalty + depletionPenalty;
 }
 
 function computeBalancePenalty(product, availableMaterials, multiplier = 1) {
