@@ -1941,19 +1941,29 @@ function rollbackMaterials(availableMaterials, product, multiplier = 1) {
 function computeBaseUsageStd(materialsState) {
     const remaining = [];
     const stateMap = getNormalizedKeyMap(materialsState);
-    Object.entries(initialMaterials).forEach(([material, _]) => {
+    Object.entries(initialMaterials).forEach(([material, initialAmount]) => {
         const normalized = normalizeKey(material);
-        const matchedKey = stateMap[normalized];
-        if (matchedKey && materialToSeason[normalized] === 0) {
-            remaining.push(materialsState[matchedKey]);
+        const belongsToSeasonZero = materialToSeason[normalized] === 0;
+        if (!belongsToSeasonZero || typeof initialAmount !== 'number' || initialAmount <= 0) {
+            return;
         }
+
+        const matchedKey = stateMap[normalized];
+        if (!matchedKey) {
+            return;
+        }
+
+        // Compare remaining stock against the original baseline so that the
+        // deviation scales with percentage usage instead of absolute amounts.
+        const remainingRatio = materialsState[matchedKey] / initialAmount;
+        remaining.push(remainingRatio);
     });
     if (remaining.length === 0) {
         return 0;
     }
     const mean = remaining.reduce((a, b) => a + b, 0) / remaining.length;
     const variance = remaining.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / remaining.length;
-    return Math.sqrt(variance);
+    return Math.sqrt(variance) * 100;
 }
 
 function computeBalancePenalty(product, availableMaterials, multiplier = 1) {
