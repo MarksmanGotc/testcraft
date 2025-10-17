@@ -721,16 +721,54 @@ div#results h3 ~ #closeResults {
 }
 
 #results .level-group img {
-    
- 	object-fit: scale-down;
-	border-radius: 0;
+
+        object-fit: scale-down;
+        border-radius: 0;
 }
 #results img{
-	width: 50px;
-	height: 50px;
-	object-fit: scale-down;
+        width: 50px;
+        height: 50px;
+        object-fit: scale-down;
 }
 
+
+.results-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin: 24px 0 10px;
+}
+
+.results-actions__button {
+    width: auto;
+    min-width: 160px;
+    margin-top: 0;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.results-actions__button:disabled {
+    opacity: 0.75;
+    cursor: not-allowed;
+}
+
+.results-actions__save {
+    background-color: var(--button-bg);
+}
+
+.results-actions__save:hover {
+    background-color: var(--button-bg-hover);
+}
+
+.results-actions__clear {
+    background-color: #b63a3a;
+}
+
+.results-actions__clear:hover {
+    background-color: #992f2f;
+}
 
 .materials {
     display: flex;
