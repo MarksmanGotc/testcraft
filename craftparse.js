@@ -1339,6 +1339,17 @@ function calculateMaterials() {
     requestedTemplates = {};
     qualityMultipliers = {};
 
+    LEVELS.forEach(level => {
+        const qualitySelect = document.getElementById(`temp${level}`);
+        if (!qualitySelect) {
+            return;
+        }
+
+        const selectedQuality = typeof qualitySelect.value === 'string' ? qualitySelect.value.trim() : '';
+        const qualityKey = selectedQuality !== '' ? selectedQuality : 'poor';
+        qualityMultipliers[level] = getQualityMultiplier(qualityKey);
+    });
+
     const resultsDiv = document.getElementById('results');
     resultsDiv.innerHTML = ''; // Tyhjennä aiemmat tulokset
 
@@ -1526,14 +1537,6 @@ function renderResults(templateCounts, materialCounts) {
 
     resultsDiv.appendChild(materialsDiv);
 
-    const scoringExplanation = document.createElement('div');
-    scoringExplanation.className = 'score-explanation';
-    scoringExplanation.innerHTML = `
-        <h3>Pisteytyksen tiivistelmä</h3>
-        <p>Jokaisen tuotteen pistemäärä muodostuu materiaalien saatavuudesta: runsaimmat perusmateriaalit antavat +12 pistettä ja gear-materiaalit +6 pistettä, kun taas harvinaisimpia materiaaleja vältetään -10 miinuksella. Gear-tuotteille lisätään vielä oma perusbonus, jotta ne kilpailevat tasaisesti muiden kanssa.</p>
-        <p>Pisteitä pienennetään, jos varasto hupenisi liikaa tai jos materiaalien käyttö painottuu epätasaisesti, ja Warlord-statuksella on oma vähennyksensä. Season 0 -liukusäädin lisää bonuksen vain Season 0 -tuotteille, mutta kokonaispisteet ratkaisevat yhä materiaalien tasapainon ja saatavuuden perusteella, joten myös muiden kausien tuotteet voivat nousta esiin.</p>
-    `;
-
     const generateDiv = document.createElement('div');
     generateDiv.className = 'generate';
 
@@ -1561,11 +1564,9 @@ function renderResults(templateCounts, materialCounts) {
             });
         }
         materialsDiv.after(totalTemplatesHeader);
-        totalTemplatesHeader.after(scoringExplanation);
-        scoringExplanation.after(generateDiv);
+        totalTemplatesHeader.after(generateDiv);
     } else {
-        materialsDiv.after(scoringExplanation);
-        scoringExplanation.after(generateDiv);
+        materialsDiv.after(generateDiv);
     }
 
     const itemsDiv = document.createElement('div');
