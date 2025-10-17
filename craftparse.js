@@ -24,6 +24,11 @@ Object.values(materials).forEach(season => {
 });
 const normalizedKeyCache = new WeakMap();
 
+const CALCULATION_STORAGE_KEY = 'noox-calculation-v1';
+const CALCULATION_STORAGE_VERSION = 1;
+let latestCalculationPayload = null;
+let isViewingSavedCalculation = false;
+
 function getNormalizedKeyMap(source) {
     if (!source || typeof source !== 'object') {
         return {};
@@ -254,6 +259,272 @@ function initializeUpdateLog() {
             closeOverlay(true);
         }
     });
+}
+
+function loadSavedCalculation() {
+    if (!isLocalStorageAvailable()) {
+        return null;
+    }
+
+    try {
+        const raw = window.localStorage.getItem(CALCULATION_STORAGE_KEY);
+        if (!raw) {
+            return null;
+        }
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') {
+            return null;
+        }
+        if (parsed.version && parsed.version !== CALCULATION_STORAGE_VERSION) {
+            window.localStorage.removeItem(CALCULATION_STORAGE_KEY);
+            return null;
+        }
+        return parsed;
+    } catch (error) {
+        console.error('Failed to load saved calculation from storage', error);
+        try {
+            window.localStorage.removeItem(CALCULATION_STORAGE_KEY);
+        } catch (cleanupError) {
+            console.error('Failed to clear corrupt saved calculation', cleanupError);
+        }
+        return null;
+    }
+}
+
+function saveCalculationToStorage(payload) {
+    if (!payload || !isLocalStorageAvailable()) {
+        return false;
+    }
+
+    try {
+        const dataToStore = {
+            ...payload,
+            version: CALCULATION_STORAGE_VERSION,
+            savedAt: new Date().toISOString()
+        };
+        window.localStorage.setItem(CALCULATION_STORAGE_KEY, JSON.stringify(dataToStore));
+        latestCalculationPayload = { ...dataToStore };
+        return true;
+    } catch (error) {
+        console.error('Failed to persist calculation to storage', error);
+        return false;
+    }
+}
+
+function clearSavedCalculationStorage() {
+    if (isLocalStorageAvailable()) {
+        try {
+            window.localStorage.removeItem(CALCULATION_STORAGE_KEY);
+        } catch (error) {
+            console.error('Failed to clear stored calculation', error);
+        }
+    }
+    latestCalculationPayload = null;
+    isViewingSavedCalculation = false;
+}
+
+function applyGearLevelSelections(levels = []) {
+    const select = document.getElementById('gearMaterialLevels');
+    const dropdown = document.querySelector('#advMaterials .level-dropdown');
+    if (!select || !dropdown) {
+        return;
+    }
+
+    const targetLevels = new Set((Array.isArray(levels) ? levels : []).map(value => parseInt(value, 10)));
+    Array.from(select.options).forEach(option => {
+        const numericValue = parseInt(option.value, 10);
+        const isSelected = targetLevels.has(numericValue);
+        option.selected = isSelected;
+        const optionDiv = dropdown.querySelector(`div[data-value="${option.value}"]`);
+        if (optionDiv) {
+            optionDiv.classList.toggle('selected', isSelected);
+        }
+    });
+}
+
+function applySettingsFromStorage(settings = {}, requestedTemplatesOverride = {}) {
+    const applyCheckboxState = (id, value) => {
+        if (typeof value === 'undefined') {
+            return;
+        }
+        const element = document.getElementById(id);
+        if (element) {
+            element.checked = Boolean(value);
+        }
+    };
+
+    if (settings && typeof settings === 'object') {
+        if (typeof settings.scale !== 'undefined') {
+            const scaleSelect = document.getElementById('scaleSelect');
+            if (scaleSelect) {
+                const scaleValue = String(settings.scale);
+                const match = Array.from(scaleSelect.options).some(option => option.value === scaleValue);
+                if (match) {
+                    scaleSelect.value = scaleValue;
+                }
+            }
+        }
+
+        applyCheckboxState('includeWarlords', settings.includeWarlords);
+        applyCheckboxState('level1OnlyWarlords', settings.level1OnlyWarlords);
+        applyCheckboxState('level20OnlyWarlords', settings.level20OnlyWarlords);
+        applyCheckboxState('includeLowOdds', settings.includeLowOdds);
+        applyCheckboxState('includeMediumOdds', settings.includeMediumOdds);
+
+        if (typeof settings.seasonZeroPreference === 'number' && !Number.isNaN(settings.seasonZeroPreference)) {
+            const slider = document.getElementById('seasonZeroPriority');
+            if (slider) {
+                slider.value = settings.seasonZeroPreference;
+                currentSeasonZeroPreference = settings.seasonZeroPreference;
+                updateSeasonZeroSliderLabel(settings.seasonZeroPreference);
+            }
+        }
+
+        if (Array.isArray(settings.gearLevels)) {
+            applyGearLevelSelections(settings.gearLevels);
+        }
+
+        if (settings.templateQualities && typeof settings.templateQualities === 'object') {
+            LEVELS.forEach(level => {
+                const select = document.getElementById(`temp${level}`);
+                const quality = settings.templateQualities[level] ?? settings.templateQualities[level.toString()];
+                if (select && typeof quality === 'string') {
+                    select.value = quality;
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                    qualityMultipliers[level] = getQualityMultiplier(quality);
+                }
+            });
+        }
+    }
+
+    const templateTargets = (settings && settings.requestedTemplates) || requestedTemplatesOverride;
+    if (templateTargets && typeof templateTargets === 'object') {
+        LEVELS.forEach(level => {
+            const amountInput = document.getElementById(`templateAmount${level}`);
+            if (!amountInput) {
+                return;
+            }
+            const rawValue = templateTargets[level] ?? templateTargets[level.toString()];
+            const numericValue = typeof rawValue === 'number' ? rawValue : parseInt(rawValue, 10);
+            const wrap = document.querySelector(`.leveltmp${level} .templateAmountWrap`);
+            if (!Number.isNaN(numericValue) && numericValue > 0) {
+                amountInput.value = numericValue;
+                wrap?.classList.add('active');
+            } else {
+                amountInput.value = '';
+                wrap?.classList.remove('active');
+            }
+        });
+    }
+}
+
+function resetUserInputs() {
+    document.querySelectorAll('.my-material input.numeric-input').forEach(input => {
+        input.value = '';
+        const parent = input.closest('.my-material');
+        if (parent) {
+            parent.classList.remove('active');
+        }
+    });
+
+    LEVELS.forEach(level => {
+        const amountInput = document.getElementById(`templateAmount${level}`);
+        if (amountInput) {
+            amountInput.value = '';
+            const wrap = document.querySelector(`.leveltmp${level} .templateAmountWrap`);
+            wrap?.classList.remove('active');
+        }
+        const levelItemsContainer = document.getElementById(`level-${level}-items`);
+        if (levelItemsContainer) {
+            levelItemsContainer.querySelectorAll('input[type="number"]').forEach(input => {
+                input.value = '';
+            });
+        }
+    });
+}
+
+function restoreSavedCalculation(savedData) {
+    if (!savedData || typeof savedData !== 'object') {
+        return false;
+    }
+
+    latestCalculationPayload = savedData;
+
+    try {
+        initialMaterials = savedData.initialMaterials ? { ...savedData.initialMaterials } : {};
+        requestedTemplates = savedData.requestedTemplates ? { ...savedData.requestedTemplates } : {};
+        qualityMultipliers = savedData.qualityMultipliers ? { ...savedData.qualityMultipliers } : {};
+        failedLevels = Array.isArray(savedData.failedLevels) ? [...savedData.failedLevels] : [];
+        ctwMediumNotice = Boolean(savedData.ctwMediumNotice);
+        level20OnlyWarlordsActive = Boolean(savedData.level20OnlyWarlordsActive);
+        isViewingSavedCalculation = true;
+
+        if (savedData.templates || savedData.initialMaterials) {
+            populateInputsFromShare({
+                initialMaterials: savedData.initialMaterials || {},
+                templates: savedData.templates || {}
+            });
+        }
+
+        applySettingsFromStorage(savedData.settings || {}, savedData.requestedTemplates || {});
+
+        renderResults(savedData.templateCounts || {}, savedData.materialCounts || {});
+        return true;
+    } catch (error) {
+        console.error('Failed to restore saved calculation', error);
+        isViewingSavedCalculation = false;
+        latestCalculationPayload = null;
+        return false;
+    }
+}
+
+function handleSaveCalculation(button) {
+    if (!button) {
+        return;
+    }
+
+    if (!latestCalculationPayload) {
+        const originalLabel = button.textContent;
+        button.textContent = 'Nothing to save';
+        button.disabled = true;
+        setTimeout(() => {
+            button.disabled = false;
+            button.textContent = originalLabel;
+        }, 1500);
+        return;
+    }
+
+    if (!isLocalStorageAvailable()) {
+        const originalLabel = button.textContent;
+        button.textContent = 'Storage unavailable';
+        button.disabled = true;
+        setTimeout(() => {
+            button.disabled = false;
+            button.textContent = originalLabel;
+        }, 2000);
+        return;
+    }
+
+    const originalText = button.textContent;
+    const success = saveCalculationToStorage(latestCalculationPayload);
+    button.disabled = true;
+    button.textContent = success ? 'Saved' : 'Save failed';
+    setTimeout(() => {
+        button.disabled = false;
+        button.textContent = originalText;
+    }, success ? 2000 : 2500);
+}
+
+function handleClearSavedCalculation() {
+    clearSavedCalculationStorage();
+    failedLevels = [];
+    requestedTemplates = {};
+    qualityMultipliers = {};
+    remainingUse = {};
+    ctwMediumNotice = false;
+    level20OnlyWarlordsActive = false;
+    closeResults();
+    resetUserInputs();
 }
 
 const calculationProgressState = {
@@ -614,8 +885,17 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (e) {
             console.error('Invalid share data');
         }
+    } else {
+        const savedCalculation = loadSavedCalculation();
+        if (savedCalculation) {
+            const restored = restoreSavedCalculation(savedCalculation);
+            if (!restored) {
+                clearSavedCalculationStorage();
+                resetUserInputs();
+            }
+        }
     }
-	
+
     // Kun footerin sisällä olevaa SVG:tä painetaan
     document.querySelectorAll('footer svg, #openGiftFromHeader').forEach(element => {
 		element.addEventListener('click', function() {
@@ -972,6 +1252,35 @@ function createCloseButton(parentElement) {
     parentElement.appendChild(closeButton);
 }
 
+function createResultsActions(parentElement) {
+    if (!parentElement) {
+        return;
+    }
+
+    const actionsContainer = document.createElement('div');
+    actionsContainer.className = 'results-actions';
+
+    const storageAvailable = isLocalStorageAvailable();
+
+    if (!isViewingSavedCalculation && storageAvailable) {
+        const saveButton = document.createElement('button');
+        saveButton.type = 'button';
+        saveButton.className = 'results-actions__button results-actions__save';
+        saveButton.textContent = 'Save';
+        saveButton.addEventListener('click', () => handleSaveCalculation(saveButton));
+        actionsContainer.appendChild(saveButton);
+    }
+
+    const clearButton = document.createElement('button');
+    clearButton.type = 'button';
+    clearButton.className = 'results-actions__button results-actions__clear';
+    clearButton.textContent = 'Clear calculation';
+    clearButton.addEventListener('click', handleClearSavedCalculation);
+    actionsContainer.appendChild(clearButton);
+
+    parentElement.appendChild(actionsContainer);
+}
+
 
 function createLevelStructure() {
     const manualInputDiv = document.getElementById('manualInput');
@@ -1024,7 +1333,12 @@ function createLevelStructure() {
 }
 
 function calculateMaterials() {
-	
+    isViewingSavedCalculation = false;
+    latestCalculationPayload = null;
+    failedLevels = [];
+    requestedTemplates = {};
+    qualityMultipliers = {};
+
     const resultsDiv = document.getElementById('results');
     resultsDiv.innerHTML = ''; // Tyhjennä aiemmat tulokset
 
@@ -1083,9 +1397,55 @@ function calculateMaterials() {
     renderResults(templateCounts, materialCounts);
 }
 
+function getCurrentUserSettings() {
+    const scaleSelect = document.getElementById('scaleSelect');
+    const parseCheckbox = (id, fallback = false) => {
+        const element = document.getElementById(id);
+        if (element === null) {
+            return fallback;
+        }
+        return element.checked;
+    };
+
+    const gearSelect = document.getElementById('gearMaterialLevels');
+    const gearLevels = gearSelect
+        ? Array.from(gearSelect.selectedOptions).map(option => parseInt(option.value, 10))
+        : [];
+
+    const templateQualities = {};
+    LEVELS.forEach(level => {
+        const select = document.getElementById(`temp${level}`);
+        if (select) {
+            templateQualities[level] = select.value;
+        }
+    });
+
+    return {
+        scale: scaleSelect ? scaleSelect.value : '1',
+        includeWarlords: parseCheckbox('includeWarlords', true),
+        level1OnlyWarlords: parseCheckbox('level1OnlyWarlords', false),
+        level20OnlyWarlords: parseCheckbox('level20OnlyWarlords', false),
+        includeLowOdds: parseCheckbox('includeLowOdds', true),
+        includeMediumOdds: parseCheckbox('includeMediumOdds', true),
+        seasonZeroPreference: getSeasonZeroPreference(),
+        gearLevels,
+        templateQualities,
+        requestedTemplates: { ...requestedTemplates }
+    };
+}
+
 function renderResults(templateCounts, materialCounts) {
     const resultsDiv = document.getElementById('results');
     resultsDiv.innerHTML = '';
+
+    remainingUse = {};
+    const previousSavedAt =
+        isViewingSavedCalculation && latestCalculationPayload && latestCalculationPayload.savedAt
+            ? latestCalculationPayload.savedAt
+            : undefined;
+    if (!isViewingSavedCalculation) {
+        latestCalculationPayload = null;
+    }
 
     const materialsDiv = document.createElement('div');
     materialsDiv.className = 'materials';
@@ -1358,8 +1718,32 @@ function renderResults(templateCounts, materialCounts) {
         }));
     });
 
+    const templateCountsSnapshot = JSON.parse(JSON.stringify(templateCounts));
+    const materialCountsSnapshot = JSON.parse(JSON.stringify(materialCounts));
+    const minimalTemplatesSnapshot = JSON.parse(JSON.stringify(minimalTemplates));
+    const initialMaterialsSnapshot = JSON.parse(JSON.stringify(initialMaterials));
+    const requestedTemplatesSnapshot = { ...requestedTemplates };
+    const qualityMultipliersSnapshot = { ...qualityMultipliers };
+    const payload = {
+        templateCounts: templateCountsSnapshot,
+        materialCounts: materialCountsSnapshot,
+        templates: minimalTemplatesSnapshot,
+        initialMaterials: initialMaterialsSnapshot,
+        requestedTemplates: requestedTemplatesSnapshot,
+        qualityMultipliers: qualityMultipliersSnapshot,
+        settings: getCurrentUserSettings(),
+        failedLevels: [...failedLevels],
+        ctwMediumNotice,
+        level20OnlyWarlordsActive
+    };
+    if (previousSavedAt) {
+        payload.savedAt = previousSavedAt;
+    }
+    latestCalculationPayload = payload;
+
     generateDiv.after(itemsDiv);
     itemsDiv.after(itemsInfoPopup);
+    createResultsActions(resultsDiv);
     createCloseButton(resultsDiv);
 
     const seasonTotals = {};
@@ -1422,6 +1806,8 @@ function createMaterialImageElement(materialName, imgUrl, preference) {
 }
 
 async function calculateWithPreferences() {
+    isViewingSavedCalculation = false;
+    latestCalculationPayload = null;
     const templateAmountInputs = LEVELS.map(l => document.querySelector(`#templateAmount${l}`));
     let isValid = true;
         let hasValue = false;
@@ -1694,29 +2080,17 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
         if (
             templatesByLevel[level] > 0 &&
             !includeLowOdds &&
-			!includeMediumOdds &&
+            !includeMediumOdds &&
             seasonZeroPreference !== SeasonZeroPreference.OFF
         ) {
             let remaining = templatesByLevel[level];
             const multiplier = qualityMultipliers[level] || 1;
-            const isLegendary = multiplier >= 1024;
-			let produced = 0;
+            let produced = 0;
 
             while (remaining > 0) {
                 const prefs = getUserPreferences(availableMaterials);
                 let levelProducts = getLevelProducts(level);
-                levelProducts = applySeasonZeroPreference(levelProducts, seasonZeroPreference);
-                if (levelProducts.length === 0) {
-                    break;
-                }
-                levelProducts = levelProducts.filter(p => {
-                    const applyOdds = !isLegendary && shouldApplyOddsForProduct(p);
-                    if (!applyOdds) return true;
-                    if (p.odds === 'low') return includeLowOdds;
-                    if (p.odds === 'medium') return includeMediumOdds;
-                    return true;
-                });
-                levelProducts = filterProductsByAvailableGear(levelProducts, availableMaterials, multiplier);
+                levelProducts = applyLevelFilters(level, levelProducts, multiplier);
                 if (levelProducts.length === 0) {
                     break;
                 }
