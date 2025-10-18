@@ -2009,12 +2009,18 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
     const levelScoreLog = {};
     const loggedLevelSummary = new Set();
     const formatScore = (value) => (Number.isInteger(value) ? `${value}` : value.toFixed(2));
-    const recordSelection = (level, product, score) => {
+    const recordSelection = (level, product, score, quantity = 1) => {
+        if (quantity <= 0) {
+            return;
+        }
+        const safeQuantity = Math.max(1, Math.floor(quantity));
         if (!levelScoreLog[level]) {
             levelScoreLog[level] = [];
         }
-        levelScoreLog[level].push(score);
-        console.log(`Level ${level} - ${product.name} - ${formatScore(score)}`);
+        const repeatedScores = new Array(safeQuantity).fill(score);
+        levelScoreLog[level].push(...repeatedScores);
+        const quantityLabel = safeQuantity > 1 ? ` x${safeQuantity}` : '';
+        console.log(`Level ${level} - ${product.name}${quantityLabel} - ${formatScore(score)}`);
     };
     const logLevelSummary = (level) => {
         if (loggedLevelSummary.has(level)) {
@@ -2081,6 +2087,35 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
         return filtered;
     };
 
+    const appendPlanEntry = (level, product, quantity = 1) => {
+        if (quantity <= 0) {
+            return;
+        }
+        const safeQuantity = Math.max(1, Math.floor(quantity));
+        if (!Number.isFinite(safeQuantity)) {
+            return;
+        }
+        const levelEntries = productionPlan[level];
+        const lastEntry = levelEntries[levelEntries.length - 1];
+        if (
+            lastEntry &&
+            lastEntry.name === product.name &&
+            lastEntry.season === product.season &&
+            lastEntry.setName === product.setName &&
+            lastEntry.warlord === product.warlord
+        ) {
+            lastEntry.quantity = (lastEntry.quantity || 1) + safeQuantity;
+        } else {
+            levelEntries.push({
+                name: product.name,
+                season: product.season,
+                setName: product.setName,
+                warlord: product.warlord,
+                quantity: safeQuantity
+            });
+        }
+    };
+
     const processNormalOddsLevel = async (level) => {
         if (
             templatesByLevel[level] > 0 &&
@@ -2109,6 +2144,13 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
                 );
 
                 if (selected && canProductBeProduced(selected, availableMaterials, multiplier)) {
+                    const maxCraftable = getMaxCraftableQuantity(selected, availableMaterials, multiplier);
+                    const chunkSize = determineChunkSize(remaining, maxCraftable);
+
+                    if (chunkSize <= 0) {
+                        break;
+                    }
+
                     const score = getMaterialScore(
                         selected,
                         prefs.mostAvailableMaterials,
@@ -2117,12 +2159,16 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
                         availableMaterials,
                         multiplier
                     );
-                    recordSelection(level, selected, score);
-                    productionPlan[level].push({ name: selected.name, season: selected.season, setName: selected.setName, warlord: selected.warlord });
-                    updateAvailableMaterials(availableMaterials, selected, multiplier);
-                    remaining--;
-                    produced++;
-                    await progress();
+                    const quantity = Math.max(1, Math.floor(chunkSize));
+                    recordSelection(level, selected, score, quantity);
+                    appendPlanEntry(level, selected, quantity);
+                    updateAvailableMaterials(availableMaterials, selected, multiplier, quantity);
+                    remaining -= quantity;
+                    if (remaining < 0) {
+                        remaining = 0;
+                    }
+                    produced += quantity;
+                    await progress(quantity);
                 } else {
                     break;
                 }
@@ -2131,7 +2177,8 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
             templatesByLevel[level] = remaining;
 
             if (produced > 0) {
-                if (remaining === 0) {
+                if (remaining <= 0) {
+                    templatesByLevel[level] = 0;
                     logLevelSummary(level);
                 }
                 return;
@@ -2179,6 +2226,15 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
             );
 
             if (selectedProduct && canProductBeProduced(selectedProduct, availableMaterials, multiplier)) {
+                const maxCraftable = getMaxCraftableQuantity(selectedProduct, availableMaterials, multiplier);
+                const chunkSize = determineChunkSize(remaining[level], maxCraftable);
+
+                if (chunkSize <= 0) {
+                    failed.add(level);
+                    remaining[level] = 0;
+                    continue;
+                }
+
                 const score = getMaterialScore(
                     selectedProduct,
                     preferences.mostAvailableMaterials,
@@ -2187,15 +2243,17 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
                     availableMaterials,
                     multiplier
                 );
-                recordSelection(level, selectedProduct, score);
-                productionPlan[level].push({ name: selectedProduct.name, season: selectedProduct.season, setName: selectedProduct.setName, warlord: selectedProduct.warlord });
-                updateAvailableMaterials(availableMaterials, selectedProduct, multiplier);
-                remaining[level]--;
-                if (remaining[level] === 0) {
+                const quantity = Math.max(1, Math.floor(chunkSize));
+                recordSelection(level, selectedProduct, score, quantity);
+                appendPlanEntry(level, selectedProduct, quantity);
+                updateAvailableMaterials(availableMaterials, selectedProduct, multiplier, quantity);
+                remaining[level] -= quantity;
+                if (remaining[level] <= 0) {
+                    remaining[level] = 0;
                     logLevelSummary(level);
                 }
                 anySelected = true;
-                await progress();
+                await progress(quantity);
             } else {
                 failed.add(level);
                 remaining[level] = 0;
@@ -2229,14 +2287,15 @@ function displayUserMessage(message) {
 
 
 
-function updateAvailableMaterials(availableMaterials, selectedProduct, multiplier = 1) {
+function updateAvailableMaterials(availableMaterials, selectedProduct, multiplier = 1, quantity = 1) {
     const availableMap = getNormalizedKeyMap(availableMaterials);
     Object.entries(selectedProduct.materials).forEach(([material, amountRequired]) => {
         const normalizedMaterial = normalizeKey(material);
         const matchedKey = availableMap[normalizedMaterial];
 
         if (matchedKey) {
-            availableMaterials[matchedKey] -= amountRequired * multiplier;
+            const totalRequired = amountRequired * multiplier * quantity;
+            availableMaterials[matchedKey] -= totalRequired;
         }
     });
 }
@@ -2433,17 +2492,84 @@ function canProductBeProduced(product, availableMaterials, multiplier = 1) {
     });
 }
 
+function getMaxCraftableQuantity(product, availableMaterials, multiplier = 1) {
+    if (!product || !product.materials) {
+        return 0;
+    }
+    const availableMap = getNormalizedKeyMap(availableMaterials);
+    let maxCraftable = Infinity;
+
+    for (const [material, amountRequired] of Object.entries(product.materials)) {
+        const normalizedMaterial = normalizeKey(material);
+        const matchedKey = availableMap[normalizedMaterial];
+
+        if (!matchedKey) {
+            return 0;
+        }
+
+        const totalRequired = amountRequired * multiplier;
+        if (totalRequired <= 0) {
+            continue;
+        }
+
+        const available = Number(availableMaterials[matchedKey]) || 0;
+        const craftableWithMaterial = Math.max(0, Math.floor(available / totalRequired));
+        maxCraftable = Math.min(maxCraftable, craftableWithMaterial);
+
+        if (maxCraftable === 0) {
+            return 0;
+        }
+    }
+
+    return Number.isFinite(maxCraftable) ? maxCraftable : 0;
+}
+
+function determineChunkSize(requested, maxCraftable) {
+    const needed = Math.max(0, Math.floor(requested));
+    const available = Math.max(0, Math.floor(maxCraftable));
+
+    if (needed === 0 || available === 0) {
+        return 0;
+    }
+
+    const chunkThresholds = [
+        { min: 5000, size: 500 },
+        { min: 3000, size: 300 },
+        { min: 2000, size: 200 },
+        { min: 1500, size: 150 },
+        { min: 1000, size: 100 },
+        { min: 600, size: 75 },
+        { min: 400, size: 50 },
+        { min: 200, size: 25 },
+        { min: 100, size: 20 },
+        { min: 50, size: 10 },
+        { min: 20, size: 5 }
+    ];
+
+    for (const { min, size } of chunkThresholds) {
+        if (needed >= min) {
+            const chunk = Math.min(size, needed, available);
+            if (chunk > 0) {
+                return chunk;
+            }
+        }
+    }
+
+    return Math.min(needed, available);
+}
+
 
 
 
 
 function listSelectedProducts(productionPlan) {
     Object.entries(productionPlan).forEach(([level, products]) => {
-        products.forEach(({ name, season, setName }) => {
+        products.forEach(({ name, season, setName, quantity = 1 }) => {
             const selector = `#level-${level}-items input[name="${slug(name)}_${season}_${slug(setName || 'no-set')}"]`;
             const inputElement = document.querySelector(selector);
             if (inputElement) {
-                inputElement.value = (parseInt(inputElement.value) || 0) + 1;
+                const currentValue = parseInt(inputElement.value, 10) || 0;
+                inputElement.value = currentValue + quantity;
             }
         });
     });
