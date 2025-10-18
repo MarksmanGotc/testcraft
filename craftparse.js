@@ -2538,12 +2538,12 @@ function determineChunkSize(requested, maxCraftable) {
         { min: 2000, size: 200 },
         { min: 1500, size: 150 },
         { min: 1000, size: 100 },
-        { min: 600, size: 75 },
-        { min: 400, size: 50 },
-        { min: 200, size: 25 },
-        { min: 100, size: 20 },
-        { min: 50, size: 10 },
-        { min: 20, size: 5 }
+        { min: 600, size: 60 },
+        { min: 400, size: 30 },
+        { min: 200, size: 15 },
+        { min: 100, size: 5 },
+        { min: 50, size: 3 },
+        { min: 20, size: 1 }
     ];
 
     for (const { min, size } of chunkThresholds) {
