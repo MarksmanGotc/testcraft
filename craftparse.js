@@ -95,7 +95,9 @@ const qualityColorMap = {
 };
 let qualitySelectHandlersAttached = false;
 let failedLevels = [];
+let pendingFailedLevels = null;
 let requestedTemplates = {};
+let preserveRequestedTemplates = false;
 let remainingUse = {};
 let ctwMediumNotice = false;
 let level20OnlyWarlordsActive = false;
@@ -459,6 +461,8 @@ function restoreSavedCalculation(savedData) {
         requestedTemplates = savedData.requestedTemplates ? { ...savedData.requestedTemplates } : {};
         qualityMultipliers = savedData.qualityMultipliers ? { ...savedData.qualityMultipliers } : {};
         failedLevels = Array.isArray(savedData.failedLevels) ? [...savedData.failedLevels] : [];
+        pendingFailedLevels = null;
+        preserveRequestedTemplates = false;
         ctwMediumNotice = Boolean(savedData.ctwMediumNotice);
         level20OnlyWarlordsActive = Boolean(savedData.level20OnlyWarlordsActive);
         isViewingSavedCalculation = true;
@@ -522,7 +526,9 @@ function handleSaveCalculation(button) {
 function handleClearSavedCalculation() {
     clearSavedCalculationStorage();
     failedLevels = [];
+    pendingFailedLevels = null;
     requestedTemplates = {};
+    preserveRequestedTemplates = false;
     qualityMultipliers = {};
     remainingUse = {};
     ctwMediumNotice = false;
@@ -1339,9 +1345,22 @@ function createLevelStructure() {
 function calculateMaterials() {
     isViewingSavedCalculation = false;
     latestCalculationPayload = null;
-    failedLevels = [];
-    requestedTemplates = {};
+    const hasPendingFailures = Array.isArray(pendingFailedLevels);
+    if (hasPendingFailures) {
+        failedLevels = [...pendingFailedLevels];
+        pendingFailedLevels = null;
+    } else {
+        failedLevels = [];
+    }
+
+    const shouldPreserveRequested = preserveRequestedTemplates;
+    preserveRequestedTemplates = false;
+
+    if (!shouldPreserveRequested) {
+        requestedTemplates = {};
+    }
     qualityMultipliers = {};
+    const manualRequestedTotals = {};
 
     LEVELS.forEach(level => {
         const qualitySelect = document.getElementById(`temp${level}`);
@@ -1406,9 +1425,19 @@ function calculateMaterials() {
                     const multiplier = qualityMultipliers[level] || 1;
                     materialCounts[materialName].amount += requiredAmount * amount * multiplier;
                 });
+
+                if (!shouldPreserveRequested) {
+                    manualRequestedTotals[level] = (manualRequestedTotals[level] || 0) + amount;
+                }
             }
         });
     });
+
+    if (!shouldPreserveRequested) {
+        LEVELS.forEach(level => {
+            requestedTemplates[level] = manualRequestedTotals[level] || 0;
+        });
+    }
     renderResults(templateCounts, materialCounts);
 }
 
@@ -1912,6 +1941,10 @@ async function calculateWithPreferences() {
                 const resultPlan = await calculateProductionPlan(availableMaterials, templatesByLevel, progressTracker.tick);
                 progressTracker.complete();
                 failedLevels = resultPlan.failedLevels;
+                pendingFailedLevels = Array.isArray(resultPlan.failedLevels)
+                    ? [...resultPlan.failedLevels]
+                    : null;
+                preserveRequestedTemplates = true;
 
                 document.querySelectorAll('#manualInput input[type="number"]').forEach(input => {
                         input.value = ''; // Nollaa kaikki input-kentät
@@ -1923,6 +1956,8 @@ async function calculateWithPreferences() {
                 } else {
                         document.querySelector('.spinner-wrap').classList.remove('active');
                         clearCalculationProgress();
+                        pendingFailedLevels = null;
+                        preserveRequestedTemplates = false;
                 }
         } catch (error) {
                 console.error('Failed to calculate templates with preferences:', error);
