@@ -50,7 +50,8 @@ const BASE_SECOND_WEIGHT = 6;
 const GEAR_MOST_WEIGHT = 6;
 const GEAR_SECOND_WEIGHT = 3;
 const GEAR_BASELINE_BONUS = BASE_MOST_WEIGHT;
-const LEFTOVER_WEIGHT_BASE = 7;
+const SEASON_ZERO_BASELINE_BONUS = 6;
+const LEFTOVER_WEIGHT_SEASON_ZERO = 4;
 const LEFTOVER_WEIGHT_GEAR = 3;
 const BALANCE_WEIGHT = 0.1;
 const CTW_SET_NAME_FALLBACK = 'Ceremonial Targaryen Warlord';
@@ -2361,7 +2362,7 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
     let score = 0;
     const availableMap = getNormalizedKeyMap(availableMaterials);
     const seasonZeroPreference = getSeasonZeroPreference();
-    const shouldApplyGearBaselineBonus = true; // Season 0 slider should not modify non-season gear weighting
+    const shouldApplyBaselineBonuses = true; // Preserve base weighting before applying Season 0 preference slider
     Object.entries(product.materials).forEach(([material, _]) => {
         const season = materialToSeason[material] || 0;
         const isGear = season !== 0;
@@ -2374,8 +2375,12 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
         if (leastAvailableMaterials.includes(material)) {
             score -= 10;
         }
-        if (shouldApplyGearBaselineBonus && isGear) {
-            score += GEAR_BASELINE_BONUS;
+        if (shouldApplyBaselineBonuses) {
+            if (isGear) {
+                score += GEAR_BASELINE_BONUS;
+            } else {
+                score += SEASON_ZERO_BASELINE_BONUS;
+            }
         }
     });
     if (product.warlord) {
@@ -2387,7 +2392,7 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
         const matchedKey = availableMap[normalizedMaterial];
         if (matchedKey) {
             const season = materialToSeason[normalizedMaterial] || 0;
-            const weight = season === 0 ? LEFTOVER_WEIGHT_BASE : LEFTOVER_WEIGHT_GEAR;
+            const weight = season === 0 ? LEFTOVER_WEIGHT_SEASON_ZERO : LEFTOVER_WEIGHT_GEAR;
             const available = availableMaterials[matchedKey];
             const remaining = available - amount * multiplier;
             if (available > 0) {
