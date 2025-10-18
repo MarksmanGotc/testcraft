@@ -73,12 +73,15 @@ const seasonZeroValueText = {
 };
 const SEASON_ZERO_SCORE_DEFAULT = Object.freeze({ seasonZero: 0, nonSeason: 0 });
 const SEASON_ZERO_SCORE_ADJUSTMENTS = Object.freeze({
-    // Non-season adjustments remain at zero so that the slider only influences Season 0 items.
-    [SeasonZeroPreference.LOW]: Object.freeze({ seasonZero: 100, nonSeason: 0 }),
-    // Normal weighting sits roughly halfway between the low and high configurations
-    // to provide a smoother progression without overwhelming the default results.
-    [SeasonZeroPreference.NORMAL]: Object.freeze({ seasonZero: 700, nonSeason: 0 }),
-    [SeasonZeroPreference.HIGH]: Object.freeze({ seasonZero: 1400, nonSeason: 0 })
+    // Low preference strongly discourages Season 0 selections while gently favouring
+    // non-season options so that the slider produces visible differences even when
+    // balance penalties are large.
+    [SeasonZeroPreference.LOW]: Object.freeze({ seasonZero: -0.45, nonSeason: 0.1 }),
+    // Normal keeps the previous behaviour of treating all seasons evenly.
+    [SeasonZeroPreference.NORMAL]: Object.freeze({ seasonZero: 0, nonSeason: 0 }),
+    // High preference mirrors the low configuration to boost Season 0 and lightly
+    // penalise non-season gear.
+    [SeasonZeroPreference.HIGH]: Object.freeze({ seasonZero: 0.45, nonSeason: -0.1 })
 });
 let currentSeasonZeroPreference = SeasonZeroPreference.NORMAL;
 const qualityColorMap = {
@@ -2396,10 +2399,16 @@ function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMa
     const balancePenalty = computeBalancePenalty(product, availableMaterials, multiplier);
     score -= balancePenalty * BALANCE_WEIGHT;
 
-    const { seasonZero: seasonZeroAdjustment } = getSeasonZeroScoreAdjustments(seasonZeroPreference);
+    const { seasonZero: seasonZeroAdjustment, nonSeason: nonSeasonAdjustment } =
+        getSeasonZeroScoreAdjustments(seasonZeroPreference);
 
-    if (product.season === 0) {
-        score += seasonZeroAdjustment;
+    if (seasonZeroAdjustment !== 0 || nonSeasonAdjustment !== 0) {
+        const magnitude = Math.max(1, Math.abs(score));
+        if (product.season === 0) {
+            score += magnitude * seasonZeroAdjustment;
+        } else {
+            score += magnitude * nonSeasonAdjustment;
+        }
     }
 
     return score;
