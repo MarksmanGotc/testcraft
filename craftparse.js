@@ -2406,11 +2406,17 @@ function calculateMaterialBalancePenalties(sortedMaterials) {
         return {};
     }
 
-    const entries = sortedMaterials.map(([material, rawAmount]) => ({
-        material,
-        normalized: normalizeKey(material),
-        amount: Number(rawAmount) || 0
-    }));
+    const entries = sortedMaterials.map(([material, rawAmount]) => {
+        const normalized = normalizeKey(material);
+        const season = materialToSeason[normalized] || materialToSeason[material] || 0;
+
+        return {
+            material,
+            normalized,
+            amount: Number(rawAmount) || 0,
+            season
+        };
+    });
 
     const amounts = entries.map(entry => entry.amount);
     const total = amounts.reduce((sum, amount) => sum + amount, 0);
@@ -2455,6 +2461,16 @@ function calculateMaterialBalancePenalties(sortedMaterials) {
     );
     const zeroAmountExtraPenalty = 8;
     const penaltyFloor = -35;
+    const baseMaterialPenaltyFloor = -48;
+
+    const baseEntries = entries.filter(entry => entry.season === 0);
+    const weakestBaseAmount =
+        baseEntries.length > 0 ? Math.min(...baseEntries.map(entry => entry.amount)) : null;
+    const weakestBaseSet = new Set(
+        baseEntries
+            .filter(entry => weakestBaseAmount !== null && entry.amount <= weakestBaseAmount * 1.05)
+            .map(entry => entry.normalized)
+    );
 
     entries.forEach(entry => {
         if (mean <= 0) {
@@ -2477,6 +2493,12 @@ function calculateMaterialBalancePenalties(sortedMaterials) {
 
         let penalty = -basePenalty * severity;
 
+        if (entry.season === 0) {
+            const shortfallBoost = 1 + deficitRatio * 1.5;
+            const weakestBoost = weakestBaseSet.has(entry.normalized) ? 1.2 : 1;
+            penalty *= shortfallBoost * weakestBoost;
+        }
+
         if (bottomQuartileSet.has(entry.normalized)) {
             penalty *= 1.15;
         }
@@ -2485,7 +2507,8 @@ function calculateMaterialBalancePenalties(sortedMaterials) {
             penalty -= zeroAmountExtraPenalty;
         }
 
-        penalties[entry.normalized] = Math.max(penalty, penaltyFloor);
+        const floor = entry.season === 0 ? baseMaterialPenaltyFloor : penaltyFloor;
+        penalties[entry.normalized] = Math.max(penalty, floor);
     });
 
     return penalties;
