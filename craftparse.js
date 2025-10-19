@@ -2602,7 +2602,7 @@ function getMaterialScore(
     const availableMap = getNormalizedKeyMap(availableMaterials);
     const { rankByMaterial, leastMaterials } = preferenceInfo || {};
     let totalPoints = 0;
-    let materialTypes = 0;
+    let totalRequiredUnits = 0;
 
     for (const [material, amountRequired] of Object.entries(product.materials)) {
         const normalizedMaterial = normalizeKey(material);
@@ -2633,15 +2633,15 @@ function getMaterialScore(
             materialScore = GEAR_MATERIAL_SCORE;
         }
 
-        totalPoints += materialScore;
-        materialTypes += 1;
+        totalPoints += materialScore * totalRequired;
+        totalRequiredUnits += totalRequired;
     }
 
-    if (materialTypes === 0) {
+    if (totalRequiredUnits === 0) {
         return INSUFFICIENT_MATERIAL_PENALTY;
     }
 
-    let score = totalPoints / materialTypes;
+    let score = totalPoints / totalRequiredUnits;
 
     if (product.setName === ctwSetName && CTW_LOW_LEVELS.has(level)) {
         score -= 4;
