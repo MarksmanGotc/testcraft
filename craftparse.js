@@ -2428,7 +2428,7 @@ function calculateMaterialBalancePenalties(sortedMaterials) {
     const maxAmount = Math.max(...amounts);
     const minAmount = Math.min(...amounts);
 
-    if (coefficientOfVariation <= 0.06 && maxAmount - minAmount <= mean * 0.1) {
+    if (coefficientOfVariation <= 0.08 && maxAmount - minAmount <= mean * 0.1) {
         return {};
     }
 
@@ -2446,6 +2446,15 @@ function calculateMaterialBalancePenalties(sortedMaterials) {
     }
 
     const penalties = {};
+    const bottomQuartileCount = Math.max(1, Math.floor(entries.length * 0.25));
+    const bottomQuartileSet = new Set(
+        [...entries]
+            .sort((a, b) => a.amount - b.amount)
+            .slice(0, bottomQuartileCount)
+            .map(entry => entry.normalized)
+    );
+    const zeroAmountExtraPenalty = 8;
+    const penaltyFloor = -35;
 
     entries.forEach(entry => {
         if (mean <= 0) {
@@ -2460,13 +2469,23 @@ function calculateMaterialBalancePenalties(sortedMaterials) {
 
         const relativeToMax = maxAmount > 0 ? entry.amount / maxAmount : 0;
         const severityExponent = 1.1 + Math.min(1.2, ratioImpact * 0.45 + scarcityFactor * 0.8);
-        const severity = Math.pow(deficitRatio, severityExponent) * (1 - relativeToMax * 0.6);
+        const severity = Math.pow(deficitRatio, severityExponent) * (1 - relativeToMax * 0.3);
 
         if (severity <= 0) {
             return;
         }
 
-        penalties[entry.normalized] = -basePenalty * severity;
+        let penalty = -basePenalty * severity;
+
+        if (bottomQuartileSet.has(entry.normalized)) {
+            penalty *= 1.15;
+        }
+
+        if (entry.amount === 0) {
+            penalty -= zeroAmountExtraPenalty;
+        }
+
+        penalties[entry.normalized] = Math.max(penalty, penaltyFloor);
     });
 
     return penalties;
