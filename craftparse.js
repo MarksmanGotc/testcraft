@@ -52,8 +52,14 @@ const MATERIAL_RANK_POINTS = Object.freeze({
     5: 1,
     9: -5,
     10: -10,
-    11: -15
+    11: -15,
+    12: -20
 });
+const MAX_DEFINED_MATERIAL_RANK = Math.max(
+    ...Object.keys(MATERIAL_RANK_POINTS)
+        .map(Number)
+        .filter(rank => Number.isFinite(rank))
+);
 const MATERIAL_NEUTRAL_RANKS = new Set([6, 7, 8]);
 const INSUFFICIENT_MATERIAL_PENALTY = -1000;
 const CTW_LOW_LEVELS = new Set([1, 5, 10, 15]);
@@ -2531,8 +2537,8 @@ function getRankScore(rank, isLeastMaterial) {
         return 0;
     }
 
-    if (rank > 11) {
-        return MATERIAL_RANK_POINTS[11] || DEFAULT_RANK_PENALTY;
+    if (rank > MAX_DEFINED_MATERIAL_RANK) {
+        return MATERIAL_RANK_POINTS[MAX_DEFINED_MATERIAL_RANK] || DEFAULT_RANK_PENALTY;
     }
 
     return DEFAULT_RANK_PENALTY;
