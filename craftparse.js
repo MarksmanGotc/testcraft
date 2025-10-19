@@ -50,10 +50,10 @@ const MATERIAL_RANK_POINTS = Object.freeze({
     3: 8,
     4: 5,
     5: 1,
-    9: -5,
-    10: -10,
-    11: -15,
-    12: -20
+    9: -7,
+    10: -15,
+    11: -20,
+    12: -30
 });
 const MAX_DEFINED_MATERIAL_RANK = Math.max(
     ...Object.keys(MATERIAL_RANK_POINTS)
@@ -66,7 +66,7 @@ const CTW_LOW_LEVELS = new Set([1, 5, 10, 15]);
 const GEAR_MATERIAL_SCORE = 15;
 const SEASON_ZERO_LOW_BONUS = -5;
 const SEASON_ZERO_HIGH_BONUS = 10;
-const DEFAULT_RANK_PENALTY = -20;
+const DEFAULT_RANK_PENALTY = -30;
 const CTW_SET_NAME_FALLBACK = 'Ceremonial Targaryen Warlord';
 const ctwSetName =
     typeof window !== 'undefined' && window.CTW_SET_NAME
