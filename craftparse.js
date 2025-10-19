@@ -2428,14 +2428,18 @@ function calculateMaterialBalancePenalties(sortedMaterials) {
     const maxAmount = Math.max(...amounts);
     const minAmount = Math.min(...amounts);
 
-    if (coefficientOfVariation <= 0.08 && maxAmount - minAmount <= mean * 0.1) {
+    if (coefficientOfVariation <= 0.06 && maxAmount - minAmount <= mean * 0.1) {
         return {};
     }
 
     const ratio = (maxAmount + 1) / (Math.max(minAmount, 0) + 1);
     const ratioImpact = Math.log2(Math.max(ratio, 1));
-    const imbalanceStrength = Math.max(coefficientOfVariation - 0.08, 0);
-    const basePenalty = imbalanceStrength * (1 + ratioImpact * 0.35) * 20;
+    const imbalanceStrength = Math.max(coefficientOfVariation - 0.06, 0);
+    const normalizedSpread = mean > 0 ? (maxAmount - minAmount) / mean : 0;
+    const scarcityFactor = mean > 0 ? Math.max(0, 1 - minAmount / mean) : 0;
+    const spreadBoost = 1 + Math.min(1.75, normalizedSpread * 0.9 + ratioImpact * 0.3);
+    const scarcityBoost = 1 + scarcityFactor * 1.4 + Math.min(0.6, ratioImpact * 0.25);
+    const basePenalty = imbalanceStrength * spreadBoost * scarcityBoost * 22;
 
     if (basePenalty <= 0) {
         return {};
@@ -2455,7 +2459,8 @@ function calculateMaterialBalancePenalties(sortedMaterials) {
         }
 
         const relativeToMax = maxAmount > 0 ? entry.amount / maxAmount : 0;
-        const severity = deficitRatio * (1 - relativeToMax);
+        const severityExponent = 1.1 + Math.min(1.2, ratioImpact * 0.45 + scarcityFactor * 0.8);
+        const severity = Math.pow(deficitRatio, severityExponent) * (1 - relativeToMax * 0.6);
 
         if (severity <= 0) {
             return;
