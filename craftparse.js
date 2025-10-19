@@ -2641,17 +2641,17 @@ function getMaterialScore(
         return INSUFFICIENT_MATERIAL_PENALTY;
     }
 
-    let score = totalPoints / totalRequiredUnits;
+    let score = totalPoints;
 
     if (product.setName === ctwSetName && CTW_LOW_LEVELS.has(level)) {
-        score -= 4;
+        score -= 4 * totalRequiredUnits;
     }
 
     if (product.season === 0) {
         if (seasonZeroPreference === SeasonZeroPreference.HIGH) {
-            score += SEASON_ZERO_HIGH_BONUS;
+            score += SEASON_ZERO_HIGH_BONUS * totalRequiredUnits;
         } else if (seasonZeroPreference === SeasonZeroPreference.LOW) {
-            score += SEASON_ZERO_LOW_BONUS;
+            score += SEASON_ZERO_LOW_BONUS * totalRequiredUnits;
         }
     }
 
