@@ -2363,6 +2363,7 @@ function getUserPreferences(availableMaterials) {
 
     const rankByMaterial = {};
     const normalizedLeastMaterials = new Set();
+    const balancePenalties = calculateMaterialBalancePenalties(sortedMaterials);
 
     let currentRank = 1;
     let index = 0;
@@ -2395,8 +2396,75 @@ function getUserPreferences(availableMaterials) {
     return {
         rankByMaterial,
         leastMaterials: normalizedLeastMaterials,
-        sortedMaterials
+        sortedMaterials,
+        balancePenalties
     };
+}
+
+function calculateMaterialBalancePenalties(sortedMaterials) {
+    if (!Array.isArray(sortedMaterials) || sortedMaterials.length < 2) {
+        return {};
+    }
+
+    const entries = sortedMaterials.map(([material, rawAmount]) => ({
+        material,
+        normalized: normalizeKey(material),
+        amount: Number(rawAmount) || 0
+    }));
+
+    const amounts = entries.map(entry => entry.amount);
+    const total = amounts.reduce((sum, amount) => sum + amount, 0);
+
+    if (total <= 0) {
+        return {};
+    }
+
+    const mean = total / entries.length;
+    const variance =
+        entries.reduce((sum, entry) => sum + Math.pow(entry.amount - mean, 2), 0) /
+        entries.length;
+    const stdDeviation = Math.sqrt(variance);
+    const coefficientOfVariation = mean > 0 ? stdDeviation / mean : 0;
+    const maxAmount = Math.max(...amounts);
+    const minAmount = Math.min(...amounts);
+
+    if (coefficientOfVariation <= 0.08 && maxAmount - minAmount <= mean * 0.1) {
+        return {};
+    }
+
+    const ratio = (maxAmount + 1) / (Math.max(minAmount, 0) + 1);
+    const ratioImpact = Math.log2(Math.max(ratio, 1));
+    const imbalanceStrength = Math.max(coefficientOfVariation - 0.08, 0);
+    const basePenalty = imbalanceStrength * (1 + ratioImpact * 0.35) * 20;
+
+    if (basePenalty <= 0) {
+        return {};
+    }
+
+    const penalties = {};
+
+    entries.forEach(entry => {
+        if (mean <= 0) {
+            return;
+        }
+
+        const deficitRatio = Math.max(0, (mean - entry.amount) / mean);
+
+        if (deficitRatio === 0) {
+            return;
+        }
+
+        const relativeToMax = maxAmount > 0 ? entry.amount / maxAmount : 0;
+        const severity = deficitRatio * (1 - relativeToMax);
+
+        if (severity <= 0) {
+            return;
+        }
+
+        penalties[entry.normalized] = -basePenalty * severity;
+    });
+
+    return penalties;
 }
 
 function getRankScore(rank, isLeastMaterial) {
@@ -2501,6 +2569,11 @@ function getMaterialScore(
         const rank = rankByMaterial ? rankByMaterial[normalizedMatchedKey] : undefined;
         const isLeastMaterial = leastMaterials ? leastMaterials.has(normalizedMatchedKey) : false;
         let materialScore = getRankScore(rank, isLeastMaterial);
+        const balancePenalty =
+            preferenceInfo && preferenceInfo.balancePenalties
+                ? preferenceInfo.balancePenalties[normalizedMatchedKey] || 0
+                : 0;
+        materialScore += balancePenalty;
 
         const season = materialToSeason[normalizedMaterial] || materialToSeason[normalizedMatchedKey] || 0;
         if (levelAllowsGear && season !== 0) {
