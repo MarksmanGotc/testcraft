@@ -2417,104 +2417,50 @@ function calculateMaterialBalancePenalties(sortedMaterials) {
         const season = materialToSeason[normalized] || materialToSeason[material] || 0;
 
         return {
-            material,
             normalized,
             amount: Number(rawAmount) || 0,
             season
         };
     });
 
-    const amounts = entries.map(entry => entry.amount);
-    const total = amounts.reduce((sum, amount) => sum + amount, 0);
-
+    const total = entries.reduce((sum, entry) => sum + entry.amount, 0);
     if (total <= 0) {
         return {};
     }
 
     const mean = total / entries.length;
-    const variance =
-        entries.reduce((sum, entry) => sum + Math.pow(entry.amount - mean, 2), 0) /
-        entries.length;
-    const stdDeviation = Math.sqrt(variance);
-    const coefficientOfVariation = mean > 0 ? stdDeviation / mean : 0;
-    const maxAmount = Math.max(...amounts);
-    const minAmount = Math.min(...amounts);
-
-    if (coefficientOfVariation <= 0.08 && maxAmount - minAmount <= mean * 0.1) {
-        return {};
-    }
-
-    const ratio = (maxAmount + 1) / (Math.max(minAmount, 0) + 1);
-    const ratioImpact = Math.log2(Math.max(ratio, 1));
-    const imbalanceStrength = Math.max(coefficientOfVariation - 0.06, 0);
-    const normalizedSpread = mean > 0 ? (maxAmount - minAmount) / mean : 0;
-    const scarcityFactor = mean > 0 ? Math.max(0, 1 - minAmount / mean) : 0;
-    const spreadBoost = 1 + Math.min(1.75, normalizedSpread * 0.9 + ratioImpact * 0.3);
-    const scarcityBoost = 1 + scarcityFactor * 1.4 + Math.min(0.6, ratioImpact * 0.25);
-    const basePenalty = imbalanceStrength * spreadBoost * scarcityBoost * 22;
-
-    if (basePenalty <= 0) {
+    const maxAmount = Math.max(...entries.map(entry => entry.amount));
+    if (!Number.isFinite(mean) || mean <= 0 || !Number.isFinite(maxAmount) || maxAmount <= 0) {
         return {};
     }
 
     const penalties = {};
-    const bottomQuartileCount = Math.max(1, Math.floor(entries.length * 0.25));
-    const bottomQuartileSet = new Set(
-        [...entries]
-            .sort((a, b) => a.amount - b.amount)
-            .slice(0, bottomQuartileCount)
-            .map(entry => entry.normalized)
-    );
-    const zeroAmountExtraPenalty = 8;
-    const penaltyFloor = -35;
-    const baseMaterialPenaltyFloor = -48;
-
-    const baseEntries = entries.filter(entry => entry.season === 0);
-    const weakestBaseAmount =
-        baseEntries.length > 0 ? Math.min(...baseEntries.map(entry => entry.amount)) : null;
-    const weakestBaseSet = new Set(
-        baseEntries
-            .filter(entry => weakestBaseAmount !== null && entry.amount <= weakestBaseAmount * 1.05)
-            .map(entry => entry.normalized)
-    );
 
     entries.forEach(entry => {
-        if (mean <= 0) {
-            return;
-        }
+        const ratioToMean = entry.amount / mean;
+        const ratioToMax = entry.amount / maxAmount;
 
-        const deficitRatio = Math.max(0, (mean - entry.amount) / mean);
+        let penalty = 0;
 
-        if (deficitRatio === 0) {
-            return;
-        }
-
-        const relativeToMax = maxAmount > 0 ? entry.amount / maxAmount : 0;
-        const severityExponent = 1.1 + Math.min(1.2, ratioImpact * 0.45 + scarcityFactor * 0.8);
-        const severity = Math.pow(deficitRatio, severityExponent) * (1 - relativeToMax * 0.3);
-
-        if (severity <= 0) {
-            return;
-        }
-
-        let penalty = -basePenalty * severity;
-
-        if (entry.season === 0) {
-            const shortfallBoost = 1 + deficitRatio * 1.5;
-            const weakestBoost = weakestBaseSet.has(entry.normalized) ? 1.2 : 1;
-            penalty *= shortfallBoost * weakestBoost;
-        }
-
-        if (bottomQuartileSet.has(entry.normalized)) {
-            penalty *= 1.15;
+        if (ratioToMean < 0.25 || ratioToMax < 0.15) {
+            penalty = -18;
+        } else if (ratioToMean < 0.5 || ratioToMax < 0.3) {
+            penalty = -12;
+        } else if (ratioToMean < 0.75 || ratioToMax < 0.5) {
+            penalty = -6;
         }
 
         if (entry.amount === 0) {
-            penalty -= zeroAmountExtraPenalty;
+            penalty = Math.min(penalty - 6, -22);
         }
 
-        const floor = entry.season === 0 ? baseMaterialPenaltyFloor : penaltyFloor;
-        penalties[entry.normalized] = Math.max(penalty, floor);
+        if (entry.season === 0 && penalty < 0) {
+            penalty = Math.min(penalty * 1.1, -22);
+        }
+
+        if (penalty !== 0) {
+            penalties[entry.normalized] = penalty;
+        }
     });
 
     return penalties;
@@ -2641,17 +2587,17 @@ function getMaterialScore(
         return INSUFFICIENT_MATERIAL_PENALTY;
     }
 
-    let score = totalPoints;
+    let score = totalPoints / totalRequiredUnits;
 
     if (product.setName === ctwSetName && CTW_LOW_LEVELS.has(level)) {
-        score -= 4 * totalRequiredUnits;
+        score -= 4;
     }
 
     if (product.season === 0) {
         if (seasonZeroPreference === SeasonZeroPreference.HIGH) {
-            score += SEASON_ZERO_HIGH_BONUS * totalRequiredUnits;
+            score += SEASON_ZERO_HIGH_BONUS;
         } else if (seasonZeroPreference === SeasonZeroPreference.LOW) {
-            score += SEASON_ZERO_LOW_BONUS * totalRequiredUnits;
+            score += SEASON_ZERO_LOW_BONUS;
         }
     }
 
