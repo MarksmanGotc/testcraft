@@ -44,16 +44,23 @@ function getNormalizedKeyMap(source) {
     return cached;
 }
 let qualityMultipliers = {};
-const WARLORD_PENALTY = 3;
-const BASE_MOST_WEIGHT = 12;
-const BASE_SECOND_WEIGHT = 6;
-const GEAR_MOST_WEIGHT = 6;
-const GEAR_SECOND_WEIGHT = 3;
-const GEAR_BASELINE_BONUS = BASE_MOST_WEIGHT;
-const SEASON_ZERO_BASELINE_BONUS = 6;
-const LEFTOVER_WEIGHT_SEASON_ZERO = 4;
-const LEFTOVER_WEIGHT_GEAR = 3;
-const BALANCE_WEIGHT = 0.1;
+const MATERIAL_RANK_POINTS = Object.freeze({
+    1: 15,
+    2: 11,
+    3: 8,
+    4: 5,
+    5: 1,
+    9: -5,
+    10: -10,
+    11: -15
+});
+const MATERIAL_NEUTRAL_RANKS = new Set([6, 7, 8]);
+const INSUFFICIENT_MATERIAL_PENALTY = -1000;
+const CTW_LOW_LEVELS = new Set([1, 5, 10, 15]);
+const GEAR_MATERIAL_SCORE = 15;
+const SEASON_ZERO_LOW_BONUS = -5;
+const SEASON_ZERO_HIGH_BONUS = 10;
+const DEFAULT_RANK_PENALTY = -20;
 const CTW_SET_NAME_FALLBACK = 'Ceremonial Targaryen Warlord';
 const ctwSetName =
     typeof window !== 'undefined' && window.CTW_SET_NAME
@@ -72,18 +79,6 @@ const seasonZeroValueText = {
     [SeasonZeroPreference.NORMAL]: 'Normal weighting',
     [SeasonZeroPreference.HIGH]: 'High weighting'
 };
-const SEASON_ZERO_SCORE_DEFAULT = Object.freeze({ seasonZero: 0, nonSeason: 0 });
-const SEASON_ZERO_SCORE_ADJUSTMENTS = Object.freeze({
-    // Low preference strongly discourages Season 0 selections while gently favouring
-    // non-season options so that the slider produces visible differences even when
-    // balance penalties are large.
-    [SeasonZeroPreference.LOW]: Object.freeze({ seasonZero: -0.45, nonSeason: 0.1 }),
-    // Normal keeps the previous behaviour of treating all seasons evenly.
-    [SeasonZeroPreference.NORMAL]: Object.freeze({ seasonZero: 0, nonSeason: 0 }),
-    // High preference mirrors the low configuration to boost Season 0 and lightly
-    // penalise non-season gear.
-    [SeasonZeroPreference.HIGH]: Object.freeze({ seasonZero: 0.45, nonSeason: -0.1 })
-});
 let currentSeasonZeroPreference = SeasonZeroPreference.NORMAL;
 const qualityColorMap = {
     poor: '#A9A9A9',
@@ -827,10 +822,6 @@ function initializeQualitySelects() {
 
 function getSeasonZeroPreference() {
     return currentSeasonZeroPreference;
-}
-
-function getSeasonZeroScoreAdjustments(preference) {
-    return SEASON_ZERO_SCORE_ADJUSTMENTS[preference] || SEASON_ZERO_SCORE_DEFAULT;
 }
 
 function updateSeasonZeroSliderLabel(value) {
@@ -2043,6 +2034,10 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
     const failed = new Set();
     const levelScoreLog = {};
     const loggedLevelSummary = new Set();
+    const producedCounts = LEVELS.reduce((acc, level) => {
+        acc[level] = 0;
+        return acc;
+    }, {});
     const formatScore = (value) => (Number.isInteger(value) ? `${value}` : value.toFixed(2));
     const recordSelection = (level, product, score, quantity = 1) => {
         if (quantity <= 0) {
@@ -2149,6 +2144,7 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
                 quantity: safeQuantity
             });
         }
+        producedCounts[level] = (producedCounts[level] || 0) + safeQuantity;
     };
 
     const processNormalOddsLevel = async (level) => {
@@ -2169,18 +2165,23 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
                 if (levelProducts.length === 0) {
                     break;
                 }
+                const levelAllowsGear = allowedGearLevels.includes(level);
                 const selected = selectBestAvailableProduct(
+                    level,
                     levelProducts,
-                    prefs.mostAvailableMaterials,
-                    prefs.secondMostAvailableMaterials,
-                    prefs.leastAvailableMaterials,
+                    prefs,
                     availableMaterials,
-                    multiplier
+                    multiplier,
+                    { levelAllowsGear, seasonZeroPreference }
                 );
 
                 if (selected && canProductBeProduced(selected, availableMaterials, multiplier)) {
                     const maxCraftable = getMaxCraftableQuantity(selected, availableMaterials, multiplier);
-                    const chunkSize = determineChunkSize(remaining, maxCraftable);
+                    const canFastTrack = shouldFastTrackLevel(level, levelProducts, selected, {
+                        allowedGearLevels,
+                        multiplier
+                    });
+                    const chunkSize = determineChunkSize(level, remaining, maxCraftable, { fastTrack: canFastTrack });
 
                     if (chunkSize <= 0) {
                         break;
@@ -2188,11 +2189,11 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
 
                     const score = getMaterialScore(
                         selected,
-                        prefs.mostAvailableMaterials,
-                        prefs.secondMostAvailableMaterials,
-                        prefs.leastAvailableMaterials,
+                        prefs,
                         availableMaterials,
-                        multiplier
+                        multiplier,
+                        level,
+                        { levelAllowsGear, seasonZeroPreference }
                     );
                     const quantity = Math.max(1, Math.floor(chunkSize));
                     recordSelection(level, selected, score, quantity);
@@ -2241,7 +2242,7 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
     let remaining = { ...templatesByLevel };
 
     while (Object.values(remaining).some(v => v > 0)) {
-        const preferences = getUserPreferences(availableMaterials);
+        const preferenceInfo = getUserPreferences(availableMaterials);
         let anySelected = false;
 
         for (const level of LEVELS) {
@@ -2251,18 +2252,32 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
             const multiplier = qualityMultipliers[level] || 1;
             levelProducts = applyLevelFilters(level, levelProducts, multiplier, { requireCtwOnly });
 
+            const levelAllowsGear = allowedGearLevels.includes(level);
+
+            if (
+                level === 40 &&
+                remaining[45] > 0 &&
+                producedCounts[45] <= producedCounts[40]
+            ) {
+                continue;
+            }
+
             const selectedProduct = selectBestAvailableProduct(
+                level,
                 levelProducts,
-                preferences.mostAvailableMaterials,
-                preferences.secondMostAvailableMaterials,
-                preferences.leastAvailableMaterials,
+                preferenceInfo,
                 availableMaterials,
-                multiplier
+                multiplier,
+                { levelAllowsGear, seasonZeroPreference }
             );
 
             if (selectedProduct && canProductBeProduced(selectedProduct, availableMaterials, multiplier)) {
                 const maxCraftable = getMaxCraftableQuantity(selectedProduct, availableMaterials, multiplier);
-                const chunkSize = determineChunkSize(remaining[level], maxCraftable);
+                const canFastTrack = shouldFastTrackLevel(level, levelProducts, selectedProduct, {
+                    allowedGearLevels,
+                    multiplier
+                });
+                const chunkSize = determineChunkSize(level, remaining[level], maxCraftable, { fastTrack: canFastTrack });
 
                 if (chunkSize <= 0) {
                     failed.add(level);
@@ -2272,11 +2287,11 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
 
                 const score = getMaterialScore(
                     selectedProduct,
-                    preferences.mostAvailableMaterials,
-                    preferences.secondMostAvailableMaterials,
-                    preferences.leastAvailableMaterials,
+                    preferenceInfo,
                     availableMaterials,
-                    multiplier
+                    multiplier,
+                    level,
+                    { levelAllowsGear, seasonZeroPreference }
                 );
                 const quantity = Math.max(1, Math.floor(chunkSize));
                 recordSelection(level, selectedProduct, score, quantity);
@@ -2342,61 +2357,101 @@ function updateAvailableMaterials(availableMaterials, selectedProduct, multiplie
 
 
 function getUserPreferences(availableMaterials) {
-	let sortedMaterials = Object.entries(availableMaterials).sort((a, b) => b[1] - a[1]);
-    let uniqueAmounts = [...new Set(sortedMaterials.map(([_, amount]) => amount))];
+    const sortedMaterials = Object.entries(availableMaterials)
+        .map(([material, amount]) => [material, Number(amount) || 0])
+        .sort((a, b) => b[1] - a[1]);
 
-    let mostAvailableMaterials = [], secondMostAvailableMaterials = [], leastAvailableMaterials = [];
+    const rankByMaterial = {};
+    const normalizedLeastMaterials = new Set();
 
-    // Määritä materiaalit, joita on eniten
-    let maxAmount = uniqueAmounts[0];
-    mostAvailableMaterials = sortedMaterials.filter(([_, amount]) => amount === maxAmount).map(([material, _]) => material);
+    let currentRank = 1;
+    let index = 0;
 
-    if (mostAvailableMaterials.length < 4) {
-        let nextAmountIndex = 1;
-        while (secondMostAvailableMaterials.length < 4 - mostAvailableMaterials.length && nextAmountIndex < uniqueAmounts.length) {
-            let currentAmount = uniqueAmounts[nextAmountIndex];
-            let currentMaterials = sortedMaterials.filter(([_, amount]) => amount === currentAmount).map(([material, _]) => material);
-            secondMostAvailableMaterials.push(...currentMaterials);
-            nextAmountIndex++;
+    while (index < sortedMaterials.length) {
+        const groupAmount = sortedMaterials[index][1];
+        let groupEnd = index + 1;
+        while (groupEnd < sortedMaterials.length && sortedMaterials[groupEnd][1] === groupAmount) {
+            groupEnd++;
         }
-        secondMostAvailableMaterials = secondMostAvailableMaterials.slice(0, 4 - mostAvailableMaterials.length);
+
+        for (let i = index; i < groupEnd; i++) {
+            const [materialName] = sortedMaterials[i];
+            rankByMaterial[normalizeKey(materialName)] = currentRank;
+        }
+
+        currentRank += groupEnd - index;
+        index = groupEnd;
     }
 
-    // Määritä materiaalit, joita on vähiten, huomioiden most ja second
-    if (mostAvailableMaterials.length + secondMostAvailableMaterials.length < 12) {
-        let leastAmountsNeeded = 4;
-        if (mostAvailableMaterials.length + secondMostAvailableMaterials.length > 8) {
-            leastAmountsNeeded = 12 - (mostAvailableMaterials.length + secondMostAvailableMaterials.length);
-        }
-
-        let leastIndexStart = uniqueAmounts.length - leastAmountsNeeded;
-        for (let i = leastIndexStart; i < uniqueAmounts.length; i++) {
-            let currentAmount = uniqueAmounts[i];
-            leastAvailableMaterials.push(...sortedMaterials.filter(([_, amount]) => amount === currentAmount).map(([material, _]) => material));
-        }
-        leastAvailableMaterials = leastAvailableMaterials.slice(0, leastAmountsNeeded);
+    if (sortedMaterials.length > 0) {
+        const leastAmount = sortedMaterials[sortedMaterials.length - 1][1];
+        sortedMaterials.forEach(([materialName, amount]) => {
+            if (amount === leastAmount) {
+                normalizedLeastMaterials.add(normalizeKey(materialName));
+            }
+        });
     }
 
-    return { mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials };
+    return {
+        rankByMaterial,
+        leastMaterials: normalizedLeastMaterials,
+        sortedMaterials
+    };
 }
 
-function selectBestAvailableProduct(levelProducts, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1) {
-    // Järjestä tuotteet pisteiden mukaan
+function getRankScore(rank, isLeastMaterial) {
+    if (isLeastMaterial) {
+        return -25;
+    }
+
+    if (!Number.isFinite(rank)) {
+        return DEFAULT_RANK_PENALTY;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(MATERIAL_RANK_POINTS, rank)) {
+        return MATERIAL_RANK_POINTS[rank];
+    }
+
+    if (MATERIAL_NEUTRAL_RANKS.has(rank)) {
+        return 0;
+    }
+
+    if (rank > 11) {
+        return MATERIAL_RANK_POINTS[11] || DEFAULT_RANK_PENALTY;
+    }
+
+    return DEFAULT_RANK_PENALTY;
+}
+
+function selectBestAvailableProduct(
+    level,
+    levelProducts,
+    preferenceInfo,
+    availableMaterials,
+    multiplier = 1,
+    { levelAllowsGear = false, seasonZeroPreference = SeasonZeroPreference.NORMAL } = {}
+) {
     const candidates = levelProducts
         .map(product => ({
             product,
-            score: getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier)
+            score: getMaterialScore(
+                product,
+                preferenceInfo,
+                availableMaterials,
+                multiplier,
+                level,
+                { levelAllowsGear, seasonZeroPreference }
+            )
         }))
-        .sort((a, b) => b.score - a.score); // suurimmasta pienimpään
+        .sort((a, b) => b.score - a.score);
 
-    // Etsi ensimmäinen tuote, jonka materiaalit riittävät
     for (const { product } of candidates) {
         if (canProductBeProduced(product, availableMaterials, multiplier)) {
             return product;
         }
     }
 
-    return null; // Mikään tuote ei kelpaa
+    return null;
 }
 
 function rollbackMaterials(availableMaterials, product, multiplier = 1) {
@@ -2411,102 +2466,66 @@ function rollbackMaterials(availableMaterials, product, multiplier = 1) {
     });
 }
 
-function computeBaseUsageStd(materialsState) {
-    const remaining = [];
-    const stateMap = getNormalizedKeyMap(materialsState);
-    Object.entries(initialMaterials).forEach(([material, initialAmount]) => {
-        const normalized = normalizeKey(material);
-        const belongsToSeasonZero = materialToSeason[normalized] === 0;
-        if (!belongsToSeasonZero || typeof initialAmount !== 'number' || initialAmount <= 0) {
-            return;
-        }
-
-        const matchedKey = stateMap[normalized];
-        if (!matchedKey) {
-            return;
-        }
-
-        // Compare remaining stock against the original baseline so that the
-        // deviation scales with percentage usage instead of absolute amounts.
-        const remainingRatio = materialsState[matchedKey] / initialAmount;
-        remaining.push(remainingRatio);
-    });
-    if (remaining.length === 0) {
-        return 0;
+function getMaterialScore(
+    product,
+    preferenceInfo,
+    availableMaterials,
+    multiplier = 1,
+    level,
+    { levelAllowsGear = false, seasonZeroPreference = SeasonZeroPreference.NORMAL } = {}
+) {
+    if (!product || !product.materials) {
+        return INSUFFICIENT_MATERIAL_PENALTY;
     }
-    const mean = remaining.reduce((a, b) => a + b, 0) / remaining.length;
-    const variance = remaining.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / remaining.length;
-    return Math.sqrt(variance) * 100;
-}
 
-function computeBalancePenalty(product, availableMaterials, multiplier = 1) {
-    const predicted = { ...availableMaterials };
-    const predictedMap = getNormalizedKeyMap(predicted);
-    Object.entries(product.materials).forEach(([material, amt]) => {
-        const normalized = normalizeKey(material);
-        const matchedKey = predictedMap[normalized];
-        if (matchedKey) {
-            predicted[matchedKey] -= amt * multiplier;
-        }
-    });
-    return computeBaseUsageStd(predicted);
-}
-
-function getMaterialScore(product, mostAvailableMaterials, secondMostAvailableMaterials, leastAvailableMaterials, availableMaterials, multiplier = 1) {
-    let score = 0;
     const availableMap = getNormalizedKeyMap(availableMaterials);
-    const seasonZeroPreference = getSeasonZeroPreference();
-    const shouldApplyBaselineBonuses = true; // Preserve base weighting before applying Season 0 preference slider
-    Object.entries(product.materials).forEach(([material, _]) => {
-        const season = materialToSeason[material] || 0;
-        const isGear = season !== 0;
-        if (mostAvailableMaterials.includes(material)) {
-            score += isGear ? GEAR_MOST_WEIGHT : BASE_MOST_WEIGHT;
-        }
-        if (secondMostAvailableMaterials.includes(material)) {
-            score += isGear ? GEAR_SECOND_WEIGHT : BASE_SECOND_WEIGHT;
-        }
-        if (leastAvailableMaterials.includes(material)) {
-            score -= 10;
-        }
-        if (shouldApplyBaselineBonuses) {
-            if (isGear) {
-                score += GEAR_BASELINE_BONUS;
-            } else {
-                score += SEASON_ZERO_BASELINE_BONUS;
-            }
-        }
-    });
-    if (product.warlord) {
-        score -= WARLORD_PENALTY;
-    }
+    const { rankByMaterial, leastMaterials } = preferenceInfo || {};
+    let totalPoints = 0;
+    let materialTypes = 0;
 
-    Object.entries(product.materials).forEach(([material, amount]) => {
+    for (const [material, amountRequired] of Object.entries(product.materials)) {
         const normalizedMaterial = normalizeKey(material);
         const matchedKey = availableMap[normalizedMaterial];
-        if (matchedKey) {
-            const season = materialToSeason[normalizedMaterial] || 0;
-            const weight = season === 0 ? LEFTOVER_WEIGHT_SEASON_ZERO : LEFTOVER_WEIGHT_GEAR;
-            const available = availableMaterials[matchedKey];
-            const remaining = available - amount * multiplier;
-            if (available > 0) {
-                score -= (remaining / available) * weight;
-            }
+        const normalizedMatchedKey = normalizeKey(matchedKey || material);
+
+        if (!matchedKey) {
+            return INSUFFICIENT_MATERIAL_PENALTY;
         }
-    });
-	
-    const balancePenalty = computeBalancePenalty(product, availableMaterials, multiplier);
-    score -= balancePenalty * BALANCE_WEIGHT;
 
-    const { seasonZero: seasonZeroAdjustment, nonSeason: nonSeasonAdjustment } =
-        getSeasonZeroScoreAdjustments(seasonZeroPreference);
+        const availableAmount = Number(availableMaterials[matchedKey]) || 0;
+        const totalRequired = Number(amountRequired) * multiplier;
+        if (availableAmount < totalRequired) {
+            return INSUFFICIENT_MATERIAL_PENALTY;
+        }
 
-    if (seasonZeroAdjustment !== 0 || nonSeasonAdjustment !== 0) {
-        const magnitude = Math.max(1, Math.abs(score));
-        if (product.season === 0) {
-            score += magnitude * seasonZeroAdjustment;
-        } else {
-            score += magnitude * nonSeasonAdjustment;
+        const rank = rankByMaterial ? rankByMaterial[normalizedMatchedKey] : undefined;
+        const isLeastMaterial = leastMaterials ? leastMaterials.has(normalizedMatchedKey) : false;
+        let materialScore = getRankScore(rank, isLeastMaterial);
+
+        const season = materialToSeason[normalizedMaterial] || materialToSeason[normalizedMatchedKey] || 0;
+        if (levelAllowsGear && season !== 0) {
+            materialScore = GEAR_MATERIAL_SCORE;
+        }
+
+        totalPoints += materialScore;
+        materialTypes += 1;
+    }
+
+    if (materialTypes === 0) {
+        return INSUFFICIENT_MATERIAL_PENALTY;
+    }
+
+    let score = totalPoints / materialTypes;
+
+    if (product.setName === ctwSetName && CTW_LOW_LEVELS.has(level)) {
+        score -= 4;
+    }
+
+    if (product.season === 0) {
+        if (seasonZeroPreference === SeasonZeroPreference.HIGH) {
+            score += SEASON_ZERO_HIGH_BONUS;
+        } else if (seasonZeroPreference === SeasonZeroPreference.LOW) {
+            score += SEASON_ZERO_LOW_BONUS;
         }
     }
 
@@ -2559,7 +2578,46 @@ function getMaxCraftableQuantity(product, availableMaterials, multiplier = 1) {
     return Number.isFinite(maxCraftable) ? maxCraftable : 0;
 }
 
-function determineChunkSize(requested, maxCraftable) {
+function usesOnlyBaseMaterials(product) {
+    if (!product || !product.materials) {
+        return false;
+    }
+    return Object.keys(product.materials).every(material => {
+        const normalized = normalizeKey(material);
+        const season = materialToSeason[normalized] || materialToSeason[material] || 0;
+        return season === 0;
+    });
+}
+
+function shouldFastTrackLevel(level, levelProducts, selectedProduct, { allowedGearLevels = [] } = {}) {
+    if (!selectedProduct || !Array.isArray(levelProducts)) {
+        return false;
+    }
+
+    if (!(level === 30 || level === 35)) {
+        return false;
+    }
+
+    if (allowedGearLevels.includes(level)) {
+        return false;
+    }
+
+    if (levelProducts.length !== 1) {
+        return false;
+    }
+
+    if (selectedProduct.season !== 0) {
+        return false;
+    }
+
+    if (selectedProduct.odds && selectedProduct.odds !== 'normal') {
+        return false;
+    }
+
+    return usesOnlyBaseMaterials(selectedProduct);
+}
+
+function determineChunkSize(level, requested, maxCraftable, { fastTrack = false } = {}) {
     const needed = Math.max(0, Math.floor(requested));
     const available = Math.max(0, Math.floor(maxCraftable));
 
@@ -2567,7 +2625,15 @@ function determineChunkSize(requested, maxCraftable) {
         return 0;
     }
 
-    const chunkThresholds = [
+    if (fastTrack) {
+        return Math.min(needed, available);
+    }
+
+    if (level === 45) {
+        return Math.min(1, needed, available);
+    }
+
+    const defaultThresholds = [
         { min: 5000, size: 500 },
         { min: 3000, size: 300 },
         { min: 2000, size: 200 },
@@ -2581,7 +2647,31 @@ function determineChunkSize(requested, maxCraftable) {
         { min: 20, size: 1 }
     ];
 
-    for (const { min, size } of chunkThresholds) {
+    const midLevelThresholds = [
+        { min: 2000, size: 80 },
+        { min: 1500, size: 60 },
+        { min: 1000, size: 40 },
+        { min: 600, size: 20 },
+        { min: 200, size: 10 },
+        { min: 100, size: 5 },
+        { min: 50, size: 3 },
+        { min: 20, size: 2 }
+    ];
+
+    const highLevelThresholds = [
+        { min: 200, size: 5 },
+        { min: 120, size: 3 },
+        { min: 60, size: 2 }
+    ];
+
+    let thresholds = defaultThresholds;
+    if ([20, 25, 30].includes(level)) {
+        thresholds = midLevelThresholds;
+    } else if ([35, 40].includes(level)) {
+        thresholds = highLevelThresholds;
+    }
+
+    for (const { min, size } of thresholds) {
         if (needed >= min) {
             const chunk = Math.min(size, needed, available);
             if (chunk > 0) {
@@ -2590,7 +2680,7 @@ function determineChunkSize(requested, maxCraftable) {
         }
     }
 
-    return Math.min(needed, available);
+    return Math.min(needed, available, thresholds.length > 0 ? thresholds[thresholds.length - 1].size : needed);
 }
 
 
