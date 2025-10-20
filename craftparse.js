@@ -52,8 +52,8 @@ const MATERIAL_RANK_POINTS = Object.freeze({
     5: 1,
     9: -7,
     10: -15,
-    11: -20,
-    12: -30
+    11: -30,
+    12: -40
 });
 const MAX_DEFINED_MATERIAL_RANK = Math.max(
     ...Object.keys(MATERIAL_RANK_POINTS)
