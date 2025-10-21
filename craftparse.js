@@ -1457,6 +1457,12 @@ function createResultsActions(parentElement) {
     const actionsContainer = document.createElement('div');
     actionsContainer.className = 'results-actions';
 
+    const clearButton = document.createElement('button');
+    clearButton.type = 'button';
+    clearButton.className = 'results-actions__button results-actions__clear';
+    clearButton.textContent = 'Clear calculation';
+    clearButton.addEventListener('click', handleClearSavedCalculation);
+
     const storageAvailable = isLocalStorageAvailable();
 
     if (!isViewingSavedCalculation && storageAvailable) {
@@ -1469,6 +1475,7 @@ function createResultsActions(parentElement) {
         saveButton.textContent = 'Save';
         saveButton.addEventListener('click', () => handleSaveCalculation(saveButton));
         saveGroup.appendChild(saveButton);
+        saveGroup.appendChild(clearButton);
 
         const infoButton = document.createElement('button');
         infoButton.type = 'button';
@@ -1488,14 +1495,9 @@ function createResultsActions(parentElement) {
 
         saveGroup.appendChild(infoButton);
         actionsContainer.appendChild(saveGroup);
+    } else {
+        actionsContainer.appendChild(clearButton);
     }
-
-    const clearButton = document.createElement('button');
-    clearButton.type = 'button';
-    clearButton.className = 'results-actions__button results-actions__clear';
-    clearButton.textContent = 'Clear calculation';
-    clearButton.addEventListener('click', handleClearSavedCalculation);
-    actionsContainer.appendChild(clearButton);
 
     parentElement.appendChild(actionsContainer);
 }
