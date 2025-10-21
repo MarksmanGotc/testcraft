@@ -45,16 +45,16 @@ function getNormalizedKeyMap(source) {
 }
 let qualityMultipliers = {};
 const MATERIAL_RANK_POINTS = Object.freeze({
-    1: 15,
-    2: 11,
-    3: 8,
-    4: 5,
-    5: 1,
-    6: -2,
-    7: -4,
-    8: -6,
-    9: -7,
-    10: -15,
+    1: 40,
+    2: 32,
+    3: 25,
+    4: 12,
+    5: 7,
+    6: 2,
+    7: 0,
+    8: -10,
+    9: -15,
+    10: -22,
     11: -30,
     12: -40
 });
