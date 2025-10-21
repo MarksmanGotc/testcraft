@@ -754,37 +754,6 @@ div#results h3 ~ #closeResults {
     cursor: not-allowed;
 }
 
-.results-actions__info-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: none;
-    background: rgba(8, 66, 90, 0.12);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    padding: 0;
-    transition: background 0.2s ease-in-out, transform 0.2s ease-in-out;
-}
-
-.results-actions__info-btn svg {
-    width: 16px;
-    height: 16px;
-    fill: var(--primary-color);
-}
-
-.results-actions__info-btn:hover,
-.results-actions__info-btn:focus-visible {
-    background: rgba(8, 66, 90, 0.24);
-    transform: scale(1.05);
-}
-
-.results-actions__info-btn:focus-visible {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
-}
-
 .results-actions__save {
     background-color: var(--button-bg);
 }
