@@ -744,6 +744,34 @@ function clearCalculationProgress() {
     renderCalculationProgress();
 }
 
+const PROGRESS_COMPLETION_FLASH_DELAY = 150;
+
+function deactivateSpinner(immediate = false) {
+    const spinner = document.querySelector('.spinner-wrap');
+    if (!spinner) {
+        clearCalculationProgress();
+        return;
+    }
+
+    if (!immediate && calculationProgressState.isActive) {
+        stopProgressAnimation();
+        calculationProgressState.isComplete = true;
+        calculationProgressState.processed = calculationProgressState.total;
+        calculationProgressState.targetRatio = 1;
+        calculationProgressState.displayedRatio = 1;
+        calculationProgressState.lastTickTime = getNow();
+        renderCalculationProgress();
+
+        setTimeout(() => {
+            spinner.classList.remove('active');
+            clearCalculationProgress();
+        }, PROGRESS_COMPLETION_FLASH_DELAY);
+    } else {
+        spinner.classList.remove('active');
+        clearCalculationProgress();
+    }
+}
+
 function createProgressTracker(total) {
     resetCalculationProgress(total);
     const chunkSize = Math.max(1, Math.floor(Math.max(total, 200) / 40));
@@ -1403,8 +1431,7 @@ function showResults() {
         behavior: 'smooth'
     });
 
-    document.querySelector('.spinner-wrap').classList.remove('active');
-    clearCalculationProgress();
+    deactivateSpinner();
 
 }
 
@@ -2141,8 +2168,7 @@ async function calculateWithPreferences() {
                                 qualityMultipliers[level] = getQualityMultiplier(quality);
                 });
                 if (totalTemplates === 0) {
-                                document.querySelector('.spinner-wrap').classList.remove('active');
-                                clearCalculationProgress();
+                                deactivateSpinner(true);
                                 return;
                 } else {
                                 if (!isDebugMode){
@@ -2193,16 +2219,14 @@ async function calculateWithPreferences() {
                 if (calculateBtn) {
                         calculateBtn.click(); // Simuloi napin klikkausta
                 } else {
-                        document.querySelector('.spinner-wrap').classList.remove('active');
-                        clearCalculationProgress();
+                        deactivateSpinner(true);
                         pendingFailedLevels = null;
                         preserveRequestedTemplates = false;
                 }
         } catch (error) {
                 console.error('Failed to calculate templates with preferences:', error);
                 displayUserMessage('Something went wrong while calculating templates. Please try again.');
-                document.querySelector('.spinner-wrap').classList.remove('active');
-                clearCalculationProgress();
+                deactivateSpinner(true);
         }
 }
 
