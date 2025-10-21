@@ -65,6 +65,7 @@ const MAX_DEFINED_MATERIAL_RANK = Math.max(
 );
 const MATERIAL_NEUTRAL_RANKS = new Set();
 const INSUFFICIENT_MATERIAL_PENALTY = -1000;
+const LEAST_MATERIAL_PENALTY = -25;
 const CTW_LOW_LEVELS = new Set([1, 5, 10, 15]);
 const GEAR_MATERIAL_SCORE = 15;
 const SEASON_ZERO_LOW_BONUS = -5;
@@ -2491,27 +2492,25 @@ function logMaterialPreferenceDetails(sortedMaterials, rankByMaterial, leastMate
 }
 
 function getRankScore(rank, isLeastMaterial) {
-    if (isLeastMaterial) {
-        return -25;
-    }
+    let baseScore;
 
     if (!Number.isFinite(rank)) {
-        return DEFAULT_RANK_PENALTY;
+        baseScore = DEFAULT_RANK_PENALTY;
+    } else if (Object.prototype.hasOwnProperty.call(MATERIAL_RANK_POINTS, rank)) {
+        baseScore = MATERIAL_RANK_POINTS[rank];
+    } else if (MATERIAL_NEUTRAL_RANKS.has(rank)) {
+        baseScore = 0;
+    } else if (rank > MAX_DEFINED_MATERIAL_RANK) {
+        baseScore = MATERIAL_RANK_POINTS[MAX_DEFINED_MATERIAL_RANK] || DEFAULT_RANK_PENALTY;
+    } else {
+        baseScore = DEFAULT_RANK_PENALTY;
     }
 
-    if (Object.prototype.hasOwnProperty.call(MATERIAL_RANK_POINTS, rank)) {
-        return MATERIAL_RANK_POINTS[rank];
+    if (isLeastMaterial) {
+        return Math.min(baseScore, LEAST_MATERIAL_PENALTY);
     }
 
-    if (MATERIAL_NEUTRAL_RANKS.has(rank)) {
-        return 0;
-    }
-
-    if (rank > MAX_DEFINED_MATERIAL_RANK) {
-        return MATERIAL_RANK_POINTS[MAX_DEFINED_MATERIAL_RANK] || DEFAULT_RANK_PENALTY;
-    }
-
-    return DEFAULT_RANK_PENALTY;
+    return baseScore;
 }
 
 function selectBestAvailableProduct(
