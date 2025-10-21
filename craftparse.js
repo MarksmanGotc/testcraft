@@ -2045,7 +2045,7 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
         return acc;
     }, {});
     const formatScore = (value) => (Number.isInteger(value) ? `${value}` : value.toFixed(2));
-    const recordSelection = (level, product, score, quantity = 1) => {
+    const recordSelection = (level, product, score, quantity = 1, materialBreakdown = []) => {
         if (quantity <= 0) {
             return;
         }
@@ -2056,7 +2056,30 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
         const repeatedScores = new Array(safeQuantity).fill(score);
         levelScoreLog[level].push(...repeatedScores);
         const quantityLabel = safeQuantity > 1 ? ` x${safeQuantity}` : '';
-        console.log(`Level ${level} - ${product.name}${quantityLabel} - ${formatScore(score)}`);
+        const formatScoreWithSign = (value) => {
+            if (!Number.isFinite(value)) {
+                return `${value}`;
+            }
+            const formatted = formatScore(value);
+            if (value > 0 && !formatted.startsWith('+')) {
+                return `+${formatted}`;
+            }
+            return formatted;
+        };
+        let materialsDetail = '';
+        if (Array.isArray(materialBreakdown) && materialBreakdown.length > 0) {
+            const parts = materialBreakdown.map(({ name, amount, perUnitScore }) => {
+                const formattedAmount = Number.isFinite(amount)
+                    ? (Number.isInteger(amount) ? `${amount}` : amount.toFixed(2))
+                    : `${amount}`;
+                const amountLabel = Number.isFinite(amount) && Math.abs(amount - 1) < 1e-6
+                    ? ''
+                    : ` x${formattedAmount}`;
+                return `${name}${amountLabel} ${formatScoreWithSign(perUnitScore)}`;
+            });
+            materialsDetail = ` (${parts.join(', ')})`;
+        }
+        console.log(`Level ${level} - ${product.name}${quantityLabel} - ${formatScore(score)}${materialsDetail}`);
     };
     const logLevelSummary = (level) => {
         if (loggedLevelSummary.has(level)) {
@@ -2123,7 +2146,7 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
         return filtered;
     };
 
-    const appendPlanEntry = (level, product, quantity = 1) => {
+    const appendPlanEntry = (level, product, quantity = 1, materialBreakdown = []) => {
         if (quantity <= 0) {
             return;
         }
@@ -2141,13 +2164,21 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
             lastEntry.warlord === product.warlord
         ) {
             lastEntry.quantity = (lastEntry.quantity || 1) + safeQuantity;
+            if (!Array.isArray(lastEntry.materials) || lastEntry.materials.length === 0) {
+                lastEntry.materials = Array.isArray(materialBreakdown)
+                    ? materialBreakdown.map(entry => ({ ...entry }))
+                    : [];
+            }
         } else {
             levelEntries.push({
                 name: product.name,
                 season: product.season,
                 setName: product.setName,
                 warlord: product.warlord,
-                quantity: safeQuantity
+                quantity: safeQuantity,
+                materials: Array.isArray(materialBreakdown)
+                    ? materialBreakdown.map(entry => ({ ...entry }))
+                    : []
             });
         }
         producedCounts[level] = (producedCounts[level] || 0) + safeQuantity;
@@ -2193,17 +2224,19 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
                         break;
                     }
 
+                    const materialBreakdown = [];
                     const score = getMaterialScore(
                         selected,
                         prefs,
                         availableMaterials,
                         multiplier,
                         level,
-                        { levelAllowsGear, seasonZeroPreference }
+                        { levelAllowsGear, seasonZeroPreference },
+                        materialBreakdown
                     );
                     const quantity = Math.max(1, Math.floor(chunkSize));
-                    recordSelection(level, selected, score, quantity);
-                    appendPlanEntry(level, selected, quantity);
+                    recordSelection(level, selected, score, quantity, materialBreakdown);
+                    appendPlanEntry(level, selected, quantity, materialBreakdown);
                     updateAvailableMaterials(availableMaterials, selected, multiplier, quantity);
                     remaining -= quantity;
                     if (remaining < 0) {
@@ -2291,17 +2324,19 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
                     continue;
                 }
 
+                const materialBreakdown = [];
                 const score = getMaterialScore(
                     selectedProduct,
                     preferenceInfo,
                     availableMaterials,
                     multiplier,
                     level,
-                    { levelAllowsGear, seasonZeroPreference }
+                    { levelAllowsGear, seasonZeroPreference },
+                    materialBreakdown
                 );
                 const quantity = Math.max(1, Math.floor(chunkSize));
-                recordSelection(level, selectedProduct, score, quantity);
-                appendPlanEntry(level, selectedProduct, quantity);
+                recordSelection(level, selectedProduct, score, quantity, materialBreakdown);
+                appendPlanEntry(level, selectedProduct, quantity, materialBreakdown);
                 updateAvailableMaterials(availableMaterials, selectedProduct, multiplier, quantity);
                 remaining[level] -= quantity;
                 if (remaining[level] <= 0) {
@@ -2399,12 +2434,64 @@ function getUserPreferences(availableMaterials) {
         });
     }
 
-    return {
+    const preferenceDetails = {
         rankByMaterial,
         leastMaterials: normalizedLeastMaterials,
         sortedMaterials,
         balancePenalties
     };
+
+    logMaterialPreferenceDetails(
+        preferenceDetails.sortedMaterials,
+        preferenceDetails.rankByMaterial,
+        preferenceDetails.leastMaterials,
+        preferenceDetails.balancePenalties
+    );
+
+    return preferenceDetails;
+}
+
+function logMaterialPreferenceDetails(sortedMaterials, rankByMaterial, leastMaterials, balancePenalties) {
+    if (!Array.isArray(sortedMaterials)) {
+        return;
+    }
+
+    const formatAmount = (value) => {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) {
+            return `${value}`;
+        }
+        return Number.isInteger(numeric) ? `${numeric}` : numeric.toFixed(2);
+    };
+
+    const formatScoreWithSign = (value) => {
+        if (!Number.isFinite(value)) {
+            return `${value}`;
+        }
+        const isInteger = Number.isInteger(value);
+        const formatted = isInteger ? `${value}` : value.toFixed(2);
+        if (value > 0 && !formatted.startsWith('+')) {
+            return `+${formatted}`;
+        }
+        return formatted;
+    };
+
+    if (sortedMaterials.length === 0) {
+        console.log('Materiaali tasot päivitetty: ei materiaaleja saatavilla.');
+        return;
+    }
+
+    console.log('Materiaali tasot päivitetty:');
+    sortedMaterials.forEach(([materialName, rawAmount]) => {
+        const normalized = normalizeKey(materialName);
+        const rank = rankByMaterial ? rankByMaterial[normalized] : undefined;
+        const isLeast = leastMaterials ? leastMaterials.has(normalized) : false;
+        let materialScore = getRankScore(rank, isLeast);
+        if (balancePenalties && Object.prototype.hasOwnProperty.call(balancePenalties, normalized)) {
+            materialScore += balancePenalties[normalized];
+        }
+        console.log(` - ${materialName}: ${formatAmount(rawAmount)} (${formatScoreWithSign(materialScore)})`);
+    });
 }
 
 function calculateMaterialBalancePenalties(sortedMaterials) {
@@ -2539,7 +2626,8 @@ function getMaterialScore(
     availableMaterials,
     multiplier = 1,
     level,
-    { levelAllowsGear = false, seasonZeroPreference = SeasonZeroPreference.NORMAL } = {}
+    { levelAllowsGear = false, seasonZeroPreference = SeasonZeroPreference.NORMAL } = {},
+    breakdownCollector = null
 ) {
     if (!product || !product.materials) {
         return INSUFFICIENT_MATERIAL_PENALTY;
@@ -2575,8 +2663,24 @@ function getMaterialScore(
         materialScore += balancePenalty;
 
         const season = materialToSeason[normalizedMaterial] || materialToSeason[normalizedMatchedKey] || 0;
-        if (levelAllowsGear && season !== 0) {
+        const isGearMaterial = levelAllowsGear && season !== 0;
+        if (isGearMaterial) {
             materialScore = GEAR_MATERIAL_SCORE;
+        }
+
+        if (Array.isArray(breakdownCollector)) {
+            const displayName = isGearMaterial
+                ? 'gear mat'
+                : materialKeyMap[normalizedMatchedKey] || matchedKey || material;
+            breakdownCollector.push({
+                name: displayName,
+                normalized: normalizedMatchedKey,
+                amount: totalRequired,
+                perUnitScore: materialScore,
+                totalScore: materialScore * totalRequired,
+                season,
+                isGearMaterial
+            });
         }
 
         totalPoints += materialScore * totalRequired;
