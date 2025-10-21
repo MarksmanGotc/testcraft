@@ -544,32 +544,55 @@ function handleClearSavedCalculation() {
 
 const calculationProgressState = {
     total: 0,
-    processed: 0
+    processed: 0,
+    targetRatio: 0,
+    displayedRatio: 0,
+    frameHandle: null,
+    hasTotal: false
 };
 
-function resetCalculationProgress(total) {
-    calculationProgressState.total = total;
-    calculationProgressState.processed = 0;
-    updateCalculationProgress(0, total);
+function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
 }
 
-function updateCalculationProgress(processed, totalOverride = calculationProgressState.total) {
-    calculationProgressState.processed = Math.min(processed, totalOverride);
+function scheduleProgressFrame(callback) {
+    if (typeof requestAnimationFrame === 'function') {
+        return { id: requestAnimationFrame(callback), type: 'raf' };
+    }
+    return { id: setTimeout(callback, 16), type: 'timeout' };
+}
+
+function cancelProgressFrame(handle) {
+    if (!handle) {
+        return;
+    }
+    if (handle.type === 'raf' && typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(handle.id);
+    } else if (handle.type === 'timeout') {
+        clearTimeout(handle.id);
+    }
+}
+
+function stopProgressAnimation() {
+    if (calculationProgressState.frameHandle) {
+        cancelProgressFrame(calculationProgressState.frameHandle);
+        calculationProgressState.frameHandle = null;
+    }
+}
+
+function renderCalculationProgress(ratio, hasTotal) {
     const container = document.querySelector('.spinner-progress');
     const track = document.querySelector('.spinner-progress__track');
     const bar = document.querySelector('.spinner-progress__bar');
     const label = document.querySelector('.spinner-progress__label');
-    const total = Math.max(totalOverride, 0);
-
     if (!track || !bar || !label) {
         return;
     }
 
-    const hasTotal = total > 0;
-    const ratio = hasTotal ? Math.min(1, processed / total) : 0;
-    const percent = Math.round(ratio * 100);
+    const safeRatio = clamp(ratio, 0, 1);
+    const percent = Math.round(safeRatio * 100);
 
-    bar.style.transform = `scaleX(${ratio})`;
+    bar.style.transform = `scaleX(${safeRatio})`;
     track.setAttribute('aria-valuenow', hasTotal ? percent : 0);
     track.setAttribute('aria-valuemin', 0);
     track.setAttribute('aria-valuemax', 100);
@@ -579,13 +602,78 @@ function updateCalculationProgress(processed, totalOverride = calculationProgres
     label.textContent = hasTotal ? `Calculating templates… ${percent}%` : 'Preparing templates…';
 }
 
+function progressAnimationStep() {
+    const { targetRatio, displayedRatio, hasTotal } = calculationProgressState;
+    const difference = targetRatio - displayedRatio;
+
+    if (Math.abs(difference) <= 0.002) {
+        calculationProgressState.displayedRatio = targetRatio;
+        renderCalculationProgress(calculationProgressState.displayedRatio, hasTotal);
+        calculationProgressState.frameHandle = null;
+        return;
+    }
+
+    const easedStep = difference * 0.2;
+    const minimumStep = difference > 0 ? 0.005 : -0.005;
+    const nextRatio = displayedRatio + clamp(easedStep, minimumStep, difference);
+    calculationProgressState.displayedRatio = clamp(nextRatio, 0, 1);
+    renderCalculationProgress(calculationProgressState.displayedRatio, hasTotal);
+
+    calculationProgressState.frameHandle = scheduleProgressFrame(progressAnimationStep);
+}
+
+function ensureProgressAnimationRunning() {
+    if (!calculationProgressState.frameHandle) {
+        calculationProgressState.frameHandle = scheduleProgressFrame(progressAnimationStep);
+    }
+}
+
+function resetCalculationProgress(total) {
+    stopProgressAnimation();
+    calculationProgressState.total = total;
+    calculationProgressState.processed = 0;
+    calculationProgressState.targetRatio = 0;
+    calculationProgressState.displayedRatio = 0;
+    calculationProgressState.hasTotal = total > 0;
+    renderCalculationProgress(0, calculationProgressState.hasTotal);
+}
+
+function updateCalculationProgress(processed, totalOverride = calculationProgressState.total) {
+    const total = Math.max(totalOverride, 0);
+    calculationProgressState.total = total;
+    calculationProgressState.processed = Math.min(processed, total);
+    calculationProgressState.hasTotal = total > 0;
+    calculationProgressState.targetRatio = calculationProgressState.hasTotal
+        ? (total === 0 ? 0 : Math.min(1, calculationProgressState.processed / total))
+        : 0;
+
+    if (!calculationProgressState.hasTotal) {
+        stopProgressAnimation();
+        calculationProgressState.displayedRatio = 0;
+        renderCalculationProgress(0, false);
+        return;
+    }
+
+    if (calculationProgressState.targetRatio <= calculationProgressState.displayedRatio) {
+        calculationProgressState.displayedRatio = calculationProgressState.targetRatio;
+        renderCalculationProgress(calculationProgressState.displayedRatio, true);
+        return;
+    }
+
+    ensureProgressAnimationRunning();
+}
+
 function completeCalculationProgress() {
     updateCalculationProgress(calculationProgressState.total, calculationProgressState.total);
 }
 
 function clearCalculationProgress() {
+    stopProgressAnimation();
     calculationProgressState.total = 0;
     calculationProgressState.processed = 0;
+    calculationProgressState.targetRatio = 0;
+    calculationProgressState.displayedRatio = 0;
+    calculationProgressState.hasTotal = false;
     const container = document.querySelector('.spinner-progress');
     const track = document.querySelector('.spinner-progress__track');
     const bar = document.querySelector('.spinner-progress__bar');
@@ -606,20 +694,23 @@ function clearCalculationProgress() {
 
 function createProgressTracker(total) {
     resetCalculationProgress(total);
-    const chunkSize = Math.max(1, Math.floor(Math.max(total, 100) / 25));
+    const chunkSize = Math.max(1, Math.floor(Math.max(total, 200) / 50));
     let processed = 0;
+    let lastYieldAt = 0;
 
     const tick = async (increment = 1) => {
         processed += increment;
         updateCalculationProgress(processed, total);
-        if (processed % chunkSize === 0) {
+        if (processed - lastYieldAt >= chunkSize || increment >= chunkSize) {
+            lastYieldAt = processed;
             await waitForNextFrame();
         }
     };
 
-    const complete = () => {
+    const complete = async () => {
         processed = total;
         completeCalculationProgress();
+        await waitForNextFrame();
     };
 
     return { tick, complete };
@@ -1272,6 +1363,8 @@ function createResultsActions(parentElement) {
     actionsContainer.className = 'results-actions';
 
     const storageAvailable = isLocalStorageAvailable();
+    let storageInfoOverlay = null;
+    let storageInfoButton = null;
 
     if (!isViewingSavedCalculation && storageAvailable) {
         const saveButton = document.createElement('button');
@@ -1282,6 +1375,44 @@ function createResultsActions(parentElement) {
         actionsContainer.appendChild(saveButton);
     }
 
+    if (storageAvailable) {
+        storageInfoButton = document.createElement('button');
+        storageInfoButton.type = 'button';
+        storageInfoButton.className = 'results-actions__info-btn';
+        storageInfoButton.setAttribute('aria-label', 'How saving calculations works');
+        storageInfoButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><path d="M256 48a208 208 0 1 1 0 416 208 208 0 1 1 0-416zm0 464A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM232 344c0-13.3 10.7-24 24-24h8l0-64-24 0c-13.3 0-24-10.7-24-24s10.7-24 24-24l48 0c13.3 0 24 10.7 24 24l0 88c0 13.3-10.7 24-24 24l-32 0c-13.3 0-24-10.7-24-24zm24-184a32 32 0 1 1 0 64 32 32 0 1 1 0-64z"/></svg>`;
+
+        storageInfoOverlay = document.createElement('div');
+        storageInfoOverlay.id = 'storageInfoOverlay';
+        storageInfoOverlay.className = 'info-overlay';
+        storageInfoOverlay.setAttribute('role', 'dialog');
+        storageInfoOverlay.setAttribute('aria-modal', 'true');
+        storageInfoOverlay.setAttribute('aria-hidden', 'true');
+        storageInfoOverlay.setAttribute('aria-labelledby', 'storageInfoTitle');
+        storageInfoOverlay.innerHTML = `
+            <div class="info-content">
+                <button class="close-popup" aria-label="Close">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M345 137c9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0l-119 119L73 103c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l119 119L39 375c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l119-119L311 409c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-119-119L345 137z"/></svg>
+                </button>
+                <h3 id="storageInfoTitle">Saving your calculation</h3>
+                <p>Saved calculations live in your browser&rsquo;s storage, so you can close the tab and continue later without losing progress.</p>
+                <p>After saving, use the <em>Clear calculation</em> button to remove the stored plan from this browser whenever you want.</p>
+            </div>
+        `;
+
+        storageInfoButton.addEventListener('click', () => {
+            storageInfoOverlay.style.display = 'flex';
+            storageInfoOverlay.setAttribute('aria-hidden', 'false');
+        });
+
+        storageInfoOverlay.addEventListener('click', (event) => {
+            if (event.target === storageInfoOverlay || event.target.closest('.close-popup')) {
+                storageInfoOverlay.style.display = 'none';
+                storageInfoOverlay.setAttribute('aria-hidden', 'true');
+            }
+        });
+    }
+
     const clearButton = document.createElement('button');
     clearButton.type = 'button';
     clearButton.className = 'results-actions__button results-actions__clear';
@@ -1289,7 +1420,15 @@ function createResultsActions(parentElement) {
     clearButton.addEventListener('click', handleClearSavedCalculation);
     actionsContainer.appendChild(clearButton);
 
+    if (storageInfoButton) {
+        actionsContainer.insertBefore(storageInfoButton, clearButton);
+    }
+
     parentElement.appendChild(actionsContainer);
+
+    if (storageInfoOverlay) {
+        parentElement.appendChild(storageInfoOverlay);
+    }
 }
 
 
@@ -1940,7 +2079,7 @@ async function calculateWithPreferences() {
 
                 const progressTracker = createProgressTracker(totalTemplates);
                 const resultPlan = await calculateProductionPlan(availableMaterials, templatesByLevel, progressTracker.tick);
-                progressTracker.complete();
+                await progressTracker.complete();
                 failedLevels = resultPlan.failedLevels;
                 pendingFailedLevels = Array.isArray(resultPlan.failedLevels)
                     ? [...resultPlan.failedLevels]
