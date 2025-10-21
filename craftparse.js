@@ -602,11 +602,13 @@ function renderCalculationProgress() {
     const active = calculationProgressState.isActive;
     const ratio = active ? Math.min(1, Math.max(0, calculationProgressState.displayedRatio)) : 0;
     const percentRaw = Math.round(ratio * 100);
+    const widthPercent = ratio * 100;
     const labelPercent = calculationProgressState.isComplete
         ? percentRaw
         : Math.min(99, percentRaw);
 
-    bar.style.transform = `scaleX(${ratio})`;
+    bar.style.width = `${widthPercent}%`;
+    bar.style.removeProperty('transform');
     track.setAttribute('aria-valuenow', active ? labelPercent : 0);
     track.setAttribute('aria-valuemin', 0);
     track.setAttribute('aria-valuemax', 100);
@@ -649,8 +651,12 @@ function scheduleProgressAnimation() {
 
         const delta = effectiveTarget - state.displayedRatio;
         if (Math.abs(delta) > 0.0005) {
-            const maxStep = elapsed / 700; // ~0.014 per 10ms
-            const step = Math.sign(delta) * Math.min(Math.abs(delta), maxStep);
+            const frameScale = Math.min(1, elapsed / 16);
+            const deltaIntensity = Math.min(1, Math.abs(delta) * 3.5);
+            const baseResponse = state.isComplete ? 0.55 : 0.35;
+            const adaptiveBoost = state.isComplete ? 0.35 : 0.25;
+            const smoothing = (baseResponse + adaptiveBoost * deltaIntensity) * frameScale;
+            const step = delta * smoothing;
             state.displayedRatio = Math.min(1, Math.max(0, state.displayedRatio + step));
         } else {
             state.displayedRatio = effectiveTarget;
