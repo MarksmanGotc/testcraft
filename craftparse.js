@@ -742,11 +742,14 @@ function createProgressTracker(total) {
     resetCalculationProgress(total);
     const chunkSize = Math.max(1, Math.floor(Math.max(total, 200) / 40));
     let processed = 0;
+    let pendingYield = 0;
 
     const tick = async (increment = 1) => {
         processed += increment;
+        pendingYield += increment;
         updateCalculationProgress(processed, total);
-        if (processed % chunkSize === 0) {
+        while (pendingYield >= chunkSize) {
+            pendingYield -= chunkSize;
             await waitForNextFrame();
         }
     };
@@ -1176,14 +1179,32 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (e.key === 'Escape') {
+            const overlays = Array.from(document.querySelectorAll('.info-overlay'));
+            const openOverlays = overlays.filter(overlay => {
+                if (typeof window === 'undefined') {
+                    return false;
+                }
+                const display = window.getComputedStyle(overlay).display;
+                return display && display !== 'none';
+            });
+
+            if (openOverlays.length > 0) {
+                openOverlays.forEach(overlay => {
+                    overlay.style.display = 'none';
+                    if (overlay.hasAttribute('aria-hidden')) {
+                        overlay.setAttribute('aria-hidden', 'true');
+                    }
+                });
+                document.querySelectorAll('.info-btn[aria-expanded="true"]').forEach(btn => {
+                    btn.setAttribute('aria-expanded', 'false');
+                });
+                closeAllQualitySelects();
+                return;
+            }
+
             if (document.getElementById('results').style.display === 'block') {
                 closeResults();
             }
-            document.querySelectorAll('.info-overlay').forEach(overlay => {
-                if (overlay.style.display !== 'none') {
-                    overlay.style.display = 'none';
-                }
-            });
             closeAllQualitySelects();
         }
     });
@@ -1420,10 +1441,11 @@ function ensureSaveInfoOverlay() {
                 <button class="close-popup" type="button" aria-label="Close save info">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M345 137c9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0l-119 119L73 103c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l119 119L39 375c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l119-119L311 409c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-119-119L345 137z"/></svg>
                 </button>
-                <h3 id="saveInfoTitle">Saving calculations</h3>
-                <p id="saveInfoDescription">Saved plans are stored in your browser. Closing the tab or the browser will keep the calculation exactly where you left it for the next visit. After saving, you can remove the stored plan at any time with the Clear calculation button.</p>
+                <p id="saveInfoTitle"><strong>Saving calculations:</strong> Saved plans are stored in your browser. Closing the tab or the browser keeps the calculation ready for your next visit.</p>
+                <p id="saveInfoDescription"><strong>Clear calculation:</strong> Removes the current plan and any saved version so you can start from scratch whenever you need.</p>
             </div>
         `;
+        overlay.style.display = 'none';
         document.body.appendChild(overlay);
 
         const closeOverlay = () => {
