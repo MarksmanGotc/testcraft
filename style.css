@@ -1325,7 +1325,8 @@ button.multiplier-btn {
     inset: 0;
     background: var(--primary-color);
     width: 0%;
-    transition: width 0.12s linear;
+    transition: width 0.4s;
+    border-radius: 10px;
 }
 .spinner-progress__label {
     display: block;
