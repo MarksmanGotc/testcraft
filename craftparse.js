@@ -50,6 +50,9 @@ const MATERIAL_RANK_POINTS = Object.freeze({
     3: 8,
     4: 5,
     5: 1,
+    6: -2,
+    7: -4,
+    8: -6,
     9: -7,
     10: -15,
     11: -30,
@@ -60,7 +63,7 @@ const MAX_DEFINED_MATERIAL_RANK = Math.max(
         .map(Number)
         .filter(rank => Number.isFinite(rank))
 );
-const MATERIAL_NEUTRAL_RANKS = new Set([6, 7, 8]);
+const MATERIAL_NEUTRAL_RANKS = new Set();
 const INSUFFICIENT_MATERIAL_PENALTY = -1000;
 const CTW_LOW_LEVELS = new Set([1, 5, 10, 15]);
 const GEAR_MATERIAL_SCORE = 15;
@@ -2404,8 +2407,6 @@ function getUserPreferences(availableMaterials) {
 
     const rankByMaterial = {};
     const normalizedLeastMaterials = new Set();
-    const balancePenalties = calculateMaterialBalancePenalties(sortedMaterials);
-
     let currentRank = 1;
     let index = 0;
 
@@ -2438,20 +2439,18 @@ function getUserPreferences(availableMaterials) {
         rankByMaterial,
         leastMaterials: normalizedLeastMaterials,
         sortedMaterials,
-        balancePenalties
     };
 
     logMaterialPreferenceDetails(
         preferenceDetails.sortedMaterials,
         preferenceDetails.rankByMaterial,
-        preferenceDetails.leastMaterials,
-        preferenceDetails.balancePenalties
+        preferenceDetails.leastMaterials
     );
 
     return preferenceDetails;
 }
 
-function logMaterialPreferenceDetails(sortedMaterials, rankByMaterial, leastMaterials, balancePenalties) {
+function logMaterialPreferenceDetails(sortedMaterials, rankByMaterial, leastMaterials) {
     if (!Array.isArray(sortedMaterials)) {
         return;
     }
@@ -2486,71 +2485,9 @@ function logMaterialPreferenceDetails(sortedMaterials, rankByMaterial, leastMate
         const normalized = normalizeKey(materialName);
         const rank = rankByMaterial ? rankByMaterial[normalized] : undefined;
         const isLeast = leastMaterials ? leastMaterials.has(normalized) : false;
-        let materialScore = getRankScore(rank, isLeast);
-        if (balancePenalties && Object.prototype.hasOwnProperty.call(balancePenalties, normalized)) {
-            materialScore += balancePenalties[normalized];
-        }
+        const materialScore = getRankScore(rank, isLeast);
         console.log(` - ${materialName}: ${formatAmount(rawAmount)} (${formatScoreWithSign(materialScore)})`);
     });
-}
-
-function calculateMaterialBalancePenalties(sortedMaterials) {
-    if (!Array.isArray(sortedMaterials) || sortedMaterials.length < 2) {
-        return {};
-    }
-
-    const entries = sortedMaterials.map(([material, rawAmount]) => {
-        const normalized = normalizeKey(material);
-        const season = materialToSeason[normalized] || materialToSeason[material] || 0;
-
-        return {
-            normalized,
-            amount: Number(rawAmount) || 0,
-            season
-        };
-    });
-
-    const total = entries.reduce((sum, entry) => sum + entry.amount, 0);
-    if (total <= 0) {
-        return {};
-    }
-
-    const mean = total / entries.length;
-    const maxAmount = Math.max(...entries.map(entry => entry.amount));
-    if (!Number.isFinite(mean) || mean <= 0 || !Number.isFinite(maxAmount) || maxAmount <= 0) {
-        return {};
-    }
-
-    const penalties = {};
-
-    entries.forEach(entry => {
-        const ratioToMean = entry.amount / mean;
-        const ratioToMax = entry.amount / maxAmount;
-
-        let penalty = 0;
-
-        if (ratioToMean < 0.25 || ratioToMax < 0.15) {
-            penalty = -18;
-        } else if (ratioToMean < 0.5 || ratioToMax < 0.3) {
-            penalty = -12;
-        } else if (ratioToMean < 0.75 || ratioToMax < 0.5) {
-            penalty = -6;
-        }
-
-        if (entry.amount === 0) {
-            penalty = Math.min(penalty - 6, -22);
-        }
-
-        if (entry.season === 0 && penalty < 0) {
-            penalty = Math.min(penalty * 1.1, -22);
-        }
-
-        if (penalty !== 0) {
-            penalties[entry.normalized] = penalty;
-        }
-    });
-
-    return penalties;
 }
 
 function getRankScore(rank, isLeastMaterial) {
@@ -2656,11 +2593,6 @@ function getMaterialScore(
         const rank = rankByMaterial ? rankByMaterial[normalizedMatchedKey] : undefined;
         const isLeastMaterial = leastMaterials ? leastMaterials.has(normalizedMatchedKey) : false;
         let materialScore = getRankScore(rank, isLeastMaterial);
-        const balancePenalty =
-            preferenceInfo && preferenceInfo.balancePenalties
-                ? preferenceInfo.balancePenalties[normalizedMatchedKey] || 0
-                : 0;
-        materialScore += balancePenalty;
 
         const season = materialToSeason[normalizedMaterial] || materialToSeason[normalizedMatchedKey] || 0;
         const isGearMaterial = levelAllowsGear && season !== 0;
