@@ -649,8 +649,12 @@ function scheduleProgressAnimation() {
 
         const delta = effectiveTarget - state.displayedRatio;
         if (Math.abs(delta) > 0.0005) {
-            const maxStep = elapsed / 700; // ~0.014 per 10ms
-            const step = Math.sign(delta) * Math.min(Math.abs(delta), maxStep);
+            const frameScale = Math.min(1, elapsed / 16);
+            const deltaIntensity = Math.min(1, Math.abs(delta) * 3.5);
+            const baseResponse = state.isComplete ? 0.55 : 0.35;
+            const adaptiveBoost = state.isComplete ? 0.35 : 0.25;
+            const smoothing = (baseResponse + adaptiveBoost * deltaIntensity) * frameScale;
+            const step = delta * smoothing;
             state.displayedRatio = Math.min(1, Math.max(0, state.displayedRatio + step));
         } else {
             state.displayedRatio = effectiveTarget;
