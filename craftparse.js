@@ -22,6 +22,7 @@ Object.values(materials).forEach(season => {
         materialToSeason[normalized] = season.season;
     });
 });
+const WEIRWOOD_NORMALIZED_KEY = normalizeKey('weirwood');
 const normalizedKeyCache = new WeakMap();
 
 const CALCULATION_STORAGE_KEY = 'noox-calculation-v1';
@@ -68,6 +69,7 @@ const INSUFFICIENT_MATERIAL_PENALTY = -1000;
 const LEAST_MATERIAL_PENALTY = -25;
 const CTW_LOW_LEVELS = new Set([1, 5, 10, 15]);
 const GEAR_MATERIAL_SCORE = 15;
+const WEIRWOOD_PRIORITY_PENALTY = -20;
 const SEASON_ZERO_LOW_BONUS = -5;
 const SEASON_ZERO_HIGH_BONUS = 10;
 const DEFAULT_RANK_PENALTY = -30;
@@ -2317,6 +2319,47 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
         key => (materialToSeason[key] || materialToSeason[normalizeKey(key)] || 0) !== 0
     );
     const level20Allowed = hasGearMaterials && allowedGearLevels.includes(20);
+    const level15InitialTemplates = Math.max(0, Math.floor(templatesByLevel[15] || 0));
+    const level15AllowsGear = allowedGearLevels.includes(15);
+    const level15AllowsCtw = includeWarlords;
+    const shouldReserveWeirwoodForLevel15 =
+        level15InitialTemplates > 0 && !level15AllowsGear && !level15AllowsCtw;
+    let outstandingLevel15 = level15InitialTemplates;
+    let weirwoodPenaltyActive = shouldReserveWeirwoodForLevel15 && outstandingLevel15 > 0;
+    const weirwoodPenaltyMap = shouldReserveWeirwoodForLevel15
+        ? new Map([[WEIRWOOD_NORMALIZED_KEY, WEIRWOOD_PRIORITY_PENALTY]])
+        : null;
+    const updateWeirwoodPenaltyState = () => {
+        if (!shouldReserveWeirwoodForLevel15) {
+            weirwoodPenaltyActive = false;
+            return;
+        }
+        weirwoodPenaltyActive = outstandingLevel15 > 0;
+    };
+    const setOutstandingLevel15 = (value) => {
+        if (!shouldReserveWeirwoodForLevel15) {
+            return;
+        }
+        const numericValue = Number.isFinite(value) ? value : 0;
+        outstandingLevel15 = Math.max(0, Math.floor(numericValue));
+        updateWeirwoodPenaltyState();
+    };
+    const reduceOutstandingLevel15 = (amount) => {
+        if (!shouldReserveWeirwoodForLevel15) {
+            return;
+        }
+        if (!Number.isFinite(amount) || amount <= 0) {
+            return;
+        }
+        outstandingLevel15 = Math.max(0, outstandingLevel15 - Math.floor(amount));
+        updateWeirwoodPenaltyState();
+    };
+    const getMaterialPenaltiesForLevel = (level) => {
+        if (!weirwoodPenaltyActive || !weirwoodPenaltyMap || level === 15) {
+            return null;
+        }
+        return weirwoodPenaltyMap;
+    };
     level20OnlyWarlordsActive = level20OnlyWarlords;
     ctwMediumNotice = includeWarlords && !includeMediumOdds && !level20Allowed && !level20OnlyWarlords;
     const progress = typeof progressTick === 'function' ? progressTick : async () => {};
@@ -2419,7 +2462,11 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
                     prefs,
                     availableMaterials,
                     multiplier,
-                    { levelAllowsGear, seasonZeroPreference }
+                    {
+                        levelAllowsGear,
+                        seasonZeroPreference,
+                        materialPenalties: getMaterialPenaltiesForLevel(level)
+                    }
                 );
 
                 if (selected && canProductBeProduced(selected, availableMaterials, multiplier)) {
@@ -2441,7 +2488,11 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
                         availableMaterials,
                         multiplier,
                         level,
-                        { levelAllowsGear, seasonZeroPreference },
+                        {
+                            levelAllowsGear,
+                            seasonZeroPreference,
+                            materialPenalties: getMaterialPenaltiesForLevel(level)
+                        },
                         materialBreakdown
                     );
                     const quantity = Math.max(1, Math.floor(chunkSize));
@@ -2452,6 +2503,9 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
                     if (remaining < 0) {
                         remaining = 0;
                     }
+                    if (level === 15) {
+                        reduceOutstandingLevel15(quantity);
+                    }
                     produced += quantity;
                     await progress(quantity);
                 } else {
@@ -2460,6 +2514,9 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
             }
 
             templatesByLevel[level] = remaining;
+            if (level === 15) {
+                setOutstandingLevel15(remaining);
+            }
 
             if (produced > 0) {
                 if (remaining <= 0) {
@@ -2471,7 +2528,7 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
         }
     };
 
-    const normalOddsPriorityLevels = [35, 30, 15];
+    const normalOddsPriorityLevels = shouldReserveWeirwoodForLevel15 ? [35, 30] : [35, 30, 15];
     for (const level of normalOddsPriorityLevels) {
         await processNormalOddsLevel(level);
     }
@@ -2485,10 +2542,16 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
         if (levelProducts.length === 0) {
             failed.add(level);
             templatesByLevel[level] = 0;
+            if (level === 15) {
+                setOutstandingLevel15(0);
+            }
         }
     }
 
     let remaining = { ...templatesByLevel };
+    if (shouldReserveWeirwoodForLevel15) {
+        setOutstandingLevel15(remaining[15] || 0);
+    }
 
     while (Object.values(remaining).some(v => v > 0)) {
         const preferenceInfo = getUserPreferences(availableMaterials);
@@ -2517,7 +2580,11 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
                 preferenceInfo,
                 availableMaterials,
                 multiplier,
-                { levelAllowsGear, seasonZeroPreference }
+                {
+                    levelAllowsGear,
+                    seasonZeroPreference,
+                    materialPenalties: getMaterialPenaltiesForLevel(level)
+                }
             );
 
             if (selectedProduct && canProductBeProduced(selectedProduct, availableMaterials, multiplier)) {
@@ -2541,7 +2608,11 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
                     availableMaterials,
                     multiplier,
                     level,
-                    { levelAllowsGear, seasonZeroPreference },
+                    {
+                        levelAllowsGear,
+                        seasonZeroPreference,
+                        materialPenalties: getMaterialPenaltiesForLevel(level)
+                    },
                     materialBreakdown
                 );
                 const quantity = Math.max(1, Math.floor(chunkSize));
@@ -2553,11 +2624,17 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
                     remaining[level] = 0;
                     logLevelSummary(level);
                 }
+                if (level === 15) {
+                    reduceOutstandingLevel15(quantity);
+                }
                 anySelected = true;
                 await progress(quantity);
             } else {
                 failed.add(level);
                 remaining[level] = 0;
+                if (level === 15) {
+                    setOutstandingLevel15(0);
+                }
             }
         }
 
@@ -2725,7 +2802,11 @@ function selectBestAvailableProduct(
     preferenceInfo,
     availableMaterials,
     multiplier = 1,
-    { levelAllowsGear = false, seasonZeroPreference = SeasonZeroPreference.NORMAL } = {}
+    {
+        levelAllowsGear = false,
+        seasonZeroPreference = SeasonZeroPreference.NORMAL,
+        materialPenalties = null
+    } = {}
 ) {
     const candidates = levelProducts
         .map(product => ({
@@ -2736,7 +2817,7 @@ function selectBestAvailableProduct(
                 availableMaterials,
                 multiplier,
                 level,
-                { levelAllowsGear, seasonZeroPreference }
+                { levelAllowsGear, seasonZeroPreference, materialPenalties }
             )
         }))
         .sort((a, b) => b.score - a.score);
@@ -2768,7 +2849,11 @@ function getMaterialScore(
     availableMaterials,
     multiplier = 1,
     level,
-    { levelAllowsGear = false, seasonZeroPreference = SeasonZeroPreference.NORMAL } = {},
+    {
+        levelAllowsGear = false,
+        seasonZeroPreference = SeasonZeroPreference.NORMAL,
+        materialPenalties = null
+    } = {},
     breakdownCollector = null
 ) {
     if (!product || !product.materials) {
@@ -2803,6 +2888,18 @@ function getMaterialScore(
         const isGearMaterial = levelAllowsGear && season !== 0;
         if (isGearMaterial) {
             materialScore = GEAR_MATERIAL_SCORE;
+        }
+
+        if (materialPenalties) {
+            let penalty;
+            if (materialPenalties instanceof Map) {
+                penalty = materialPenalties.get(normalizedMatchedKey);
+            } else if (typeof materialPenalties === 'object' && materialPenalties !== null) {
+                penalty = materialPenalties[normalizedMatchedKey];
+            }
+            if (Number.isFinite(penalty)) {
+                materialScore += penalty;
+            }
         }
 
         if (Array.isArray(breakdownCollector)) {
