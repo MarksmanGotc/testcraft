@@ -172,7 +172,7 @@ function initializeUpdateLog() {
     }
 
     const closeButton = overlay.querySelector('.close-popup');
-    const storageKey = 'noox-update-log-2025-06-10';
+    const storageKey = 'noox-update-log-2025-10-21';
     const storageSupported = isLocalStorageAvailable();
     const hasSeenUpdate = storageSupported ? window.localStorage.getItem(storageKey) === 'seen' : false;
 
@@ -544,69 +544,201 @@ function handleClearSavedCalculation() {
 
 const calculationProgressState = {
     total: 0,
-    processed: 0
+    processed: 0,
+    displayedRatio: 0,
+    targetRatio: 0,
+    isActive: false,
+    isComplete: false,
+    lastTickTime: 0,
+    lastFrameTime: 0,
+    animationFrame: null
 };
 
-function resetCalculationProgress(total) {
-    calculationProgressState.total = total;
-    calculationProgressState.processed = 0;
-    updateCalculationProgress(0, total);
+function getNow() {
+    if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+        return performance.now();
+    }
+    return Date.now();
 }
 
-function updateCalculationProgress(processed, totalOverride = calculationProgressState.total) {
-    calculationProgressState.processed = Math.min(processed, totalOverride);
+function requestFrame(callback) {
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+        return window.requestAnimationFrame(callback);
+    }
+    return setTimeout(() => callback(getNow()), 16);
+}
+
+function cancelFrame(handle) {
+    if (!handle) {
+        return;
+    }
+    if (typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function') {
+        window.cancelAnimationFrame(handle);
+    } else {
+        clearTimeout(handle);
+    }
+}
+
+function stopProgressAnimation() {
+    if (calculationProgressState.animationFrame) {
+        cancelFrame(calculationProgressState.animationFrame);
+        calculationProgressState.animationFrame = null;
+    }
+    calculationProgressState.lastFrameTime = 0;
+}
+
+function renderCalculationProgress() {
     const container = document.querySelector('.spinner-progress');
     const track = document.querySelector('.spinner-progress__track');
     const bar = document.querySelector('.spinner-progress__bar');
     const label = document.querySelector('.spinner-progress__label');
-    const total = Math.max(totalOverride, 0);
 
     if (!track || !bar || !label) {
         return;
     }
 
-    const hasTotal = total > 0;
-    const ratio = hasTotal ? Math.min(1, processed / total) : 0;
-    const percent = Math.round(ratio * 100);
+    const active = calculationProgressState.isActive;
+    const ratio = active ? Math.min(1, Math.max(0, calculationProgressState.displayedRatio)) : 0;
+    const percentRaw = Math.round(ratio * 100);
+    const labelPercent = calculationProgressState.isComplete
+        ? percentRaw
+        : Math.min(99, percentRaw);
 
     bar.style.transform = `scaleX(${ratio})`;
-    track.setAttribute('aria-valuenow', hasTotal ? percent : 0);
+    track.setAttribute('aria-valuenow', active ? labelPercent : 0);
     track.setAttribute('aria-valuemin', 0);
     track.setAttribute('aria-valuemax', 100);
     if (container) {
-        container.classList.toggle('is-active', hasTotal);
+        container.classList.toggle('is-active', active);
     }
-    label.textContent = hasTotal ? `Calculating templates… ${percent}%` : 'Preparing templates…';
+
+    if (!active) {
+        label.textContent = 'Preparing templates…';
+    } else if (calculationProgressState.isComplete && ratio >= 1) {
+        label.textContent = 'Calculating templates… 100%';
+    } else {
+        label.textContent = `Calculating templates… ${labelPercent}%`;
+    }
+}
+
+function scheduleProgressAnimation() {
+    if (calculationProgressState.animationFrame) {
+        return;
+    }
+
+    const stepFrame = (timestamp) => {
+        const now = typeof timestamp === 'number' ? timestamp : getNow();
+        const state = calculationProgressState;
+        const elapsed = state.lastFrameTime ? Math.max(0, now - state.lastFrameTime) : 16;
+        state.lastFrameTime = now;
+
+        const idleThreshold = 280;
+        const autoAdvanceRate = 16000; // ms to move from 0 to 1 when idling
+        let effectiveTarget = state.targetRatio;
+
+        if (state.isActive && !state.isComplete) {
+            const idleFor = Math.max(0, now - state.lastTickTime);
+            if (idleFor > idleThreshold) {
+                const idleProgress = state.displayedRatio + idleFor / autoAdvanceRate;
+                effectiveTarget = Math.max(effectiveTarget, Math.min(0.98, idleProgress));
+            }
+            effectiveTarget = Math.min(effectiveTarget, 0.98);
+        }
+
+        const delta = effectiveTarget - state.displayedRatio;
+        if (Math.abs(delta) > 0.0005) {
+            const maxStep = elapsed / 700; // ~0.014 per 10ms
+            const step = Math.sign(delta) * Math.min(Math.abs(delta), maxStep);
+            state.displayedRatio = Math.min(1, Math.max(0, state.displayedRatio + step));
+        } else {
+            state.displayedRatio = effectiveTarget;
+        }
+
+        renderCalculationProgress();
+
+        const shouldContinue = state.isActive && (!state.isComplete || state.displayedRatio < 1);
+        if (shouldContinue) {
+            state.animationFrame = requestFrame(stepFrame);
+        } else {
+            stopProgressAnimation();
+        }
+    };
+
+    calculationProgressState.animationFrame = requestFrame((timestamp) => {
+        calculationProgressState.lastFrameTime = typeof timestamp === 'number' ? timestamp : getNow();
+        stepFrame(calculationProgressState.lastFrameTime);
+    });
+}
+
+function resetCalculationProgress(total) {
+    stopProgressAnimation();
+    calculationProgressState.total = Math.max(0, total);
+    calculationProgressState.processed = 0;
+    calculationProgressState.displayedRatio = 0;
+    calculationProgressState.targetRatio = 0;
+    calculationProgressState.isActive = total > 0;
+    calculationProgressState.isComplete = false;
+    calculationProgressState.lastTickTime = getNow();
+    calculationProgressState.lastFrameTime = 0;
+    renderCalculationProgress();
+    if (calculationProgressState.isActive) {
+        scheduleProgressAnimation();
+    }
+}
+
+function updateCalculationProgress(processed, totalOverride = calculationProgressState.total) {
+    const total = Math.max(0, totalOverride);
+    const clampedProcessed = Math.max(0, Math.min(processed, total));
+
+    calculationProgressState.total = total;
+    calculationProgressState.processed = clampedProcessed;
+    calculationProgressState.isActive = total > 0;
+    if (!calculationProgressState.isComplete) {
+        calculationProgressState.isComplete = total > 0 && clampedProcessed >= total;
+    }
+
+    if (!calculationProgressState.isActive) {
+        calculationProgressState.displayedRatio = 0;
+        calculationProgressState.targetRatio = 0;
+        renderCalculationProgress();
+        stopProgressAnimation();
+        return;
+    }
+
+    const ratio = total > 0 ? Math.min(1, clampedProcessed / total) : 0;
+    calculationProgressState.targetRatio = ratio;
+    calculationProgressState.lastTickTime = getNow();
+
+    renderCalculationProgress();
+    scheduleProgressAnimation();
 }
 
 function completeCalculationProgress() {
-    updateCalculationProgress(calculationProgressState.total, calculationProgressState.total);
+    if (!calculationProgressState.isActive) {
+        return;
+    }
+    calculationProgressState.isComplete = true;
+    calculationProgressState.processed = calculationProgressState.total;
+    calculationProgressState.targetRatio = 1;
+    calculationProgressState.lastTickTime = getNow();
+    scheduleProgressAnimation();
 }
 
 function clearCalculationProgress() {
+    stopProgressAnimation();
     calculationProgressState.total = 0;
     calculationProgressState.processed = 0;
-    const container = document.querySelector('.spinner-progress');
-    const track = document.querySelector('.spinner-progress__track');
-    const bar = document.querySelector('.spinner-progress__bar');
-    const label = document.querySelector('.spinner-progress__label');
-    if (container) {
-        container.classList.remove('is-active');
-    }
-    if (bar) {
-        bar.style.transform = 'scaleX(0)';
-    }
-    if (track) {
-        track.setAttribute('aria-valuenow', 0);
-    }
-    if (label) {
-        label.textContent = 'Preparing templates…';
-    }
+    calculationProgressState.displayedRatio = 0;
+    calculationProgressState.targetRatio = 0;
+    calculationProgressState.isActive = false;
+    calculationProgressState.isComplete = false;
+    calculationProgressState.lastTickTime = 0;
+    renderCalculationProgress();
 }
 
 function createProgressTracker(total) {
     resetCalculationProgress(total);
-    const chunkSize = Math.max(1, Math.floor(Math.max(total, 100) / 25));
+    const chunkSize = Math.max(1, Math.floor(Math.max(total, 200) / 40));
     let processed = 0;
 
     const tick = async (increment = 1) => {
@@ -1248,11 +1380,18 @@ function showResults() {
 }
 
 function closeResults() {
-	const resultsDiv = document.getElementById('results');
+        const resultsDiv = document.getElementById('results');
     resultsDiv.innerHTML = ''; // Tyhjennä aiemmat tulokset
-	document.getElementById('results').style.display = 'none';
-	document.getElementById('generatebychoice').style.display = 'block';
-	initialMaterials = {}; // Reset materials to allow fresh input values
+        document.getElementById('results').style.display = 'none';
+        document.getElementById('generatebychoice').style.display = 'block';
+        if (isViewingSavedCalculation) {
+            const scaleSelect = document.getElementById('scaleSelect');
+            if (scaleSelect) {
+                scaleSelect.value = '1';
+            }
+        }
+        isViewingSavedCalculation = false;
+        initialMaterials = {}; // Reset materials to allow fresh input values
 }
 
 function createCloseButton(parentElement) {
@@ -1261,6 +1400,51 @@ function createCloseButton(parentElement) {
     closeButton.onclick = closeResults;
     closeButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M345 137c9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0l-119 119L73 103c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l119 119L39 375c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l119-119L311 409c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-119-119L345 137z"/></svg>`;
     parentElement.appendChild(closeButton);
+}
+
+function ensureSaveInfoOverlay() {
+    let overlay = document.getElementById('saveInfoOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'saveInfoOverlay';
+        overlay.className = 'info-overlay';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-hidden', 'true');
+        overlay.setAttribute('aria-labelledby', 'saveInfoTitle');
+        overlay.setAttribute('aria-describedby', 'saveInfoDescription');
+        overlay.innerHTML = `
+            <div class="info-content" role="document">
+                <button class="close-popup" type="button" aria-label="Close save info">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M345 137c9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0l-119 119L73 103c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l119 119L39 375c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l119-119L311 409c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-119-119L345 137z"/></svg>
+                </button>
+                <h3 id="saveInfoTitle">Saving calculations</h3>
+                <p id="saveInfoDescription">Saved plans are stored in your browser. Closing the tab or the browser will keep the calculation exactly where you left it for the next visit. After saving, you can remove the stored plan at any time with the Clear calculation button.</p>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const closeOverlay = () => {
+            overlay.style.display = 'none';
+            overlay.setAttribute('aria-hidden', 'true');
+            const trigger = document.getElementById('saveInfoBtn');
+            trigger?.setAttribute('aria-expanded', 'false');
+        };
+
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay || event.target.closest('.close-popup')) {
+                closeOverlay();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && overlay.style.display === 'flex') {
+                closeOverlay();
+            }
+        });
+    }
+
+    return overlay;
 }
 
 function createResultsActions(parentElement) {
@@ -1274,12 +1458,34 @@ function createResultsActions(parentElement) {
     const storageAvailable = isLocalStorageAvailable();
 
     if (!isViewingSavedCalculation && storageAvailable) {
+        const saveGroup = document.createElement('div');
+        saveGroup.className = 'results-actions__group';
+
         const saveButton = document.createElement('button');
         saveButton.type = 'button';
         saveButton.className = 'results-actions__button results-actions__save';
         saveButton.textContent = 'Save';
         saveButton.addEventListener('click', () => handleSaveCalculation(saveButton));
-        actionsContainer.appendChild(saveButton);
+        saveGroup.appendChild(saveButton);
+
+        const infoButton = document.createElement('button');
+        infoButton.type = 'button';
+        infoButton.id = 'saveInfoBtn';
+        infoButton.className = 'info-btn results-actions__info';
+        infoButton.setAttribute('aria-label', 'How saving works');
+        infoButton.setAttribute('aria-haspopup', 'dialog');
+        infoButton.setAttribute('aria-expanded', 'false');
+        infoButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M256 48a208 208 0 1 1 0 416 208 208 0 1 1 0-416zm0 464A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336c-13.3 0-24 10.7-24 24s10.7 24 24 24l80 0c13.3 0 24-10.7 24-24s-10.7-24-24-24l-8 0 0-88c0-13.3-10.7-24-24-24l-48 0c-13.3 0-24 10.7-24 24s10.7 24 24 24l24 0 0 64-24 0zm40-144a32 32 0 1 0 0-64 32 32 0 1 0 0 64z"/></svg>';
+
+        const saveInfoOverlay = ensureSaveInfoOverlay();
+        infoButton.addEventListener('click', () => {
+            saveInfoOverlay.style.display = 'flex';
+            saveInfoOverlay.setAttribute('aria-hidden', 'false');
+            infoButton.setAttribute('aria-expanded', 'true');
+        });
+
+        saveGroup.appendChild(infoButton);
+        actionsContainer.appendChild(saveGroup);
     }
 
     const clearButton = document.createElement('button');
