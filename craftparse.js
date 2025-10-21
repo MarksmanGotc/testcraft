@@ -2473,7 +2473,8 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
                     const maxCraftable = getMaxCraftableQuantity(selected, availableMaterials, multiplier);
                     const canFastTrack = shouldFastTrackLevel(level, levelProducts, selected, {
                         allowedGearLevels,
-                        multiplier
+                        multiplier,
+                        includeWarlords
                     });
                     const chunkSize = determineChunkSize(level, remaining, maxCraftable, { fastTrack: canFastTrack });
 
@@ -2528,7 +2529,19 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
         }
     };
 
-    const normalOddsPriorityLevels = shouldReserveWeirwoodForLevel15 ? [35, 30] : [35, 30, 15];
+    const shouldPrioritizeNormalOddsLevel = (level) => {
+        if (!(level === 30 || level === 35)) {
+            return false;
+        }
+        if (templatesByLevel[level] <= 0) {
+            return false;
+        }
+        const levelAllowsGear = allowedGearLevels.includes(level);
+        const levelAllowsCtw = includeWarlords;
+        return !levelAllowsGear && !levelAllowsCtw;
+    };
+
+    const normalOddsPriorityLevels = [35, 30].filter(shouldPrioritizeNormalOddsLevel);
     for (const level of normalOddsPriorityLevels) {
         await processNormalOddsLevel(level);
     }
@@ -2591,7 +2604,8 @@ async function calculateProductionPlan(availableMaterials, templatesByLevel, pro
                 const maxCraftable = getMaxCraftableQuantity(selectedProduct, availableMaterials, multiplier);
                 const canFastTrack = shouldFastTrackLevel(level, levelProducts, selectedProduct, {
                     allowedGearLevels,
-                    multiplier
+                    multiplier,
+                    includeWarlords
                 });
                 const chunkSize = determineChunkSize(level, remaining[level], maxCraftable, { fastTrack: canFastTrack });
 
@@ -2999,7 +3013,7 @@ function usesOnlyBaseMaterials(product) {
     });
 }
 
-function shouldFastTrackLevel(level, levelProducts, selectedProduct, { allowedGearLevels = [] } = {}) {
+function shouldFastTrackLevel(level, levelProducts, selectedProduct, { allowedGearLevels = [], includeWarlords = true } = {}) {
     if (!selectedProduct || !Array.isArray(levelProducts)) {
         return false;
     }
@@ -3009,6 +3023,10 @@ function shouldFastTrackLevel(level, levelProducts, selectedProduct, { allowedGe
     }
 
     if (allowedGearLevels.includes(level)) {
+        return false;
+    }
+
+    if (includeWarlords) {
         return false;
     }
 
