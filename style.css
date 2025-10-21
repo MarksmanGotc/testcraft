@@ -740,11 +740,25 @@ div#results h3 ~ #closeResults {
     margin: 24px 0 10px;
 }
 
+
+.results-actions button#saveInfoBtn {
+    position: absolute;
+    right: 0;
+    height: 20px;
+    width: 20px;
+    margin: 0 6px 0 0;
+}
+
+.results-actions button#saveInfoBtn svg:hover {
+	transform: none;
+}
+
 .results-actions__group {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     flex: 1 1 100%;
+    justify-content: center;
 }
 
 .results-actions__button {
@@ -1479,4 +1493,3 @@ button.multiplier-btn {
   user-select: none;
   font-size: 14px;
 }
-
