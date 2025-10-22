@@ -1240,6 +1240,7 @@ button.multiplier-btn {
     color: #920b0b;
     font-style: italic;
     margin-bottom: 0;
+    font-size: 14px;
 }
 
 .materials p.available-materials {
