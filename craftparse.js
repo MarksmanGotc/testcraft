@@ -68,10 +68,10 @@ const MATERIAL_NEUTRAL_RANKS = new Set();
 const INSUFFICIENT_MATERIAL_PENALTY = -1000;
 const LEAST_MATERIAL_PENALTY = -25;
 const CTW_LOW_LEVELS = new Set([1, 5, 10, 15]);
-const GEAR_MATERIAL_SCORE = 15;
+const GEAR_MATERIAL_SCORE = 22;
 const WEIRWOOD_PRIORITY_PENALTY = -20;
-const SEASON_ZERO_LOW_BONUS = -5;
-const SEASON_ZERO_HIGH_BONUS = 10;
+const SEASON_ZERO_LOW_BONUS = -10;
+const SEASON_ZERO_HIGH_BONUS = 15;
 const DEFAULT_RANK_PENALTY = -30;
 const CTW_SET_NAME_FALLBACK = 'Ceremonial Targaryen Warlord';
 const ctwSetName =
@@ -2890,7 +2890,7 @@ function getMaterialScore(
     let score = totalPoints / totalRequiredUnits;
 
     if (product.setName === ctwSetName && CTW_LOW_LEVELS.has(level)) {
-        score -= 4;
+        score -= 5;
     }
 
     if (product.season === 0) {
