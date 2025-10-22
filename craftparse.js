@@ -1409,7 +1409,7 @@ function createResultsActions(parentElement) {
     const clearButton = document.createElement('button');
     clearButton.type = 'button';
     clearButton.className = 'results-actions__button results-actions__clear';
-    clearButton.textContent = 'Clear calculation';
+    clearButton.textContent = 'Clear';
     clearButton.addEventListener('click', handleClearSavedCalculation);
 
     const storageAvailable = isLocalStorageAvailable();
