@@ -547,13 +547,9 @@ function handleClearSavedCalculation() {
 const calculationProgressState = {
     total: 0,
     processed: 0,
-    displayedRatio: 0,
-    targetRatio: 0,
     isActive: false,
     isComplete: false,
-    lastTickTime: 0,
-    lastFrameTime: 0,
-    animationFrame: null
+    lastTickTime: 0
 };
 
 function getNow() {
@@ -561,32 +557,6 @@ function getNow() {
         return performance.now();
     }
     return Date.now();
-}
-
-function requestFrame(callback) {
-    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
-        return window.requestAnimationFrame(callback);
-    }
-    return setTimeout(() => callback(getNow()), 16);
-}
-
-function cancelFrame(handle) {
-    if (!handle) {
-        return;
-    }
-    if (typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function') {
-        window.cancelAnimationFrame(handle);
-    } else {
-        clearTimeout(handle);
-    }
-}
-
-function stopProgressAnimation() {
-    if (calculationProgressState.animationFrame) {
-        cancelFrame(calculationProgressState.animationFrame);
-        calculationProgressState.animationFrame = null;
-    }
-    calculationProgressState.lastFrameTime = 0;
 }
 
 function renderCalculationProgress() {
@@ -600,9 +570,11 @@ function renderCalculationProgress() {
     }
 
     const active = calculationProgressState.isActive;
-    const ratio = active ? Math.min(1, Math.max(0, calculationProgressState.displayedRatio)) : 0;
-    const percentRaw = Math.round(ratio * 100);
-    const widthPercent = ratio * 100;
+    const total = Math.max(0, calculationProgressState.total);
+    const processed = Math.max(0, Math.min(calculationProgressState.processed, total));
+    const actualRatio = active && total > 0 ? processed / total : 0;
+    const percentRaw = Math.round(actualRatio * 100);
+    const widthPercent = actualRatio * 100;
     const labelPercent = calculationProgressState.isComplete
         ? percentRaw
         : Math.min(99, percentRaw);
@@ -618,80 +590,20 @@ function renderCalculationProgress() {
 
     if (!active) {
         label.textContent = 'Preparing templates…';
-    } else if (calculationProgressState.isComplete && ratio >= 1) {
+    } else if (calculationProgressState.isComplete && actualRatio >= 1) {
         label.textContent = 'Calculating templates… 100%';
     } else {
         label.textContent = `Calculating templates… ${labelPercent}%`;
     }
 }
 
-function scheduleProgressAnimation() {
-    if (calculationProgressState.animationFrame) {
-        return;
-    }
-
-    const stepFrame = (timestamp) => {
-        const now = typeof timestamp === 'number' ? timestamp : getNow();
-        const state = calculationProgressState;
-        const elapsed = state.lastFrameTime ? Math.max(0, now - state.lastFrameTime) : 16;
-        state.lastFrameTime = now;
-
-        const idleThreshold = 280;
-        const autoAdvanceRate = 16000; // ms to move from 0 to 1 when idling
-        let effectiveTarget = state.targetRatio;
-
-        if (state.isActive && !state.isComplete) {
-            const idleFor = Math.max(0, now - state.lastTickTime);
-            if (idleFor > idleThreshold) {
-                const idleProgress = state.displayedRatio + idleFor / autoAdvanceRate;
-                effectiveTarget = Math.max(effectiveTarget, Math.min(0.98, idleProgress));
-            }
-            effectiveTarget = Math.min(effectiveTarget, 0.98);
-        }
-
-        const delta = effectiveTarget - state.displayedRatio;
-        if (Math.abs(delta) > 0.0005) {
-            const frameScale = Math.min(1, elapsed / 16);
-            const deltaIntensity = Math.min(1, Math.abs(delta) * 3.5);
-            const baseResponse = state.isComplete ? 0.55 : 0.35;
-            const adaptiveBoost = state.isComplete ? 0.35 : 0.25;
-            const smoothing = (baseResponse + adaptiveBoost * deltaIntensity) * frameScale;
-            const step = delta * smoothing;
-            state.displayedRatio = Math.min(1, Math.max(0, state.displayedRatio + step));
-        } else {
-            state.displayedRatio = effectiveTarget;
-        }
-
-        renderCalculationProgress();
-
-        const shouldContinue = state.isActive && (!state.isComplete || state.displayedRatio < 1);
-        if (shouldContinue) {
-            state.animationFrame = requestFrame(stepFrame);
-        } else {
-            stopProgressAnimation();
-        }
-    };
-
-    calculationProgressState.animationFrame = requestFrame((timestamp) => {
-        calculationProgressState.lastFrameTime = typeof timestamp === 'number' ? timestamp : getNow();
-        stepFrame(calculationProgressState.lastFrameTime);
-    });
-}
-
 function resetCalculationProgress(total) {
-    stopProgressAnimation();
     calculationProgressState.total = Math.max(0, total);
     calculationProgressState.processed = 0;
-    calculationProgressState.displayedRatio = 0;
-    calculationProgressState.targetRatio = 0;
     calculationProgressState.isActive = total > 0;
     calculationProgressState.isComplete = false;
     calculationProgressState.lastTickTime = getNow();
-    calculationProgressState.lastFrameTime = 0;
     renderCalculationProgress();
-    if (calculationProgressState.isActive) {
-        scheduleProgressAnimation();
-    }
 }
 
 function updateCalculationProgress(processed, totalOverride = calculationProgressState.total) {
@@ -705,20 +617,9 @@ function updateCalculationProgress(processed, totalOverride = calculationProgres
         calculationProgressState.isComplete = total > 0 && clampedProcessed >= total;
     }
 
-    if (!calculationProgressState.isActive) {
-        calculationProgressState.displayedRatio = 0;
-        calculationProgressState.targetRatio = 0;
-        renderCalculationProgress();
-        stopProgressAnimation();
-        return;
-    }
-
-    const ratio = total > 0 ? Math.min(1, clampedProcessed / total) : 0;
-    calculationProgressState.targetRatio = ratio;
     calculationProgressState.lastTickTime = getNow();
 
     renderCalculationProgress();
-    scheduleProgressAnimation();
 }
 
 function completeCalculationProgress() {
@@ -727,17 +628,13 @@ function completeCalculationProgress() {
     }
     calculationProgressState.isComplete = true;
     calculationProgressState.processed = calculationProgressState.total;
-    calculationProgressState.targetRatio = 1;
     calculationProgressState.lastTickTime = getNow();
-    scheduleProgressAnimation();
+    renderCalculationProgress();
 }
 
 function clearCalculationProgress() {
-    stopProgressAnimation();
     calculationProgressState.total = 0;
     calculationProgressState.processed = 0;
-    calculationProgressState.displayedRatio = 0;
-    calculationProgressState.targetRatio = 0;
     calculationProgressState.isActive = false;
     calculationProgressState.isComplete = false;
     calculationProgressState.lastTickTime = 0;
@@ -754,11 +651,8 @@ function deactivateSpinner(immediate = false) {
     }
 
     if (!immediate && calculationProgressState.isActive) {
-        stopProgressAnimation();
         calculationProgressState.isComplete = true;
         calculationProgressState.processed = calculationProgressState.total;
-        calculationProgressState.targetRatio = 1;
-        calculationProgressState.displayedRatio = 1;
         calculationProgressState.lastTickTime = getNow();
         renderCalculationProgress();
 
