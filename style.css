@@ -763,7 +763,7 @@ div#results h3 ~ #closeResults {
 
 .results-actions__button {
     width: auto;
-    min-width: 160px;
+    min-width: 100px;
     margin-top: 0;
     display: inline-flex;
     justify-content: center;
