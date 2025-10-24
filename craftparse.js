@@ -235,18 +235,21 @@ function extractMaterialsFromOcrText(text = '') {
             continue;
         }
 
-        let amount = null;
-        let amountIndex = null;
-        for (let j = i + 1; j < lines.length; j++) {
-            const potentialAmount = parseMaterialAmountToken(lines[j]);
-            if (potentialAmount !== null) {
-                amount = potentialAmount;
-                amountIndex = j;
-                break;
-            }
-            const nextMaterial = findMaterialNameFromText(lines[j]);
-            if (nextMaterial) {
-                break;
+        let amount = parseMaterialAmountToken(lines[i]);
+        let amountIndex = amount !== null ? i : null;
+
+        if (amount === null) {
+            for (let j = i + 1; j < lines.length; j++) {
+                const potentialAmount = parseMaterialAmountToken(lines[j]);
+                if (potentialAmount !== null) {
+                    amount = potentialAmount;
+                    amountIndex = j;
+                    break;
+                }
+                const nextMaterial = findMaterialNameFromText(lines[j]);
+                if (nextMaterial) {
+                    break;
+                }
             }
         }
 
