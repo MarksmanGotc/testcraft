@@ -274,7 +274,92 @@ select#scaleSelect option {
 	text-align: center;
 }
 .material-choices .materials-list {
-	margin-top: 10px;
+        margin-top: 10px;
+}
+.material-importer {
+    border: 1px dashed rgba(8, 66, 90, 0.4);
+    border-radius: 8px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.8);
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.material-importer__header h3 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    color: var(--primary-color);
+}
+.material-importer__header p {
+    margin: 0;
+    font-size: 13px;
+    color: #4b5a62;
+    line-height: 1.4;
+}
+.material-drop-zone {
+    border: 2px dashed rgba(8, 66, 90, 0.3);
+    border-radius: 10px;
+    padding: 16px;
+    background: rgba(8, 103, 133, 0.05);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+.material-drop-zone svg {
+    width: 32px;
+    height: 32px;
+    fill: rgba(8, 66, 90, 0.6);
+}
+.material-drop-zone span {
+    font-size: 14px;
+    color: #2d4b57;
+}
+.material-drop-zone button {
+    background: var(--button-bg);
+    color: var(--button-text-color);
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+.material-drop-zone button:hover,
+.material-drop-zone button:focus-visible {
+    background: var(--button-bg-hover);
+}
+.material-drop-zone button:disabled {
+    background: rgba(8, 103, 133, 0.4);
+    cursor: not-allowed;
+}
+.material-drop-zone:focus-visible {
+    outline: 3px solid rgba(8, 103, 133, 0.3);
+    outline-offset: 2px;
+}
+.material-drop-zone.is-dragover {
+    border-color: var(--button-bg);
+    background: rgba(8, 103, 133, 0.1);
+    transform: translateY(-1px);
+}
+.material-drop-zone.is-processing {
+    cursor: progress;
+    opacity: 0.7;
+}
+.material-import-status {
+    font-size: 13px;
+    color: #2d4b57;
+    min-height: 18px;
+}
+.material-import-status.error {
+    color: #a11818;
+}
+.material-import-status.success {
+    color: #1b7f3a;
 }
 .warlord-toggle {
     position: relative;
