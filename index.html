@@ -37,6 +37,7 @@
 	<script src="seasons/season12.js"></script>
     <script src="products.js"></script>
     <script src="materials.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
     <script defer src="craftparse.js?v=1.116"></script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-3KDS4M7C1F"></script>
     <script>
@@ -127,7 +128,22 @@
                                 </button></div></div>
                                 <div id="yourMaterialsInfoPopup" class="info-overlay"><div class="info-content"><button class="close-popup" aria-label="Close"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M345 137c9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0l-119 119L73 103c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l119 119L39 375c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l119-119L311 409c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-119-119L345 137z"/></svg></button><p>Enter the total amount of each material at <b>Poor</b> quality. If your inventory is in higher tiers, downgrade them in-game and use the resulting Poor total here. This ensures the calculator matches the expected material scale.</p></div></div>
                                 <div class="materials-list">
-					<div class="my-material black-iron"><img src="materials/icon_crafting_blackiron.webp"><div><span>Black Iron</span><input type="text" class="numeric-input" id="my-black-iron" name="my-black-iron" placeholder="value" pattern="[0-9]*" inputmode="numeric"></div></div>
+                                        <div id="materialImageImporter" class="material-importer" aria-live="polite">
+                                                <div class="material-importer__header">
+                                                        <h3>Import from screenshot</h3>
+                                                        <p>Drop a game screenshot here or browse to automatically fill in your material amounts.</p>
+                                                </div>
+                                                <div id="materialImageDropZone" class="material-drop-zone" role="button" tabindex="0" aria-label="Drop material screenshots or press Enter to browse" aria-describedby="materialImageStatus">
+                                                        <svg aria-hidden="true" focusable="false" viewBox="0 0 512 512">
+                                                                <path d="M472 192H363.3L278.6 44.6c-11.7-19.5-43.6-19.5-55.4 0L148.7 192H40c-22.1 0-40 17.9-40 40 0 8.8 2.9 17 8.1 23.8l216 272c12.7 16 39 16 51.7 0l216-272c11-13.8 13.1-32.9 5.3-48.6-7.8-15.7-23.7-25.2-40.1-25.2z"/>
+                                                        </svg>
+                                                        <span>Drop images or</span>
+                                                        <button id="materialImageBrowse" type="button">Browse files</button>
+                                                        <input id="materialImageInput" type="file" accept="image/*" multiple hidden>
+                                                </div>
+                                                <div id="materialImageStatus" class="material-import-status">No screenshots imported yet.</div>
+                                        </div>
+                                        <div class="my-material black-iron"><img src="materials/icon_crafting_blackiron.webp"><div><span>Black Iron</span><input type="text" class="numeric-input" id="my-black-iron" name="my-black-iron" placeholder="value" pattern="[0-9]*" inputmode="numeric"></div></div>
 					<div class="my-material copper-bar"><img src="materials/icon_crafting_copper_bar.webp"><div><span>Copper bar</span><input type="text" class="numeric-input" id="my-copper-bar" name="my-copper-bar" placeholder="value" pattern="[0-9]*" inputmode="numeric"></div></div>
 					<div class="my-material dragonglass"><img src="materials/icon_crafting_dragonglass.webp"><div><span>Dragonglass</span><input type="text" class="numeric-input" id="my-dragonglass" name="my-dragonglass" placeholder="value" pattern="[0-9]*" inputmode="numeric"></div></div>
 					<div class="my-material goldenheart-wood"><img src="materials/icon_crafting_goldenheart_wood.webp"><div><span>Goldenheart wood</span><input type="text" class="numeric-input" id="my-goldenheart-wood" name="my-goldenheart-wood" placeholder="value" pattern="[0-9]*" inputmode="numeric"></div></div>

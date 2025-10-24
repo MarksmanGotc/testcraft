@@ -22,6 +22,17 @@ Object.values(materials).forEach(season => {
         materialToSeason[normalized] = season.season;
     });
 });
+const BASE_MATERIAL_SEASON = 0;
+const importableMaterialKeys = new Set(
+    Object.keys(materials?.[BASE_MATERIAL_SEASON]?.mats || {})
+);
+const sanitizedMaterialKeys = Object.entries(materialKeyMap)
+    .filter(([, original]) => importableMaterialKeys.has(original))
+    .map(([normalized, original]) => ({
+        normalized,
+        sanitized: normalized.replace(/[^a-z0-9]/g, ''),
+        original
+    }));
 const WEIRWOOD_NORMALIZED_KEY = normalizeKey('weirwood');
 const normalizedKeyCache = new WeakMap();
 
@@ -128,6 +139,285 @@ function slug(str) {
         .replace(/\s+/g, '-')
         .replace(/['"`]/g, '')
         .replace(/[^a-z0-9-]/g, '');
+}
+
+function levenshteinDistance(a = '', b = '') {
+    const lenA = a.length;
+    const lenB = b.length;
+    if (lenA === 0) return lenB;
+    if (lenB === 0) return lenA;
+
+    const matrix = Array.from({ length: lenA + 1 }, () => new Array(lenB + 1));
+    for (let i = 0; i <= lenA; i++) {
+        matrix[i][0] = i;
+    }
+    for (let j = 0; j <= lenB; j++) {
+        matrix[0][j] = j;
+    }
+
+    for (let i = 1; i <= lenA; i++) {
+        for (let j = 1; j <= lenB; j++) {
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            matrix[i][j] = Math.min(
+                matrix[i - 1][j] + 1,
+                matrix[i][j - 1] + 1,
+                matrix[i - 1][j - 1] + cost
+            );
+        }
+    }
+
+    return matrix[lenA][lenB];
+}
+
+function findMaterialNameFromText(text = '') {
+    if (!text) return null;
+    const normalized = normalizeKey(text);
+    const exactMatch = materialKeyMap[normalized];
+    if (exactMatch && importableMaterialKeys.has(exactMatch)) {
+        return exactMatch;
+    }
+
+    const sanitized = normalized.replace(/[^a-z0-9]/g, '');
+    if (!sanitized) {
+        return null;
+    }
+
+    let bestMatch = null;
+    let bestScore = Infinity;
+    sanitizedMaterialKeys.forEach(entry => {
+        if (!entry.sanitized) return;
+        const distance = levenshteinDistance(sanitized, entry.sanitized);
+        const maxLen = Math.max(sanitized.length, entry.sanitized.length, 1);
+        const score = distance / maxLen;
+        if (score < bestScore) {
+            bestScore = score;
+            bestMatch = entry;
+        }
+    });
+
+    if (bestMatch && bestScore <= 0.35 && importableMaterialKeys.has(bestMatch.original)) {
+        return bestMatch.original;
+    }
+    return null;
+}
+
+function parseMaterialAmountToken(token = '') {
+    if (!token) return null;
+    const cleaned = token
+        .toString()
+        .toLowerCase()
+        .replace(/[^0-9mkb.,\s]/g, '');
+    const match = cleaned.match(/([0-9]+(?:[.,][0-9]+)?)(?:\s*)([mkb])?/i);
+    if (!match) {
+        return null;
+    }
+    const numberPart = match[1].replace(/,/g, '.');
+    const suffix = (match[2] || '').toLowerCase();
+    const parsed = parseFloat(numberPart);
+    if (!isFinite(parsed)) {
+        return null;
+    }
+    const multiplier = suffix === 'm' ? 1_000_000 : suffix === 'k' ? 1_000 : suffix === 'b' ? 1_000_000_000 : 1;
+    return parsed * multiplier;
+}
+
+function extractMaterialsFromOcrText(text = '') {
+    if (!text) return {};
+    const lines = text
+        .split(/\n+/)
+        .map(line => line.trim())
+        .filter(Boolean);
+
+    const results = {};
+    for (let i = 0; i < lines.length; i++) {
+        const materialName = findMaterialNameFromText(lines[i]);
+        if (!materialName) {
+            continue;
+        }
+
+        let amount = null;
+        let amountIndex = null;
+        for (let j = i + 1; j < lines.length; j++) {
+            const potentialAmount = parseMaterialAmountToken(lines[j]);
+            if (potentialAmount !== null) {
+                amount = potentialAmount;
+                amountIndex = j;
+                break;
+            }
+            const nextMaterial = findMaterialNameFromText(lines[j]);
+            if (nextMaterial) {
+                break;
+            }
+        }
+
+        if (amount !== null) {
+            results[materialName] = amount;
+            if (amountIndex !== null) {
+                i = amountIndex;
+            }
+        }
+    }
+
+    return results;
+}
+
+function applyImportedMaterials(materialMap = {}) {
+    const scaleSelect = document.getElementById('scaleSelect');
+    const scale = scaleSelect ? parseFloat(scaleSelect.value) || 1 : 1;
+    let updated = 0;
+
+    Object.entries(materialMap).forEach(([materialName, amount]) => {
+        if (!Number.isFinite(amount)) {
+            return;
+        }
+        const input = document.getElementById(`my-${slug(materialName)}`);
+        if (!input) {
+            return;
+        }
+        const scaledValue = amount / scale;
+        input.value = formatValueForInput(scaledValue);
+        const parent = input.closest('.my-material');
+        if (parent) {
+            parent.classList.add('active');
+        }
+        updated += 1;
+    });
+
+    return updated;
+}
+
+function initializeMaterialScreenshotImporter() {
+    const dropZone = document.getElementById('materialImageDropZone');
+    const browseButton = document.getElementById('materialImageBrowse');
+    const fileInput = document.getElementById('materialImageInput');
+    const statusElement = document.getElementById('materialImageStatus');
+
+    if (!dropZone || !fileInput || !statusElement) {
+        return;
+    }
+
+    let isProcessing = false;
+
+    const setStatus = (message, type = '') => {
+        statusElement.textContent = message;
+        statusElement.classList.remove('error', 'success');
+        if (type) {
+            statusElement.classList.add(type);
+        }
+    };
+
+    const setProcessing = (processing) => {
+        dropZone.classList.toggle('is-processing', processing);
+        isProcessing = processing;
+        if (processing) {
+            dropZone.setAttribute('aria-busy', 'true');
+        } else {
+            dropZone.removeAttribute('aria-busy');
+        }
+        if (browseButton) {
+            browseButton.disabled = processing;
+        }
+        fileInput.disabled = processing;
+    };
+
+    const handleFiles = async (files) => {
+        if (isProcessing) {
+            return;
+        }
+
+        const imageFiles = Array.from(files || []).filter(file => file && file.type && file.type.startsWith('image/'));
+        if (imageFiles.length === 0) {
+            setStatus('Only image files can be processed. Please try again with a screenshot.', 'error');
+            return;
+        }
+        if (!window.Tesseract || typeof window.Tesseract.recognize !== 'function') {
+            setStatus('Screenshot recognition is not available at the moment. Please check your connection and try again later.', 'error');
+            return;
+        }
+
+        setProcessing(true);
+        let aggregated = {};
+        try {
+            for (const file of imageFiles) {
+                setStatus(`Analyzing ${file.name}…`);
+                const { data } = await window.Tesseract.recognize(file, 'eng', {
+                    logger: (info) => {
+                        if (info?.status === 'recognizing text' && typeof info.progress === 'number') {
+                            const progress = Math.round(info.progress * 100);
+                            setStatus(`Analyzing ${file.name}… ${progress}%`);
+                        }
+                    }
+                });
+                const extracted = extractMaterialsFromOcrText(data?.text || '');
+                aggregated = { ...aggregated, ...extracted };
+            }
+
+            if (Object.keys(aggregated).length === 0) {
+                setStatus('No known materials were detected. Please ensure the screenshot clearly shows material names and amounts.', 'error');
+                return;
+            }
+
+            const updatedCount = applyImportedMaterials(aggregated);
+            if (updatedCount > 0) {
+                setStatus(`Imported ${updatedCount} material${updatedCount === 1 ? '' : 's'} from ${imageFiles.length} screenshot${imageFiles.length === 1 ? '' : 's'}.`, 'success');
+            } else {
+                setStatus('No matching material inputs were found for the detected items.', 'error');
+            }
+        } catch (error) {
+            console.error('Failed to process material screenshot', error);
+            setStatus('Something went wrong while reading the screenshot. Please try again.', 'error');
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const preventDefaults = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+    };
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults);
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.add('is-dragover'));
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.remove('is-dragover'));
+    });
+
+    dropZone.addEventListener('drop', event => {
+        handleFiles(event.dataTransfer ? event.dataTransfer.files : []);
+    });
+
+    dropZone.addEventListener('click', event => {
+        if (event.target === browseButton) {
+            return;
+        }
+        if (!fileInput.disabled) {
+            fileInput.click();
+        }
+    });
+
+    dropZone.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            fileInput.click();
+        }
+    });
+
+    if (browseButton) {
+        browseButton.addEventListener('click', () => fileInput.click());
+    }
+
+    fileInput.addEventListener('change', event => {
+        handleFiles(event.target.files);
+        fileInput.value = '';
+    });
+
+    setStatus('No screenshots imported yet.');
 }
 
 function formatTimestamp(date = new Date()) {
@@ -947,6 +1237,7 @@ document.addEventListener('DOMContentLoaded', function() {
         initAdvMaterialSection();
         initializeQualitySelects();
         initializeSeasonZeroSlider();
+        initializeMaterialScreenshotImporter();
 
     const shareParam = urlParams.get('share');
     if (shareParam) {
@@ -1177,6 +1468,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function formatPlaceholderWithCommas(number) {
     return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function formatValueForInput(value) {
+    if (!Number.isFinite(value)) {
+        return '';
+    }
+    return value.toLocaleString('en-US', {
+        maximumFractionDigits: 3,
+        minimumFractionDigits: 0
+    });
 }
 
 function formatedInputNumber(){
