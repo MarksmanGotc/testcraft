@@ -201,64 +201,71 @@ function findMaterialNameFromText(text = '') {
     return null;
 }
 
-function determineDecimalSeparator(value, hasSuffix) {
-    const dotCount = (value.match(/\./g) || []).length;
-    const commaCount = (value.match(/,/g) || []).length;
-
-    if (dotCount && commaCount) {
-        // The last separator is treated as the decimal, the rest as thousands separators
-        return value.lastIndexOf('.') > value.lastIndexOf(',') ? '.' : ',';
-    }
-
-    if (dotCount + commaCount === 0) {
-        return null;
-    }
-
-    const separator = dotCount ? '.' : ',';
-    const occurrences = dotCount || commaCount;
-    const lastIndex = value.lastIndexOf(separator);
-    const digitsAfter = value.length - lastIndex - 1;
-
-    if (occurrences > 1) {
-        // Multiple identical separators almost always denote thousand grouping
-        return null;
-    }
-
-    if (hasSuffix) {
-        // When a suffix is present (e.g. 1.5m), interpret the separator as a decimal point
-        return separator;
-    }
-
-    if (digitsAfter === 0) {
-        return null;
-    }
-
-    // Treat as thousands separator when three digits follow and the number is reasonably large
-    if (digitsAfter === 3 && lastIndex > 0) {
-        return null;
-    }
-
-    return separator;
-}
-
 function parseLocalizedNumber(value = '', hasSuffix = false) {
     if (!value) {
         return NaN;
     }
 
-    const separator = determineDecimalSeparator(value, hasSuffix);
-    let normalized = value;
+    const compact = value
+        .toString()
+        .replace(/\s+/g, '')
+        .trim();
 
-    if (separator) {
-        const thousandsSeparator = separator === '.' ? ',' : '.';
-        const thousandsRegex = new RegExp(`\\${thousandsSeparator}`, 'g');
-        normalized = normalized.replace(thousandsRegex, '');
-        normalized = normalized.replace(separator, '.');
-    } else {
-        normalized = normalized.replace(/[.,]/g, '');
+    if (!compact) {
+        return NaN;
     }
 
-    return parseFloat(normalized);
+    const separators = [...compact.matchAll(/[.,]/g)];
+    if (separators.length === 0) {
+        return parseFloat(compact);
+    }
+
+    const digitsOnly = compact.replace(/[.,]/g, '');
+    const lastSeparator = separators[separators.length - 1];
+    const lastSeparatorChar = lastSeparator[0];
+    const digitsAfterLast = compact.length - lastSeparator.index - 1;
+    const allSeparatorsSame = separators.every(match => match[0] === lastSeparatorChar);
+
+    if (
+        !hasSuffix &&
+        digitsAfterLast === 3 &&
+        digitsOnly.length >= 4 &&
+        allSeparatorsSame
+    ) {
+        return parseFloat(digitsOnly);
+    }
+
+    let decimalSeparator = lastSeparatorChar;
+    if (!hasSuffix && digitsAfterLast === 0) {
+        decimalSeparator = null;
+    }
+
+    let cleaned = compact;
+
+    if (decimalSeparator) {
+        const thousandsSeparator = decimalSeparator === '.' ? ',' : '.';
+        const thousandsRegex = new RegExp(`\\${thousandsSeparator}`, 'g');
+        cleaned = cleaned.replace(thousandsRegex, '');
+
+        const decimalRegex = new RegExp(`\\${decimalSeparator}`, 'g');
+        const decimalCount = separators.filter(match => match[0] === decimalSeparator).length;
+        if (decimalCount > 1) {
+            const parts = cleaned.split(decimalSeparator);
+            const fractional = parts.pop();
+            cleaned = `${parts.join('')}.${fractional}`;
+        } else {
+            cleaned = cleaned.replace(decimalRegex, '.');
+        }
+    } else {
+        cleaned = cleaned.replace(/[.,]/g, '');
+    }
+
+    const parsed = parseFloat(cleaned);
+    if (Number.isFinite(parsed)) {
+        return parsed;
+    }
+
+    return parseFloat(digitsOnly);
 }
 
 function normalizeOcrNumberPart(value = '') {
@@ -325,6 +332,106 @@ function parseMaterialAmountToken(token = '') {
     return null;
 }
 
+const OCR_AMOUNT_FRAGMENT_REGEX = /^[0-9oö°il|!zs§$bgq.,\s]+$/i;
+const OCR_AMOUNT_HAS_DIGIT_REGEX = /[0-9oö°il|!zs§$bgq]/i;
+const OCR_SUFFIX_ONLY_REGEX = /^[mkb]$/i;
+
+function normalizeOcrWordToken(token = '') {
+    if (!token) {
+        return '';
+    }
+
+    const trimmed = token.trim();
+    if (!trimmed) {
+        return trimmed;
+    }
+
+    const suffixMatch = trimmed.match(/([mkb])$/i);
+    const suffix = suffixMatch ? suffixMatch[1] : '';
+    const numberCandidate = suffix ? trimmed.slice(0, -suffix.length) : trimmed;
+
+    if (!numberCandidate || !OCR_AMOUNT_FRAGMENT_REGEX.test(numberCandidate)) {
+        return trimmed;
+    }
+
+    const normalizedNumber = normalizeOcrNumberPart(numberCandidate).replace(/\s+/g, '');
+    if (!normalizedNumber) {
+        return trimmed;
+    }
+
+    return `${normalizedNumber}${suffix}`;
+}
+
+function buildNormalizedOcrText(data) {
+    if (!data || !Array.isArray(data?.lines)) {
+        return data?.text || '';
+    }
+
+    const lines = data.lines
+        .map(line => {
+            const normalizedLine = (line?.words || [])
+                .map(word => normalizeOcrWordToken(word?.text || ''))
+                .join(' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+            return normalizedLine;
+        })
+        .filter(Boolean);
+
+    if (lines.length === 0) {
+        return data?.text || '';
+    }
+
+    return lines.join('\n');
+}
+
+function collectAmountFromFollowingLines(lines, startIndex) {
+    let combined = '';
+    let bestAmount = null;
+    let bestIndex = null;
+
+    for (let j = startIndex; j < lines.length; j++) {
+        const candidate = lines[j];
+        if (!candidate) {
+            continue;
+        }
+
+        if (findMaterialNameFromText(candidate)) {
+            break;
+        }
+
+        const trimmed = candidate.trim();
+        if (!trimmed) {
+            continue;
+        }
+
+        const isSuffixOnly = OCR_SUFFIX_ONLY_REGEX.test(trimmed);
+        const hasDigits = OCR_AMOUNT_HAS_DIGIT_REGEX.test(trimmed);
+        const isNumericLike = OCR_AMOUNT_FRAGMENT_REGEX.test(trimmed);
+
+        if (!isSuffixOnly && (!hasDigits || !isNumericLike)) {
+            if (combined) {
+                break;
+            }
+            continue;
+        }
+
+        if (isSuffixOnly && !combined) {
+            continue;
+        }
+
+        combined = combined ? `${combined} ${trimmed}` : trimmed;
+
+        const parsed = parseMaterialAmountToken(combined);
+        if (parsed !== null) {
+            bestAmount = parsed;
+            bestIndex = j;
+        }
+    }
+
+    return { amount: bestAmount, amountIndex: bestIndex };
+}
+
 function extractMaterialsFromOcrText(text = '') {
     if (!text) return {};
     const lines = text
@@ -342,7 +449,11 @@ function extractMaterialsFromOcrText(text = '') {
         let amount = parseMaterialAmountToken(lines[i]);
         let amountIndex = amount !== null ? i : null;
 
-        if (amount === null) {
+        const { amount: combinedAmount, amountIndex: combinedIndex } = collectAmountFromFollowingLines(lines, i + 1);
+        if (combinedAmount !== null) {
+            amount = combinedAmount;
+            amountIndex = combinedIndex !== null ? combinedIndex : amountIndex;
+        } else if (amount === null) {
             for (let j = i + 1; j < lines.length; j++) {
                 const potentialAmount = parseMaterialAmountToken(lines[j]);
                 if (potentialAmount !== null) {
@@ -447,15 +558,20 @@ function initializeMaterialScreenshotImporter() {
         try {
             for (const file of imageFiles) {
                 setStatus(`Analyzing ${file.name}…`);
-                const { data } = await window.Tesseract.recognize(file, 'eng', {
+                const recognitionOptions = {
+                    preserve_interword_spaces: '1',
+                    classify_bln_numeric_mode: '1',
+                    tessedit_pageseg_mode: window.Tesseract?.PSM?.SINGLE_BLOCK || 6,
                     logger: (info) => {
                         if (info?.status === 'recognizing text' && typeof info.progress === 'number') {
                             const progress = Math.round(info.progress * 100);
                             setStatus(`Analyzing ${file.name}… ${progress}%`);
                         }
                     }
-                });
-                const extracted = extractMaterialsFromOcrText(data?.text || '');
+                };
+                const { data } = await window.Tesseract.recognize(file, 'eng', recognitionOptions);
+                const normalizedText = buildNormalizedOcrText(data);
+                const extracted = extractMaterialsFromOcrText(normalizedText);
                 aggregated = { ...aggregated, ...extracted };
             }
 
