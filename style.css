@@ -297,6 +297,55 @@ select#scaleSelect option {
     color: #4b5a62;
     line-height: 1.4;
 }
+.material-importer__api {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.material-importer__api label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2d4b57;
+}
+.material-importer__api-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.material-importer__api input {
+    flex: 1 1 220px;
+    padding: 6px 10px;
+    font-size: 14px;
+    border: 1px solid rgba(8, 66, 90, 0.3);
+    border-radius: 6px;
+    color: #08425a;
+    background: rgba(255, 255, 255, 0.9);
+}
+.material-importer__api input:focus-visible {
+    outline: 2px solid rgba(8, 103, 133, 0.35);
+    outline-offset: 2px;
+}
+.material-importer__api button {
+    background: var(--button-bg);
+    color: var(--button-text-color);
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+.material-importer__api button:hover,
+.material-importer__api button:focus-visible {
+    background: var(--button-bg-hover);
+}
+.material-importer__api-hint {
+    margin: 0;
+    font-size: 12px;
+    color: #4b5a62;
+    line-height: 1.4;
+}
 .material-drop-zone {
     border: 2px dashed rgba(8, 66, 90, 0.3);
     border-radius: 10px;

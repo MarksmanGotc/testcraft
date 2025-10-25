@@ -38,6 +38,7 @@ const normalizedKeyCache = new WeakMap();
 
 const CALCULATION_STORAGE_KEY = 'noox-calculation-v1';
 const CALCULATION_STORAGE_VERSION = 1;
+const MATERIAL_VISION_API_KEY_STORAGE_KEY = 'noox-material-vision-api-key';
 let latestCalculationPayload = null;
 let isViewingSavedCalculation = false;
 
@@ -453,11 +454,15 @@ function initializeMaterialScreenshotImporter() {
     const browseButton = document.getElementById('materialImageBrowse');
     const fileInput = document.getElementById('materialImageInput');
     const statusElement = document.getElementById('materialImageStatus');
+    const apiKeyInput = document.getElementById('materialImageApiKey');
+    const apiKeyToggleButton = document.getElementById('materialImageToggleApiKeyVisibility');
+    const apiKeyClearButton = document.getElementById('materialImageClearApiKey');
 
     if (!dropZone || !fileInput || !statusElement) {
         return;
     }
 
+    const storageSupported = isLocalStorageAvailable();
     let isProcessing = false;
 
     const setStatus = (message, type = '') => {
@@ -467,6 +472,85 @@ function initializeMaterialScreenshotImporter() {
             statusElement.classList.add(type);
         }
     };
+
+    const readStoredApiKey = () => {
+        if (!storageSupported) {
+            return '';
+        }
+        try {
+            return window.localStorage.getItem(MATERIAL_VISION_API_KEY_STORAGE_KEY) || '';
+        } catch (error) {
+            console.error('Unable to read stored Vision API key', error);
+            return '';
+        }
+    };
+
+    const persistApiKey = (value) => {
+        if (!storageSupported) {
+            return;
+        }
+        try {
+            const trimmed = value.trim();
+            if (trimmed) {
+                window.localStorage.setItem(MATERIAL_VISION_API_KEY_STORAGE_KEY, trimmed);
+            } else {
+                window.localStorage.removeItem(MATERIAL_VISION_API_KEY_STORAGE_KEY);
+            }
+        } catch (error) {
+            console.error('Unable to persist Vision API key', error);
+        }
+    };
+
+    const getApiKey = () => (apiKeyInput?.value || '').trim();
+
+    const readFileAsBase64 = (file) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = typeof reader.result === 'string' ? reader.result : '';
+            const commaIndex = result.indexOf(',');
+            if (commaIndex === -1) {
+                reject(new Error('Unable to read screenshot data.'));
+                return;
+            }
+            resolve(result.slice(commaIndex + 1));
+        };
+        reader.onerror = () => {
+            reject(reader.error || new Error('Failed to read screenshot data.'));
+        };
+        reader.readAsDataURL(file);
+    });
+
+    if (apiKeyInput) {
+        const storedKey = readStoredApiKey();
+        if (storedKey) {
+            apiKeyInput.value = storedKey;
+        }
+        apiKeyInput.addEventListener('change', () => {
+            persistApiKey(getApiKey());
+        });
+        apiKeyInput.addEventListener('blur', () => {
+            persistApiKey(getApiKey());
+        });
+    }
+
+    if (apiKeyToggleButton && apiKeyInput) {
+        apiKeyToggleButton.addEventListener('click', () => {
+            const currentlyPassword = apiKeyInput.type === 'password';
+            apiKeyInput.type = currentlyPassword ? 'text' : 'password';
+            apiKeyToggleButton.setAttribute('aria-pressed', currentlyPassword ? 'true' : 'false');
+            apiKeyToggleButton.textContent = currentlyPassword ? 'Hide' : 'Show';
+            apiKeyInput.focus();
+        });
+    }
+
+    if (apiKeyClearButton && apiKeyInput) {
+        apiKeyClearButton.addEventListener('click', () => {
+            apiKeyInput.value = '';
+            persistApiKey('');
+            setStatus('API key cleared. Add a new key to enable screenshot recognition.', 'error');
+            apiKeyInput.focus();
+        });
+    }
 
     const setProcessing = (processing) => {
         dropZone.classList.toggle('is-processing', processing);
@@ -480,6 +564,15 @@ function initializeMaterialScreenshotImporter() {
             browseButton.disabled = processing;
         }
         fileInput.disabled = processing;
+        if (apiKeyInput) {
+            apiKeyInput.disabled = processing;
+        }
+        if (apiKeyToggleButton) {
+            apiKeyToggleButton.disabled = processing;
+        }
+        if (apiKeyClearButton) {
+            apiKeyClearButton.disabled = processing;
+        }
     };
 
     const handleFiles = async (files) => {
@@ -492,8 +585,9 @@ function initializeMaterialScreenshotImporter() {
             setStatus('Only image files can be processed. Please try again with a screenshot.', 'error');
             return;
         }
-        if (!window.Tesseract || typeof window.Tesseract.recognize !== 'function') {
-            setStatus('Screenshot recognition is not available at the moment. Please check your connection and try again later.', 'error');
+        const apiKey = getApiKey();
+        if (!apiKey) {
+            setStatus('Add your Google Cloud Vision API key above to enable screenshot recognition.', 'error');
             return;
         }
 
@@ -501,16 +595,58 @@ function initializeMaterialScreenshotImporter() {
         let aggregated = {};
         try {
             for (const file of imageFiles) {
-                setStatus(`Analyzing ${file.name}…`);
-                const { data } = await window.Tesseract.recognize(file, 'eng', {
-                    logger: (info) => {
-                        if (info?.status === 'recognizing text' && typeof info.progress === 'number') {
-                            const progress = Math.round(info.progress * 100);
-                            setStatus(`Analyzing ${file.name}… ${progress}%`);
+                setStatus(`Preparing ${file.name}…`);
+                const base64Content = await readFileAsBase64(file);
+                setStatus(`Analyzing ${file.name} with Google Cloud Vision…`);
+                const requestPayload = {
+                    requests: [
+                        {
+                            image: { content: base64Content },
+                            features: [
+                                {
+                                    type: 'TEXT_DETECTION',
+                                    maxResults: 1
+                                }
+                            ]
                         }
-                    }
+                    ]
+                };
+
+                const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${encodeURIComponent(apiKey)}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestPayload)
                 });
-                const extracted = extractMaterialsFromOcrText(data?.text || '');
+
+                if (!response.ok) {
+                    throw new Error(`Vision API request failed with status ${response.status}.`);
+                }
+
+                const result = await response.json();
+                if (result.error) {
+                    const message = result.error?.message || 'Vision API returned an error.';
+                    throw new Error(message);
+                }
+
+                const annotations = result?.responses?.[0];
+                if (!annotations) {
+                    throw new Error('Vision API response did not contain any annotations.');
+                }
+
+                if (annotations.error) {
+                    const message = annotations.error?.message || 'Vision API reported an error for this screenshot.';
+                    throw new Error(message);
+                }
+
+                const text = annotations?.fullTextAnnotation?.text || annotations?.textAnnotations?.[0]?.description || '';
+                if (!text.trim()) {
+                    console.warn('Vision API returned no text for file', file.name);
+                    continue;
+                }
+
+                const extracted = extractMaterialsFromOcrText(text);
                 aggregated = { ...aggregated, ...extracted };
             }
 
@@ -527,7 +663,8 @@ function initializeMaterialScreenshotImporter() {
             }
         } catch (error) {
             console.error('Failed to process material screenshot', error);
-            setStatus('Something went wrong while reading the screenshot. Please try again.', 'error');
+            const message = error?.message ? `Vision API error: ${error.message}` : 'Something went wrong while reading the screenshot. Please try again.';
+            setStatus(message, 'error');
         } finally {
             setProcessing(false);
         }
@@ -579,7 +716,7 @@ function initializeMaterialScreenshotImporter() {
         fileInput.value = '';
     });
 
-    setStatus('No screenshots imported yet.');
+    setStatus('No screenshots imported yet. Add your Google Cloud Vision API key above to enable recognition.');
 }
 
 function formatTimestamp(date = new Date()) {
