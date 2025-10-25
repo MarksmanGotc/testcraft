@@ -33,6 +33,99 @@ const sanitizedMaterialKeys = Object.entries(materialKeyMap)
         sanitized: normalized.replace(/[^a-z0-9]/g, ''),
         original
     }));
+
+function buildSanitizedLineData(line = '') {
+    if (!line) {
+        return { sanitized: '', indexMap: [] };
+    }
+
+    const indexMap = [];
+    const chars = [];
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (/^[a-z0-9]$/i.test(char)) {
+            indexMap.push(i);
+            chars.push(char.toLowerCase());
+        }
+    }
+
+    return {
+        sanitized: chars.join(''),
+        indexMap
+    };
+}
+
+function findMaterialMatchesInLine(line = '') {
+    if (!line) {
+        return [];
+    }
+
+    const { sanitized, indexMap } = buildSanitizedLineData(line);
+    if (!sanitized) {
+        return [];
+    }
+
+    const matches = [];
+    sanitizedMaterialKeys.forEach(entry => {
+        if (!entry.sanitized) return;
+        let searchIndex = 0;
+        while (searchIndex < sanitized.length) {
+            const foundIndex = sanitized.indexOf(entry.sanitized, searchIndex);
+            if (foundIndex === -1) {
+                break;
+            }
+
+            const start = indexMap[foundIndex];
+            const endIndex = indexMap[foundIndex + entry.sanitized.length - 1];
+            const end = typeof endIndex === 'number' ? endIndex + 1 : line.length;
+
+            matches.push({
+                material: entry.original,
+                start,
+                end,
+                sanitizedStart: foundIndex,
+                sanitizedEnd: foundIndex + entry.sanitized.length
+            });
+
+            searchIndex = foundIndex + entry.sanitized.length;
+        }
+    });
+
+    if (matches.length <= 1) {
+        return matches.map(({ material, start, end }) => ({ material, start, end }));
+    }
+
+    matches.sort((a, b) => {
+        if (a.start !== b.start) {
+            return a.start - b.start;
+        }
+        const aLength = a.end - a.start;
+        const bLength = b.end - b.start;
+        return bLength - aLength;
+    });
+
+    const deduped = [];
+    const occupied = new Array(sanitized.length).fill(false);
+
+    matches.forEach(match => {
+        let overlaps = false;
+        for (let i = match.sanitizedStart; i < match.sanitizedEnd; i++) {
+            if (occupied[i]) {
+                overlaps = true;
+                break;
+            }
+        }
+        if (!overlaps) {
+            deduped.push(match);
+            for (let i = match.sanitizedStart; i < match.sanitizedEnd; i++) {
+                occupied[i] = true;
+            }
+        }
+    });
+
+    deduped.sort((a, b) => a.start - b.start);
+    return deduped.map(({ material, start, end }) => ({ material, start, end }));
+}
 const WEIRWOOD_NORMALIZED_KEY = normalizeKey('weirwood');
 const normalizedKeyCache = new WeakMap();
 
@@ -172,6 +265,11 @@ function levenshteinDistance(a = '', b = '') {
 
 function findMaterialNameFromText(text = '') {
     if (!text) return null;
+    const matches = findMaterialMatchesInLine(text);
+    if (matches.length > 0) {
+        return matches[0].material;
+    }
+
     const normalized = normalizeKey(text);
     const exactMatch = materialKeyMap[normalized];
     if (exactMatch && importableMaterialKeys.has(exactMatch)) {
@@ -345,7 +443,7 @@ function collectAmountFromFollowingLines(lines, startIndex) {
             continue;
         }
 
-        if (findMaterialNameFromText(candidate)) {
+        if (findMaterialMatchesInLine(candidate).length > 0) {
             break;
         }
 
@@ -390,38 +488,49 @@ function extractMaterialsFromOcrText(text = '') {
 
     const results = {};
     for (let i = 0; i < lines.length; i++) {
-        const materialName = findMaterialNameFromText(lines[i]);
-        if (!materialName) {
+        const matches = findMaterialMatchesInLine(lines[i]);
+        if (matches.length === 0) {
             continue;
         }
 
-        let amount = parseMaterialAmountToken(lines[i]);
-        let amountIndex = amount !== null ? i : null;
+        let furthestConsumedIndex = i;
+        matches.forEach((match, index) => {
+            const nextMatchStart = matches[index + 1]?.start ?? lines[i].length;
+            const sameLineSegment = lines[i].slice(match.end, nextMatchStart);
 
-        const { amount: combinedAmount, amountIndex: combinedIndex } = collectAmountFromFollowingLines(lines, i + 1);
-        if (combinedAmount !== null) {
-            amount = combinedAmount;
-            amountIndex = combinedIndex !== null ? combinedIndex : amountIndex;
-        } else if (amount === null) {
-            for (let j = i + 1; j < lines.length; j++) {
-                const potentialAmount = parseMaterialAmountToken(lines[j]);
-                if (potentialAmount !== null) {
-                    amount = potentialAmount;
-                    amountIndex = j;
-                    break;
-                }
-                const nextMaterial = findMaterialNameFromText(lines[j]);
-                if (nextMaterial) {
-                    break;
+            let amount = parseMaterialAmountToken(sameLineSegment);
+            let amountIndex = amount !== null ? i : null;
+
+            if (amount === null) {
+                const { amount: combinedAmount, amountIndex: combinedIndex } = collectAmountFromFollowingLines(lines, i + 1);
+                if (combinedAmount !== null) {
+                    amount = combinedAmount;
+                    amountIndex = combinedIndex !== null ? combinedIndex : amountIndex;
+                } else {
+                    for (let j = i + 1; j < lines.length; j++) {
+                        if (findMaterialMatchesInLine(lines[j]).length > 0) {
+                            break;
+                        }
+                        const potentialAmount = parseMaterialAmountToken(lines[j]);
+                        if (potentialAmount !== null) {
+                            amount = potentialAmount;
+                            amountIndex = j;
+                            break;
+                        }
+                    }
                 }
             }
-        }
 
-        if (amount !== null) {
-            results[materialName] = amount;
-            if (amountIndex !== null) {
-                i = amountIndex;
+            if (amount !== null) {
+                results[match.material] = amount;
+                if (amountIndex !== null) {
+                    furthestConsumedIndex = Math.max(furthestConsumedIndex, amountIndex);
+                }
             }
+        });
+
+        if (furthestConsumedIndex > i) {
+            i = furthestConsumedIndex;
         }
     }
 
