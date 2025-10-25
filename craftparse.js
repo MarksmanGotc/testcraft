@@ -264,36 +264,37 @@ function parseLocalizedNumber(value = '', hasSuffix = false) {
 function parseMaterialAmountToken(token = '') {
     if (!token) return null;
     const raw = token.toString().toLowerCase();
-    const cleaned = raw
-        .replace(/[o]/g, '0')
-        .replace(/[^0-9mkb.,\s]/g, '');
+    const sanitized = raw.replace(/[o]/g, '0');
 
-    if (!cleaned) {
-        return null;
+    const matches = sanitized.matchAll(/([0-9][0-9.,\s]*)([mkb])?/gi);
+    for (const match of matches) {
+        if (!match) {
+            continue;
+        }
+        const [, numberPartRaw = '', suffixRaw = ''] = match;
+        const compact = numberPartRaw.replace(/\s+/g, '');
+        if (!compact) {
+            continue;
+        }
+
+        const suffix = suffixRaw.toLowerCase();
+        const parsed = parseLocalizedNumber(compact, Boolean(suffix));
+        if (!isFinite(parsed)) {
+            continue;
+        }
+
+        const multiplier = suffix === 'm'
+            ? 1_000_000
+            : suffix === 'k'
+                ? 1_000
+                : suffix === 'b'
+                    ? 1_000_000_000
+                    : 1;
+
+        return parsed * multiplier;
     }
 
-    const suffixMatch = cleaned.match(/([mkb])\s*$/i);
-    const suffix = (suffixMatch ? suffixMatch[1] : '').toLowerCase();
-    const numberPart = suffixMatch ? cleaned.slice(0, suffixMatch.index) : cleaned;
-    const compact = numberPart.replace(/\s+/g, '');
-    if (!compact) {
-        return null;
-    }
-
-    const parsed = parseLocalizedNumber(compact, Boolean(suffix));
-    if (!isFinite(parsed)) {
-        return null;
-    }
-
-    const multiplier = suffix === 'm'
-        ? 1_000_000
-        : suffix === 'k'
-            ? 1_000
-            : suffix === 'b'
-                ? 1_000_000_000
-                : 1;
-
-    return parsed * multiplier;
+    return null;
 }
 
 function extractMaterialsFromOcrText(text = '') {
