@@ -201,23 +201,98 @@ function findMaterialNameFromText(text = '') {
     return null;
 }
 
-function parseMaterialAmountToken(token = '') {
-    if (!token) return null;
-    const cleaned = token
-        .toString()
-        .toLowerCase()
-        .replace(/[^0-9mkb.,\s]/g, '');
-    const match = cleaned.match(/([0-9]+(?:[.,][0-9]+)?)(?:\s*)([mkb])?/i);
-    if (!match) {
+function determineDecimalSeparator(value, hasSuffix) {
+    const dotCount = (value.match(/\./g) || []).length;
+    const commaCount = (value.match(/,/g) || []).length;
+
+    if (dotCount && commaCount) {
+        // The last separator is treated as the decimal, the rest as thousands separators
+        return value.lastIndexOf('.') > value.lastIndexOf(',') ? '.' : ',';
+    }
+
+    if (dotCount + commaCount === 0) {
         return null;
     }
-    const numberPart = match[1].replace(/,/g, '.');
-    const suffix = (match[2] || '').toLowerCase();
-    const parsed = parseFloat(numberPart);
+
+    const separator = dotCount ? '.' : ',';
+    const occurrences = dotCount || commaCount;
+    const lastIndex = value.lastIndexOf(separator);
+    const digitsAfter = value.length - lastIndex - 1;
+
+    if (occurrences > 1) {
+        // Multiple identical separators almost always denote thousand grouping
+        return null;
+    }
+
+    if (hasSuffix) {
+        // When a suffix is present (e.g. 1.5m), interpret the separator as a decimal point
+        return separator;
+    }
+
+    if (digitsAfter === 0) {
+        return null;
+    }
+
+    // Treat as thousands separator when three digits follow and the number is reasonably large
+    if (digitsAfter === 3 && lastIndex > 0) {
+        return null;
+    }
+
+    return separator;
+}
+
+function parseLocalizedNumber(value = '', hasSuffix = false) {
+    if (!value) {
+        return NaN;
+    }
+
+    const separator = determineDecimalSeparator(value, hasSuffix);
+    let normalized = value;
+
+    if (separator) {
+        const thousandsSeparator = separator === '.' ? ',' : '.';
+        const thousandsRegex = new RegExp(`\\${thousandsSeparator}`, 'g');
+        normalized = normalized.replace(thousandsRegex, '');
+        normalized = normalized.replace(separator, '.');
+    } else {
+        normalized = normalized.replace(/[.,]/g, '');
+    }
+
+    return parseFloat(normalized);
+}
+
+function parseMaterialAmountToken(token = '') {
+    if (!token) return null;
+    const raw = token.toString().toLowerCase();
+    const cleaned = raw
+        .replace(/[o]/g, '0')
+        .replace(/[^0-9mkb.,\s]/g, '');
+
+    if (!cleaned) {
+        return null;
+    }
+
+    const suffixMatch = cleaned.match(/([mkb])\s*$/i);
+    const suffix = (suffixMatch ? suffixMatch[1] : '').toLowerCase();
+    const numberPart = suffixMatch ? cleaned.slice(0, suffixMatch.index) : cleaned;
+    const compact = numberPart.replace(/\s+/g, '');
+    if (!compact) {
+        return null;
+    }
+
+    const parsed = parseLocalizedNumber(compact, Boolean(suffix));
     if (!isFinite(parsed)) {
         return null;
     }
-    const multiplier = suffix === 'm' ? 1_000_000 : suffix === 'k' ? 1_000 : suffix === 'b' ? 1_000_000_000 : 1;
+
+    const multiplier = suffix === 'm'
+        ? 1_000_000
+        : suffix === 'k'
+            ? 1_000
+            : suffix === 'b'
+                ? 1_000_000_000
+                : 1;
+
     return parsed * multiplier;
 }
 
