@@ -37,7 +37,6 @@
 	<script src="seasons/season12.js"></script>
     <script src="products.js"></script>
     <script src="materials.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
     <script defer src="craftparse.js?v=1.116"></script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-3KDS4M7C1F"></script>
     <script>
@@ -132,6 +131,15 @@
                                                 <div class="material-importer__header">
                                                         <h3>Import from screenshot</h3>
                                                         <p>Drop a game screenshot here or browse to automatically fill in your material amounts.</p>
+                                                </div>
+                                                <div class="material-importer__api" aria-live="polite">
+                                                        <label for="materialImageApiKey">Google Cloud Vision API key</label>
+                                                        <div class="material-importer__api-controls">
+                                                                <input id="materialImageApiKey" type="password" autocomplete="off" spellcheck="false" placeholder="AIza…" aria-describedby="materialImageApiKeyHint">
+                                                                <button id="materialImageToggleApiKeyVisibility" type="button" aria-pressed="false">Show</button>
+                                                                <button id="materialImageClearApiKey" type="button">Clear</button>
+                                                        </div>
+                                                        <p id="materialImageApiKeyHint" class="material-importer__api-hint">Stored locally in this browser only. Required for screenshot recognition.</p>
                                                 </div>
                                                 <div id="materialImageDropZone" class="material-drop-zone" role="button" tabindex="0" aria-label="Drop material screenshots or press Enter to browse" aria-describedby="materialImageStatus">
                                                         <svg aria-hidden="true" focusable="false" viewBox="0 0 512 512">
