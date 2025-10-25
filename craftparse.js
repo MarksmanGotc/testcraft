@@ -284,10 +284,14 @@ function normalizeOcrNumberPart(value = '') {
     return normalized.replace(/[^0-9.,\s]/g, '');
 }
 
+// Require at least one true digit in the matched token so letter-only fragments from material names
+// (for example the "o" in "Weirwood") are ignored and don't get mistaken for zero values.
+const OCR_NUMBER_TOKEN_REGEX = /((?=[0-9oö°il|!zs§$bgq.,\s]*[0-9])[0-9oö°il|!zs§$bgq.,\s]+)([mkb])?/gi;
+
 function parseMaterialAmountToken(token = '') {
     if (!token) return null;
     const raw = token.toString();
-    const matches = raw.matchAll(/([0-9oö°il|!zs§$bgq.,\s]+)([mkb])?/gi);
+    const matches = raw.matchAll(OCR_NUMBER_TOKEN_REGEX);
 
     for (const match of matches) {
         if (!match) {
