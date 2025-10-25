@@ -261,18 +261,46 @@ function parseLocalizedNumber(value = '', hasSuffix = false) {
     return parseFloat(normalized);
 }
 
+function normalizeOcrNumberPart(value = '') {
+    if (!value) {
+        return '';
+    }
+
+    const replacements = [
+        { pattern: /[oö°]/gi, replacement: '0' },
+        { pattern: /[il|!]/gi, replacement: '1' },
+        { pattern: /[zs§$]/gi, replacement: (match) => (match.toLowerCase() === 'z' ? '2' : '5') },
+        { pattern: /[a]/gi, replacement: '4' },
+        { pattern: /[b]/gi, replacement: '8' },
+        { pattern: /[gq]/gi, replacement: '9' }
+    ];
+
+    let normalized = value;
+    replacements.forEach(({ pattern, replacement }) => {
+        normalized = normalized.replace(pattern, replacement);
+    });
+
+    return normalized.replace(/[^0-9.,\s]/g, '');
+}
+
 function parseMaterialAmountToken(token = '') {
     if (!token) return null;
-    const raw = token.toString().toLowerCase();
-    const sanitized = raw.replace(/[o]/g, '0');
+    const raw = token.toString();
+    const matches = raw.matchAll(/([0-9oö°il|!zs§$bgq.,\s]+)([mkb])?/gi);
 
-    const matches = sanitized.matchAll(/([0-9][0-9.,\s]*)([mkb])?/gi);
     for (const match of matches) {
         if (!match) {
             continue;
         }
-        const [, numberPartRaw = '', suffixRaw = ''] = match;
-        const compact = numberPartRaw.replace(/\s+/g, '');
+
+        let [, numberPartRaw = '', suffixRaw = ''] = match;
+        if (!suffixRaw && /[mkb]$/i.test(numberPartRaw)) {
+            suffixRaw = numberPartRaw.slice(-1);
+            numberPartRaw = numberPartRaw.slice(0, -1);
+        }
+
+        const normalizedNumberPart = normalizeOcrNumberPart(numberPartRaw);
+        const compact = normalizedNumberPart.replace(/\s+/g, '');
         if (!compact) {
             continue;
         }
