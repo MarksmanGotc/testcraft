@@ -325,6 +325,57 @@ function parseMaterialAmountToken(token = '') {
     return null;
 }
 
+const OCR_AMOUNT_FRAGMENT_REGEX = /^[0-9oö°il|!zs§$bgq.,\s]+$/i;
+const OCR_AMOUNT_HAS_DIGIT_REGEX = /[0-9oö°il|!zs§$bgq]/i;
+const OCR_SUFFIX_ONLY_REGEX = /^[mkb]$/i;
+
+function collectAmountFromFollowingLines(lines, startIndex) {
+    let combined = '';
+    let bestAmount = null;
+    let bestIndex = null;
+
+    for (let j = startIndex; j < lines.length; j++) {
+        const candidate = lines[j];
+        if (!candidate) {
+            continue;
+        }
+
+        if (findMaterialNameFromText(candidate)) {
+            break;
+        }
+
+        const trimmed = candidate.trim();
+        if (!trimmed) {
+            continue;
+        }
+
+        const isSuffixOnly = OCR_SUFFIX_ONLY_REGEX.test(trimmed);
+        const hasDigits = OCR_AMOUNT_HAS_DIGIT_REGEX.test(trimmed);
+        const isNumericLike = OCR_AMOUNT_FRAGMENT_REGEX.test(trimmed);
+
+        if (!isSuffixOnly && (!hasDigits || !isNumericLike)) {
+            if (combined) {
+                break;
+            }
+            continue;
+        }
+
+        if (isSuffixOnly && !combined) {
+            continue;
+        }
+
+        combined = combined ? `${combined} ${trimmed}` : trimmed;
+
+        const parsed = parseMaterialAmountToken(combined);
+        if (parsed !== null) {
+            bestAmount = parsed;
+            bestIndex = j;
+        }
+    }
+
+    return { amount: bestAmount, amountIndex: bestIndex };
+}
+
 function extractMaterialsFromOcrText(text = '') {
     if (!text) return {};
     const lines = text
@@ -342,7 +393,11 @@ function extractMaterialsFromOcrText(text = '') {
         let amount = parseMaterialAmountToken(lines[i]);
         let amountIndex = amount !== null ? i : null;
 
-        if (amount === null) {
+        const { amount: combinedAmount, amountIndex: combinedIndex } = collectAmountFromFollowingLines(lines, i + 1);
+        if (combinedAmount !== null) {
+            amount = combinedAmount;
+            amountIndex = combinedIndex !== null ? combinedIndex : amountIndex;
+        } else if (amount === null) {
             for (let j = i + 1; j < lines.length; j++) {
                 const potentialAmount = parseMaterialAmountToken(lines[j]);
                 if (potentialAmount !== null) {
