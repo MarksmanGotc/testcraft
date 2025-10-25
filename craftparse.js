@@ -386,7 +386,7 @@ function normalizeOcrNumberPart(value = '') {
 // (for example the "o" in "Weirwood") are ignored and don't get mistaken for zero values.
 const OCR_NUMBER_TOKEN_REGEX = /((?=[0-9oö°il|!zs§$bgq.,\s]*[0-9])[0-9oö°il|!zs§$bgq.,\s]+)([mkb])?/gi;
 
-function parseMaterialAmountToken(token = '') {
+function parseSingleMaterialAmountToken(token = '') {
     if (!token) return null;
     const raw = token.toString();
     const matches = raw.matchAll(OCR_NUMBER_TOKEN_REGEX);
@@ -426,6 +426,92 @@ function parseMaterialAmountToken(token = '') {
     }
 
     return null;
+}
+
+const MATERIAL_TIER_MULTIPLIERS = Object.freeze([1, 4, 16, 64, 256, 1024]);
+
+function parseTieredMaterialAmount(token = '') {
+    if (!token) {
+        return null;
+    }
+
+    const raw = token.toString();
+    const trimmed = raw.trim();
+    if (!trimmed) {
+        return null;
+    }
+
+    const columnParts = trimmed
+        .split(/\s{2,}|\t+/)
+        .map(part => part.trim())
+        .filter(Boolean);
+
+    const usedColumnSplit = columnParts.length >= 2;
+    let candidateParts = usedColumnSplit
+        ? columnParts
+        : trimmed
+              .split(/\s+/)
+              .map(part => part.trim())
+              .filter(Boolean);
+
+    if (!usedColumnSplit && candidateParts.length <= 2) {
+        return null;
+    }
+
+    if (!usedColumnSplit && candidateParts.length > 2) {
+        const mergedParts = [];
+        for (let i = 0; i < candidateParts.length; i++) {
+            const current = candidateParts[i];
+            const next = candidateParts[i + 1];
+            if (
+                next &&
+                /^\d{1,3}$/.test(current) &&
+                /^\d{3}$/.test(next)
+            ) {
+                const combined = `${current}${next}`;
+                const combinedValue = parseSingleMaterialAmountToken(combined);
+                if (combinedValue !== null && combinedValue >= 1000) {
+                    mergedParts.push(combined);
+                    i += 1;
+                    continue;
+                }
+            }
+            mergedParts.push(current);
+        }
+        candidateParts = mergedParts;
+    }
+
+    const values = [];
+    for (const part of candidateParts) {
+        if (!part) {
+            continue;
+        }
+        const parsed = parseSingleMaterialAmountToken(part);
+        if (parsed === null) {
+            continue;
+        }
+        values.push(parsed);
+        if (values.length >= MATERIAL_TIER_MULTIPLIERS.length) {
+            break;
+        }
+    }
+
+    if (values.length < 3) {
+        return null;
+    }
+
+    return values.reduce((total, value, index) => {
+        const multiplier = MATERIAL_TIER_MULTIPLIERS[index] || MATERIAL_TIER_MULTIPLIERS[MATERIAL_TIER_MULTIPLIERS.length - 1];
+        return total + value * multiplier;
+    }, 0);
+}
+
+function parseMaterialAmountToken(token = '') {
+    const tieredAmount = parseTieredMaterialAmount(token);
+    if (tieredAmount !== null) {
+        return tieredAmount;
+    }
+    return parseSingleMaterialAmountToken(token);
 }
 
 const OCR_AMOUNT_FRAGMENT_REGEX = /^[0-9oö°il|!zs§$bgq.,\s]+$/i;
