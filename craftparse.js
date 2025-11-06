@@ -962,7 +962,7 @@ function initializeUpdateLog() {
     }
 
     const closeButton = overlay.querySelector('.close-popup');
-    const storageKey = 'noox-update-log-2025-10-22';
+    const storageKey = 'noox-update-log-2025-11-06';
     const storageSupported = isLocalStorageAvailable();
     const hasSeenUpdate = storageSupported ? window.localStorage.getItem(storageKey) === 'seen' : false;
 
